@@ -15,6 +15,7 @@ files:
   - "src/underwater/deepWatersWorld.js"
   - "src/world/rmbLayout.js"
   - "src/world/puddleDry.js"
+  - "src/world/puddleMask.js"
 routes: []
 tables: []
 replacesBible:
@@ -29,6 +30,9 @@ invariants:
   - "`BED_HALO_TILES` (`ceil(BED_RAMP / TILE_UNITS) + 1 = 4` neighbor tiles at `BED_RAMP = 19.2`, `TILE_UNITS = 6.4`) classifies shore neighbors via `tileDataAt` and `marchTile`."
   - "`bedBytesOf(p)` reads `p._dwBytes ?? p.tilemapBytes` and `dwRecarve` recarves from the grid when the Deep Waters cap lands or lifts, while `sheetDepthsOf` writes `SHEET_NO_BED = -NO_BED_DEPTH` over uncarved ground (tint only, no swell)."
   - "`GROUND_RECORD_LIMIT = 56` is the shared ground-marker ceiling across terrain stamps, `rmbLayout.js`, fixed towns, and `puddleDry.js`."
+  - "`dryPuddles` runs once inside `getBlock` in blocksFile.js so every reader of a block sees dried ground. Do not add a second call or dry a block outside that path."
+  - "`turnFraction` must match `PUDDLE_ROT` and `PUDDLE_TRANS` in render/waterSurface.js. The puddle mask is stored in the ground tile array's alpha channel, which every other reader ignores."
+  - "`WATER_MASK_TABLE` is DFU's physics table for swimming and town navigation; records that only look like water belong in `WATER_DRAW_MASK_TABLE`, because adding them to the physics table would change physics."
 traps:
   - "`WATER_OPACITY` was retired; do not reintroduce a uniform opacity floor on exterior water."
   - "Interiors (`worldModes.js`) and dungeons (`dungeonContext.js`) stay on classic `drawWater` (`WATER_SCROLL_TILES_PER_SEC = 0.05` applies to dungeon water only)."

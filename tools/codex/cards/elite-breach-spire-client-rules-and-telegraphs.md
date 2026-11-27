@@ -33,6 +33,8 @@ traps:
   - "Foreground occluders fade to `EG_OCCLUDE_KEEP` (0.25) over `EG_OCCLUDE_FADE_S` (0.2 s) across up to `EG_OCCLUDE_VIEWS_MAX` (64) views, but first-person and witness cameras skip occlusion fading."
   - "Shaft camera pitch bias (`SPIRE_SHAFT_PITCH` 20 degrees and `SPIRE_SHAFT_RISE_M` 1 m in `src/player/mwView.js`) turns off when reduced motion is enabled."
   - "Spire pseudo-archives reserve `EG_BAND_ARCHIVES` (38241, 38251, 38261, and 38271) and `EG_ARCH_ARCHIVES` (38281–38289)."
+  - "The hub signs whatever arch site the opener reports. `standCollider` therefore adds a collider only for the opener company (`mine`), so a stranger arch never blocks movement."
+  - "`EG_PERIL` copies `PERIL_BEARINGS`, `PERIL_STEP_M`, `PERIL_REACH_M`, and `PERIL_RIM_M` from `src/worldEvents/gateCourt.js`, and `EG_FLOOR_NEAR_M` matches the pad of `egStampFloors` on the relay; change them together."
 tags:
   - made-levels
   - telegraphs

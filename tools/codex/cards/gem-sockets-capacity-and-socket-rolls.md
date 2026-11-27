@@ -28,6 +28,7 @@ invariants:
   - "`socketPass` rolls one empty socket on unsocketed Rare (`150` per mille) and Legendary (`300` per mille) items in `SOCKET_GROUPS` via `SOCKET_PER_MILLE`."
   - "`weaponSocketPass` rolls a first socket on unsocketed weapons via `WEAPON_SOCKET_PER_MILLE` (`120` Magic, `250` Rare, `400` Legendary) and then rolls additional sockets via `MORE_SOCKET_PER_MILLE` (`300` Rare, `450` Legendary) up to `socketCap`, stopping on the first failed roll."
   - "`validSocket` (`src/items/itemLaw.js`) rejects items that carry both the legacy single-socket `socket` string field and the `sockets` array, exceed `socketCap`, or have gem affix lines that do not match `gemLine` in socket order."
+  - "`rollPass` draws in a fixed order from gold through `techniquePass`, and the Panoply choice and named-legendary check always take a draw; any new draw goes last."
 traps:
   - "`socketMax` reads static `WEAPON_HANDS` (`src/characters/equipRules.js`) without applying the player bow-hand preference setting, so toggling bow-hand options never alters a weapon's socket capacity."
   - "Tiers with a `0` roll chance consume no RNG draw in `weaponSocketPass`, so editing non-zero entries in `WEAPON_SOCKET_PER_MILLE` or `MORE_SOCKET_PER_MILLE` shifts downstream draws."

@@ -192,7 +192,7 @@ function gearSheet(el, r, rerender, kindName) {
   const armed = armedKind(r.mobileType), rank = Math.max(1, Math.min(5, r.rank | 0));
   const kind = kindName?.(r.mobileType) ?? t('rvn.gear.itsKind', 'Its kind');
   box.append(el('span', 'cmp-sub', armed
-    ? t('rvn.roster.kitCaps', 'At Rank {rank} it can wear up to {metal} and {tier} pieces. An empty slot keeps its own gear.', { rank: ROMAN[rank], metal: metalName(GEAR.METAL_CAP[rank]), tier: tierWord(GEAR.RARITY_CAP[rank]) })
+    ? t('rvn.roster.kitCaps', 'At Rank {rank}, it can equip up to {metal} and {tier} gear. Empty slots use its default gear.', { rank: ROMAN[rank], metal: metalName(GEAR.METAL_CAP[rank]), tier: tierWord(GEAR.RARITY_CAP[rank]) })
     : t('rvn.roster.kitCharm', '{kind} can\'t use weapons or armor, but it can wear a charm.', { kind })));
   const grid = el('div', 'cmp-gear');
   const worn = new Set(wornGear(r).map(([, it]) => it));
@@ -238,7 +238,7 @@ function gearSheet(el, r, rerender, kindName) {
     const nm = el('span', 'cmp-pickname', t('rvn.roster.pick', '{item} · {slot}', { item: itemLongName(it), slot: gearLabel(gearKeyOf(it)) }));
     const c = tone(it); if (c && nm.style) nm.style.color = c;
     const give = keyed(el('button', `act${why ? '' : ' primary'}`, t('rvn.roster.give', 'Give')), `cmp-${r.id}-give-${i}`);
-    give.title = why ?? t('rvn.roster.giveTip', 'It wears this from now on. You can take it back at any time.');
+    give.title = why ?? t('rvn.roster.giveTip', 'Equip this item on your companion. You can take it back at any time.');
     give.onclick = () => { const no = giveSwornGear(r.id, it, { kindName: kind }); _notice = no ? { id: r.id, text: no } : null; rerender(); };
     line.append(nm, give);
     list.append(line);
@@ -262,8 +262,8 @@ export function starsLine(r) {
 /** RVN-ERRAND (Revenants.md section 42): SEND IT ABROAD - a venture, and the nine provinces with their days, danger and odds. */
 function errandSheet(el, r, rerender, now) {
   const box = el('div', 'cmp-sheet');
-  box.setAttribute?.('aria-label', t('rvn.roster.abroadHead', 'Send it abroad'));   // AUDIT RVN D15
-  box.append(el('span', 'cmp-sheethead', t('rvn.roster.abroadHead', 'Send it abroad')));
+  box.setAttribute?.('aria-label', t('rvn.roster.abroadHead', 'Send abroad'));   // AUDIT RVN D15
+  box.append(el('span', 'cmp-sheethead', t('rvn.roster.abroadHead', 'Send abroad')));
   const why = errandRefusal(r, now);
   if (why) box.append(el('span', 'cmp-why', why));
   const vents = el('div', 'cmp-vents');
@@ -285,17 +285,17 @@ function errandSheet(el, r, rerender, now) {
       : t('rvn.roster.destHours', '{place} · {hours} hours, danger {danger}', { place: p.name, hours: Math.round(mins / 60), danger: ROMAN[p.danger] }));
     name.append(el('span', ODDS_CLASS[oddsKind(odds)], t('rvn.roster.odds', '{word} {pct}%', { word: oddsWord(odds), pct: Math.round(odds * 100) })));
     const go = keyed(el('button', `act${why ? '' : ' primary'}`, t('rvn.roster.send', 'Send')), `cmp-${r.id}-send-${p.key}`);
-    go.title = why ?? t('rvn.roster.sendTip', 'It leaves for {place} on a {venture} errand', { place: p.name, venture: VENTURES[_venture].label });
+    go.title = why ?? t('rvn.roster.sendTip', 'Send to {place} on a {venture} mission', { place: p.name, venture: VENTURES[_venture].label });
     go.onclick = () => { const no = sendOnErrand(r.id, p.key, _venture); _notice = no && no !== why ? { id: r.id, text: no } : null; if (!no) _sheet = null; rerender(); };   // AUDIT RVN D14: a refusal the sheet already says is not said twice
     line.append(name, go);
     list.append(line);
   }
   box.append(list);
   // AUDIT RVN D13: every number its constant's; F1: online, what carries it on
-  box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLaw', 'Danger runs from I to V. Its rank and gear improve its odds. Its haul goes to your purse, your pack and your Materials Bag. A hard-won mission brings back {pct}% of the haul, and it must rest after. Up to {n} can be abroad at once.', { pct: Math.round(ERRAND.HARD_SHARE * 100), n: ERRAND.MAX })));
+  box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLaw', 'Danger runs from I to V, and rank and gear improve the odds. Hauls go to your purse, pack, and Materials Bag. Hard-won missions return {pct}% of the haul and need rest. Up to {n} can be abroad at once.', { pct: Math.round(ERRAND.HARD_SHARE * 100), n: ERRAND.MAX })));
   // OFFLINE-ROAD (FIELD BUGS 2026-10-21): online an errand keeps the world's time, away or not - a day abroad its real hours
   // read off the wire's rate (AUDIT FB1021 L3-5: never typed - AUDIT RVN D13's rule)
-  if (sharedClockOn()) box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLived', 'Online, a mission keeps real time: it goes on while you\'re away, {h, plural, one {# real hour} other {# real hours}} for each day abroad. Resting, waiting or traveling doesn\'t speed it up.', { h: ERRAND_REAL_HOURS_A_DAY })));
+  if (sharedClockOn()) box.append(el('span', 'cmp-foot', t('rvn.roster.abroadLived', 'Online missions run in real time and continue while you are away ({h, plural, one {# real hour} other {# real hours}} per day abroad). Resting, waiting, or traveling does not speed them up.', { h: ERRAND_REAL_HOURS_A_DAY })));
   return box;
 }
 
@@ -342,7 +342,7 @@ function row(el, r, { now, rerender, meter, here, kindName, stars }) {
     text.append(el('span', 'cmp-confirm', t('rvn.roster.recallAsk', 'Recall {name}? It returns now with nothing and must rest.', { name: r.name })));
     const yes = keyed(el('button', 'act warn', t('rvn.roster.recall', 'Recall')), `cmp-${r.id}-recall-yes`);
     yes.onclick = () => { _recall = null; _notice = null; recallFromErrand(r.id); rerender(); };
-    const no = keyed(el('button', 'act', t('rvn.roster.recallKeep', 'Let it go on')), `cmp-${r.id}-recall-no`);
+    const no = keyed(el('button', 'act', t('rvn.roster.recallKeep', 'Continue mission')), `cmp-${r.id}-recall-no`);
     no.onclick = () => { _recall = null; rerender(); };
     acts.append(yes, no);
   } else if (state === 'errand') {   // RVN-ERRAND: abroad - recalled, empty-handed; its oath is given back to its face
@@ -362,7 +362,7 @@ function row(el, r, { now, rerender, meter, here, kindName, stars }) {
       call.onclick = () => { const no = callRevenant(r.id, now); _notice = no ? { id: r.id, text: no } : null; rerender(); };
       acts.append(call);
     }
-    for (const [kind, label, tip] of [['gear', t('rvn.roster.gear', 'Gear'), t('rvn.roster.gearTip', 'Give it a weapon, armor or a charm from your pack')], ['errand', t('rvn.roster.mission', 'Mission'), t('rvn.roster.missionTip', 'Send it abroad and it comes back with a haul')]]) {   // RVN-GEAR, RVN-ERRAND
+    for (const [kind, label, tip] of [['gear', t('rvn.roster.gear', 'Gear'), t('rvn.roster.gearTip', 'Give it a weapon, armor, or a charm from your pack')], ['errand', t('rvn.roster.mission', 'Mission'), t('rvn.roster.missionTip', 'Send it abroad and it comes back with a haul')]]) {   // RVN-GEAR, RVN-ERRAND
       const open = _sheet?.id === r.id && _sheet.kind === kind;
       const b = keyed(el('button', `act${open ? ' on' : ''}`, label), `cmp-${r.id}-sheet-${kind}`);
       b.setAttribute?.('aria-expanded', open ? 'true' : 'false');   // AUDIT RVN D15
@@ -372,7 +372,7 @@ function row(el, r, { now, rerender, meter, here, kindName, stars }) {
     }
     if (typeof stars === 'function') {   // RVN-STARS: its sky, over this window
       const b = keyed(el('button', `act${rvnStarsOf(r).points > rvnStarsOf(r).set ? ' primary' : ''}`, t('rvn.roster.stars', 'Stars')), `cmp-${r.id}-stars`);
-      b.title = t('rvn.roster.starsTip', 'Spend its star points on health, damage, its art and missions');
+      b.title = t('rvn.roster.starsTip', 'Spend its star points on health, damage, its art, and missions');
       b.onclick = () => { _notice = null; stars(r.id); };
       acts.append(b);
     }
@@ -404,7 +404,7 @@ function minionRow(el, m, { rerender, meter }) {
   }
   const acts = el('div', 'cmp-acts');
   if (_confirm === key) {
-    text.append(el('span', 'cmp-confirm', t('necro.roster.releaseAsk', 'Release your {name}? It crumbles back into the dead and frees its slot.', { name: m.name.toLowerCase() })));
+    text.append(el('span', 'cmp-confirm', t('necro.roster.releaseAsk', 'Release your {name}? It will crumble to dust and free its minion slot.', { name: m.name.toLowerCase() })));
     const yes = keyed(el('button', 'act warn', t('necro.roster.release', 'Release')), `cmp-${key}-release-yes`);
     yes.onclick = () => { _confirm = null; releaseMinion(m.id); rerender(); };
     const no = keyed(el('button', 'act', t('necro.roster.keep', 'Keep')), `cmp-${key}-release-no`);
@@ -412,7 +412,7 @@ function minionRow(el, m, { rerender, meter }) {
     acts.append(yes, no);
   } else {
     const b = keyed(el('button', `act${m.waiting ? ' primary' : ''}`, m.waiting ? t('necro.roster.call', 'Call') : t('necro.roster.wait', 'Wait')), `cmp-${key}-wait`);
-    b.title = m.waiting ? t('necro.roster.callTip', 'It comes back to your side') : t('necro.roster.waitTip', 'It holds this spot. Leave the area and it stays behind until you call it');
+    b.title = m.waiting ? t('necro.roster.callTip', 'Call this minion back to your side.') : t('necro.roster.waitTip', 'Have this minion wait here. If you leave the area, it stays behind until you call it.');
     b.onclick = () => { setMinionWaiting(m.id, !m.waiting); rerender(); };
     const rel = keyed(el('button', 'act', t('necro.roster.release', 'Release')), `cmp-${key}-release`);
     rel.onclick = () => { _confirm = key; _notice = null; rerender(); };

@@ -77,7 +77,7 @@ export function rvnStarStatWords(key, v) {
     case 'haul': return t('rvn.stars.stat.haul', 'Mission gold and materials {n}', { n: `${sign}${pct(a)}` });
     case 'road': return v >= 0 ? t('rvn.stars.stat.roadShort', 'Missions {n} shorter', { n: pct(a) }) : t('rvn.stars.stat.roadLong', 'Missions {n} longer', { n: pct(a) });
     case 'loyal': return t('rvn.stars.stat.loyal', 'Loyalty losses {n} smaller', { n: pct(a) });
-    case 'rest': return t('rvn.stars.stat.restShorter', 'Rests {n} shorter', { n: pct(a) });   // AUDIT RVN-STARS S26: half the rest is twice as fast, not 50% faster
+    case 'rest': return t('rvn.stars.stat.restShorter', 'Rest time {n} shorter', { n: pct(a) });   // AUDIT RVN-STARS S26: half the rest is twice as fast, not 50% faster
     default: return `${key} ${sign}${pct(a)}`;
   }
 }
@@ -103,8 +103,8 @@ export function rvnStarRefusal(held, id, points) {
 export function rvnArtNote(r) {
   if (!r) return '';
   const born = drawArt(r.id, r.mobileType), now = artOf(r), taught = taughtArt(r.id, r.mobileType);
-  if (born) return t('rvn.stars.art.born', 'Its art: {art}. The Grave makes it stronger and quicker.', { art: ART_NAMES[born] });
-  if (now) return t('rvn.stars.art.awakened', 'Its art: {art}, awakened by its stars. The Grave makes it stronger and quicker.', { art: ART_NAMES[now] });
+  if (born) return t('rvn.stars.art.born', 'Art: {art}. The Grave makes it stronger and faster.', { art: ART_NAMES[born] });
+  if (now) return t('rvn.stars.art.awakened', 'Art: {art}, awakened by its stars. The Grave makes it stronger and faster.', { art: ART_NAMES[now] });
   return taught ? t('rvn.stars.art.none', 'It was born without an art. Awakened Art would teach it {art}.', { art: ART_NAMES[taught] }) : '';
 }
 
@@ -159,7 +159,7 @@ export function mountRevenantStarsWindow(host, { id, book = swornStarsBook(id), 
       const level = el('span', 'fmt-purse');
       level.replaceChildren(el('span', null, t('rvn.stars.level', 'Level')), el('b', null, String(c.level)),
         el('span', 'of', c.next == null ? t('rvn.stars.top', 'max') : t('rvn.stars.xp', '{xp} of {next} XP', { xp: formatNumber(c.xp), next: formatNumber(c.next) })));   // AUDIT RVN-STARS S25: the player's own grouping
-      level.title = t('rvn.stars.levelTip', 'It earns experience from fights won at your side (more for stronger enemies) and from missions it returns from.');
+      level.title = t('rvn.stars.levelTip', 'It earns experience by winning fights at your side (more for stronger enemies) and returning from missions.');
       const pts = el('span', 'fmt-purse life');
       pts.replaceChildren(el('span', null, '★'), el('b', null, String(Math.max(0, left))), el('span', 'of', t('rvn.stars.of', 'of {n}', { n: points })));
       pts.title = t('rvn.stars.pointsTip', 'One point per level after the first, and one per rank past the first.');
@@ -173,12 +173,12 @@ export function mountRevenantStarsWindow(host, { id, book = swornStarsBook(id), 
       if (!lines.length) ul.append(el('li', 'none', t('rvn.stars.none', 'No stars taken yet. Start next to the Oath.')));
       for (const l of lines) ul.append(el('li', l.neg ? 'neg' : null, l.text));
       parts.push(ul);
-      parts.push(el('h3', null, ASPECTS.blade()), el('p', 'fmt-sign', t('rvn.stars.bladeLore', 'Its body: health and damage.')));
-      parts.push(el('h3', null, ASPECTS.grave()), el('p', 'fmt-sign', t('rvn.stars.graveLore', 'Its art: how strong it is, how often it can use it, and an art for a revenant born without one.')));
+      parts.push(el('h3', null, ASPECTS.blade()), el('p', 'fmt-sign', t('rvn.stars.bladeLore', 'Increases health and damage.')));
+      parts.push(el('h3', null, ASPECTS.grave()), el('p', 'fmt-sign', t('rvn.stars.graveLore', 'Improves art strength and how often it is used, and can teach an art to a revenant born without one.')));
       const art = rvnArtNote(r);
       if (art) parts.push(el('p', 'fmt-note', art));
-      parts.push(el('h3', null, ASPECTS.road()), el('p', 'fmt-sign', t('rvn.stars.roadLore', 'Missions and loyalty: mission odds, loot, travel time, loyalty and rest.')));
-      parts.push(el('p', 'fmt-note', t('rvn.stars.note', 'Changing its stars is free, but not while it\'s away. Its health and damage change at once.')));
+      parts.push(el('h3', null, ASPECTS.road()), el('p', 'fmt-sign', t('rvn.stars.roadLore', 'Missions and loyalty: mission odds, loot, travel time, loyalty, and rest.')));
+      parts.push(el('p', 'fmt-note', t('rvn.stars.note', 'You can change its stars for free whenever it isn\'t away. Health and damage update immediately.')));
       const why = book.refusal();
       if (why) parts.push(el('p', 'fmt-note', why));
       return parts;
@@ -194,8 +194,8 @@ export function mountRevenantStarsWindow(host, { id, book = swornStarsBook(id), 
       accept: t('rvn.stars.accept', 'Accept'), acceptN: (n) => t('rvn.stars.acceptN', 'Accept ({n})', { n }),
       summary: t('rvn.stars.summary', 'Summary'), home: t('rvn.stars.oathBtn', 'Oath'), homeAria: t('rvn.stars.oathAria', 'Center on the Oath'),
       close: t('rvn.stars.close', 'Close'),
-      hint: t('rvn.stars.hint', 'Click a star to take it and the stars on the way to it · Right-click to remove · Drag to pan · Scroll to zoom · H: back to the Oath'),
-      hintTouch: t('rvn.stars.hintTouch', 'Tap a star to see it, tap again to take it · Hold a star to remove it · Drag to pan · Pinch to zoom'),
+      hint: t('rvn.stars.hint', 'Click a star to take it and its path. Right-click to remove. Drag to pan, scroll to zoom, or press H to center on the Oath.'),
+      hintTouch: t('rvn.stars.hintTouch', 'Tap a star to inspect it, and tap again to take it. Hold a star to remove it. Drag to pan, or pinch to zoom.'),
       unaccepted: t('rvn.stars.unaccepted', 'You have unaccepted changes. Press {accept} to keep them, or close again to discard them.', { accept: t('rvn.stars.accept', 'Accept') }),
       unacceptedEsc: t('rvn.stars.unacceptedLeave', 'You have unaccepted changes. Press {accept} to keep them, or leave again to discard them.', { accept: t('rvn.stars.accept', 'Accept') }),   // AUDIT GROWTH LANE4-1: the sheet's key, not Close
       set: t('rvn.stars.set', 'Stars saved.'),

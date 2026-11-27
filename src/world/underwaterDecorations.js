@@ -1,41 +1,4 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// DW-E2 (2026-09-25): ILIAC PUDDLE NO MORE'S SEAFLOOR DECORATIONS -
-// UnderwaterDecorationCatalog.cs, UnderwaterDecorations.cs and the
-// placement half of UnderwaterDecorationBatchFactory.cs (jet082, 1.2.2).
-//
-// THE CATALOG. Six pools of Daggerfall's own flats - weed, coral, rocks,
-// dead sea life - one per water biome (the climate's: PassiveFishSpecies
-// Catalog.ClimateToBiome), each a list with a record repeated as many
-// times as its weight, so a uniform draw from the list is the weighted
-// draw. Archive 106 records 2-6 are animated (5 frames a second).
-//
-// THE PLACEMENT, per map pixel, seeded by the pixel (Random.InitState(
-// TileDecorationSeed)): a pass count off the Decoration Frequency (its
-// fraction a roll), more in the open ocean and fewer in the desert's; each
-// pass walks the heightmap three samples at a time with a jitter of up to
-// two, keeps a sample under the sea, stands a picked record on the floor
-// mesh's own triangle there - at least 8 m of water, at most 35 degrees of
-// slope, clear of the floor by a quarter metre (three quarters for the
-// animated) and of the surface by half a metre at 1.2x the record's height
-// - five metres from every other, until the per-pixel cap; past the cap
-// the list is shuffled and cut.
-//
-// THE WORK, as the mod paces it: one pixel placed a frame at most, one
-// placed batch stood a frame (a pixel is placed only once its floor is
-// built, and again whenever the floor is rebuilt); the player's own pixel
-// keeps what it has; pixels within the Decoration Populate Radius of the
-// player's, re-enqueued when the player crosses into a new pixel; heavy
-// work only (DeepWaterRuntime), and not in a frame the promote work
-// already spent a millisecond in (DeepWaterPromoteTiming).
-//
-// THE SEEDED STREAM (Port-Ledger A, the engine-internal randomness row):
-// the mod seeds UnityEngine.Random per pixel; the port seeds Unity.
-// Mathematics' xorshift (formats/umRandom.js) with the same seed - the
-// same placement on every visit to a pixel, different concrete positions.
-// The mod's unseeded draws at spawn time (a replacement's random scale, a
-// batch's random start frame) are the host's (scenes/deepWater/deepWatersDecor.js).
-// ═══════════════════════════════════════════════════════════════════
 
 import { UMRandom } from '../formats/umRandom.js';
 import { HEIGHTMAP_DIMENSION } from './terrainSampler.js';
@@ -45,10 +8,8 @@ import { DW_OCEAN_LOCAL_Y } from './deepWatersPixel.js';
 
 const f32 = Math.fround;
 
-// ── WaterBiome + PassiveFishSpeciesCatalog.ClimateToBiome ──────────
 export const WATER_BIOME = Object.freeze({ None: 0, OpenOcean: 1, Tropical: 2, Temperate: 4, Swamp: 8, Cold: 0x10, Desert: 0x20, Any: 0x3f });
 
-/** ClimateToBiome: the pixel's climate to its water biome (the open ocean for any other). */
 export function climateToBiome(climateIndex) {
   switch (climateIndex) {
     case 223: return WATER_BIOME.OpenOcean;
@@ -61,8 +22,6 @@ export function climateToBiome(climateIndex) {
   }
 }
 
-// ── UnderwaterDecorationCatalog ─────────────────────────────────────
-/** A record, [archive, record]. */
 const R = (archive, record) => Object.freeze({ archive, record });
 const add = (list, rec, weight) => { for (let i = 0; i < weight; i++) list.push(rec); };
 const addMany = (list, weight, ...recs) => { for (const r of recs) add(list, r, weight); };
@@ -149,49 +108,34 @@ export const DECORATION_POOLS = Object.freeze({
   [WATER_BIOME.Desert]: Object.freeze(buildDesertPool()),
 });
 
-/** PoolForBiome: the biome's pool, the open ocean's for any other. */
 export const poolForBiome = (biome) => DECORATION_POOLS[biome] ?? DECORATION_POOLS[WATER_BIOME.OpenOcean];
 
-/** PickRecord: a uniform draw from the climate's biome's pool (Random.Range(0, Length)). */
 export function pickRecord(climateIndex, rng) {
   const pool = poolForBiome(climateToBiome(climateIndex));
   return pool[rng.range(0, pool.length)];
 }
 
-/** Texture106FramesPerSecond: archive 106 animates at 5 frames a second, nothing else does. */
 export const TEXTURE_106_FPS = 5;
 export const framesPerSecondOf = (archive) => (archive === 106 ? TEXTURE_106_FPS : 0);
-/** UsesArchiveAnimation: archive 106, records 2 to 6. */
 export const usesArchiveAnimation = (rec) => rec.archive === 106 && rec.record >= 2 && rec.record <= 6;
 
-// ── the placement constants (UnderwaterDecorations) ─────────────────
 export const MAX_DECORATIONS_PER_TILE_HARD_CAP = 2304;
 export const SAMPLE_STRIDE = 3;
 export const MINIMUM_DECORATION_SPACING = 5;
 export const MINIMUM_SEAFLOOR_DEPTH = 8;
-export const DECORATION_SEAFLOOR_CLEARANCE = 0.25;            // SeafloorClearance (the swimmer's is another: scenes/deepWater/deepWatersSwimMove.js)
-export const ANIMATED_DECORATION_SEAFLOOR_CLEARANCE = 0.75;   // AnimatedSeafloorClearance
+export const DECORATION_SEAFLOOR_CLEARANCE = 0.25;
+export const ANIMATED_DECORATION_SEAFLOOR_CLEARANCE = 0.75;
 export const SURFACE_DECORATION_CLEARANCE = 0.5;
 export const MAX_DECORATION_SLOPE_DEGREES = 35;
-/** A replacement's random scale (DecorationScaleMin .. Max); the surface clearance is tested at the max, the biggest it may draw. */
 export const DECORATION_SCALE_MIN = 0.7;
 export const DECORATION_SCALE_MAX = 1.2;
-/** BubbleFallbackVisualHeight: archive 106's height where the record has none, in metres (72 native units). */
 export const BUBBLE_FALLBACK_VISUAL_HEIGHT = f32(1.8000001);
 
-/** GetSeafloorClearance. */
 export const seafloorClearance = (rec) => (usesArchiveAnimation(rec) ? ANIMATED_DECORATION_SEAFLOOR_CLEARANCE : DECORATION_SEAFLOOR_CLEARANCE);
 
-/** TileDecorationSeed and GetSpacingCellKey: (x * 73856093) ^ (y * 19349663), in int32. */
 export const tileDecorationSeed = (x, y) => Math.imul(x, 73856093) ^ Math.imul(y, 19349663);
 export const spacingCellKey = (x, z) => Math.imul(x, 73856093) ^ Math.imul(z, 19349663);
 
-/**
- * The port's stand-in for a UnityEngine.Random stream seeded by
- * Random.InitState(seed): Unity.Mathematics' xorshift over the same seed
- * (a zero seed, which that generator cannot take, becomes a fixed one).
- * Range semantics as Unity's: an int range's max is exclusive.
- */
 export function seededUnityRandom(seed) {
   const s = seed >>> 0;
   const rng = new UMRandom(s === 0 ? 0x6e624eb7 : s);
@@ -202,7 +146,6 @@ export function seededUnityRandom(seed) {
   };
 }
 
-/** RollDecorationPasses: the Decoration Frequency's whole passes, and its fraction as a chance of one more. */
 export function rollDecorationPasses(frequency, rng) {
   const num = Math.max(0, frequency);
   let n = Math.floor(num);
@@ -210,7 +153,6 @@ export function rollDecorationPasses(frequency, rng) {
   return n;
 }
 
-/** DecorationPassesForBiome: the open ocean 1.35x the passes, the desert 0.55x (rounded up). */
 export function decorationPassesForBiome(passes, climateIndex) {
   if (passes <= 0) return 0;
   switch (climateToBiome(climateIndex)) {
@@ -220,7 +162,6 @@ export function decorationPassesForBiome(passes, climateIndex) {
   }
 }
 
-/** CanPlaceDecoration: five metres clear of every placed decoration (a 5 m grid, the 3 x 3 around); a pass records it. */
 export function canPlaceDecoration(localPos, spacingGrid) {
   const cx = Math.floor(localPos[0] / MINIMUM_DECORATION_SPACING);
   const cz = Math.floor(localPos[2] / MINIMUM_DECORATION_SPACING);
@@ -244,12 +185,6 @@ export function canPlaceDecoration(localPos, spacingGrid) {
 }
 
 /**
- * TryGetAuthoredDecorationVisualHeight: the record's billboard height in
- * metres - its scaled size (MeshReader.GetScaledBillboardSize x 0.025);
- * archive 106's 1.8 m where the record has none; with a replacement (and
- * not an animated record) the replacement's own batch height when taller.
- * 0 when the record cannot be read (the record is then never placed).
- * Sizes are metres ({w, h}, world/rmbFlats.js scaledBillboardSize's).
  * @param {{archive: number, record: number}} rec
  * @param {{scaledSize: (rec: {archive: number, record: number}) => ?{w: number, h: number},
  *          replacementSize?: (rec: {archive: number, record: number}) => ?{w: number, h: number}}} source
@@ -269,20 +204,19 @@ export function authoredVisualHeight(rec, source) {
 }
 
 /**
- * GenerateBillboardPositions: one pass over a pixel's heightmap.
  * @param {object} a
- * @param {{samples: Float32Array}} a.mapData - the pixel's heightmap (heightmapSamples[a, b] through heightSample)
- * @param {?object} a.floor - the pixel's floor mesh (TrySampleMeshLocalYAndSlope)
- * @param {number} a.climateIndex - the tile data's biome climate
- * @param {Array<{archive: number, record: number, local: number[]}>} a.positions - appended to
+ * @param {{samples: Float32Array}} a.mapData
+ * @param {?object} a.floor
+ * @param {number} a.climateIndex
+ * @param {Array<{archive: number, record: number, local: number[]}>} a.positions
  * @param {Map<number, number[][]>} a.spacingGrid
  * @param {ReturnType<typeof seededUnityRandom>} a.rng
- * @param {(rec: {archive: number, record: number}) => number} a.visualHeight - the record's authored height (0: never placed)
+ * @param {(rec: {archive: number, record: number}) => number} a.visualHeight
  */
 export function generateBillboardPositions({ mapData, floor, climateIndex, positions, spacingGrid, rng, visualHeight }) {
   const oceanLocalY = DW_OCEAN_LOCAL_Y;
   const length = HEIGHTMAP_DIMENSION, length2 = HEIGHTMAP_DIMENSION;
-  const size = TILE_WORLD_SIZE_F32;   // terrainData.size.x / .z (AUDIT PRE-MERGE 0928 H4: the one float form, deepWaterFloor.js)
+  const size = TILE_WORLD_SIZE_F32;
   for (let i = 0; i < length - 1; i += SAMPLE_STRIDE) {
     for (let j = 0; j < length2 - 1; j += SAMPLE_STRIDE) {
       const num3 = i + rng.range(0, 3);
@@ -293,7 +227,6 @@ export function generateBillboardPositions({ mapData, floor, climateIndex, posit
       const hit = floor ? sampleMeshLocalYAndSlope(floor, lx, lz) : null;
       if (!hit || oceanLocalY - hit.localY < MINIMUM_SEAFLOOR_DEPTH || hit.slopeDegrees > MAX_DECORATION_SLOPE_DEGREES) continue;
       const rec = pickRecord(climateIndex, rng);
-      // TryGetDecorationVisualHeight(record, 1.2f): the authored height at the largest a replacement may draw
       const authored = visualHeight(rec);
       if (!(authored > 0)) continue;
       const vh = f32(authored * Math.max(0.01, DECORATION_SCALE_MAX));
@@ -305,7 +238,6 @@ export function generateBillboardPositions({ mapData, floor, climateIndex, posit
   }
 }
 
-/** BuildDecorationPositions: the biome's passes until the cap (checked after each pass). */
 export function buildDecorationPositions({ mapData, floor, climateIndex, passes, cap, rng, visualHeight }) {
   const positions = [];
   const spacingGrid = new Map();
@@ -317,7 +249,6 @@ export function buildDecorationPositions({ mapData, floor, climateIndex, passes,
   return positions;
 }
 
-/** TrimDecorationPositions: past the cap, a Fisher-Yates shuffle from the end (Random.Range(0, i + 1)), then cut. */
 export function trimDecorationPositions(positions, cap, rng) {
   if (!positions || positions.length <= cap) return positions;
   for (let i = positions.length - 1; i > 0; i--) {
@@ -328,17 +259,9 @@ export function trimDecorationPositions(positions, cap, rng) {
   return positions;
 }
 
-/** GetDecorationCap: the setting, 1..2304 (the setting's own range is 64..2304). */
 export const decorationCap = (maxPerTile) => Math.min(MAX_DECORATIONS_PER_TILE_HARD_CAP, Math.max(1, maxPerTile | 0));
-/** GetPopulateRadius: the setting, 1..3. */
 export const populateRadius = (radius) => Math.min(3, Math.max(1, radius | 0));
 
-/**
- * PopulateTile's placement: the pixel's own stream, the passes rolled, the
- * positions built and trimmed. Null when the roll gave no pass (the pixel
- * is then marked current with none); otherwise the positions, which may be
- * none (the pixel is then asked again the next time it is queued).
- */
 export function placeTileDecorations({ mapPixelX, mapPixelY, mapData, floor, climateIndex, frequency, cap, visualHeight }) {
   const rng = seededUnityRandom(tileDecorationSeed(mapPixelX, mapPixelY));
   const passes = rollDecorationPasses(frequency, rng);
@@ -348,20 +271,12 @@ export function placeTileDecorations({ mapPixelX, mapPixelY, mapData, floor, cli
   return positions;
 }
 
-// ── GetEdgeCleanedTexture (UnderwaterDecorationBatchFactory) ────────
-/** IsTransparentPadding: alpha under 16, or a near-black texel (every channel 12 or less). */
 export function isTransparentPadding(data, i) {
   if (data[i + 3] < 16) return true;
   return data[i] <= 12 && data[i + 1] <= 12 && data[i + 2] <= 12;
 }
 
 /**
- * ClearEdgeBlackPixels: a flood from the texture's four edges through its
- * padding (4-neighbours) - every texel it reaches is made fully
- * transparent, so the black a sprite's outline carries against its
- * transparent surround goes and the sprite reads clean against the water.
- * `data` is RGBA, row by row. Returns true when a texel changed (the C#
- * then keeps the cleaned copy; false keeps the source).
  * @param {{width: number, height: number, data: Uint8Array | Uint8ClampedArray}} img
  */
 export function clearEdgeBlackPixels(img) {

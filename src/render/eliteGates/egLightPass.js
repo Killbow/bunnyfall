@@ -1,42 +1,20 @@
 // @ts-check
-// EG-ZE (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md sections 7, 16.2, 16.4, 16.5,
-// 27.3 and 27.5): THE SPIRE'S LIGHTS - what world/eliteGates/egLights.js egSpireLights says stands, drawn in one pass:
-//   A BEAM      the door's over its END PLATE and the Redoubt's beacon at the court's heart: a column facing the eye
-//               about its own axis, a soft core and a glow either side, fading up to nothing, a slow ripple climbing it
-//               (none under reduced motion); it keeps EG_DOOR_BEAM.fog through any haze - seen hall-wide;
-//   A PILLAR    a ping's and a recall's: the same column, firmer, fading up;
-//   A RING      the closing's at the door's reach, its arc lit to the closing's seconds left and the spent arc dim; a
-//               witness's mark: flat on the floor, a band with soft edges;
-//   A GLYPH     over a ping's pillar (here a ring, danger a triangle with its bar, mine a diamond) and over a witness's
-//               mark (an eye): a square facing the eye, its shape drawn by distance.
-// Every vertex written on the CPU a frame into one kept buffer (`egLightVertices` - a column faces the eye about its axis,
-// a glyph faces the screen by the view's own right and up; nothing made a frame), blended additively - light added to
-// what it stands in, never painted over it (a glyph a little more, so its shape reads). READABLE IN THE FOG (section 25.6):
-// THE FOG FLOOR within its 30 m (world/eliteGates/egLook.js EG_FOG_FLOOR) and a beam's own floor past it, the light faded with the
-// fog rather than mixed toward its colour (light in a haze dims; it does not turn grey). Depth-tested, never written,
-// drawn after THE EDGE LINE by its host (scenes/eliteGates/egLookDraw.js).
-//
-// A foreign pass: it owns its program and its state; the host marks it. Not a DFU member. Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
 import { FOG_FACTOR_GLSL } from '../labGrass.js';
 import { EG_FOG_FLOOR } from '../../world/eliteGates/egLook.js';
 import { EG_LIGHT_KIND, EG_LIGHTS_MAX, EG_DOOR_BEAM, EG_CLOSING_RING } from '../../world/eliteGates/egLights.js';
 
-/** Floats a vertex: aP xyz, aUV (across, along), aK (kind, glyph or ring's lit arc), aC (rgb, strength). */
 export const EG_LIGHT_FLOATS = 10;
-/** The sides of a ring. */
 export const EG_RING_SIDES = 32;
-/** The kept buffer's room (vertices): every light a ring's worth. */
 export const EG_LIGHT_VERTS_MAX = EG_LIGHTS_MAX * EG_RING_SIDES * 6;
-/** A quad's six corners: [across, along]. */
 const QUAD = Object.freeze([[-1, 0], [1, 0], [1, 1], [-1, 0], [1, 1], [-1, 1]]);
 
 /**
- * The lights (world/eliteGates/egLights.js egSpireLights) as the pass's vertices into `out` - `eye` the camera, `right` and `up` the
- * view's own axes (a glyph faces the screen by them). Answers how many vertices it wrote (never past `out`'s room). A beam
- * or a pillar faces the eye about its upright axis; a glyph's `aK.y` its shape, a ring's its lit arc. Pure (it writes only
- * `out`).
- * @param {any[]} lights @param {ArrayLike<number>} eye @param {ArrayLike<number>} right @param {ArrayLike<number>} up @param {Float32Array} out
+ * @param {any[]} lights
+ * @param {ArrayLike<number>} eye
+ * @param {ArrayLike<number>} right
+ * @param {ArrayLike<number>} up
+ * @param {Float32Array} out
  */
 export function egLightVertices(lights, eye, right, up, out) {
   const room = Math.floor(out.length / EG_LIGHT_FLOATS);
@@ -70,7 +48,6 @@ export function egLightVertices(lights, eye, right, up, out) {
       continue;
     }
     if (!(L.h > 0)) continue;
-    // a column: faces the eye about its upright axis (its side square to the line from the eye in the ground's plane)
     let dx = eye[0] - L.x, dz = eye[2] - L.z;
     const d = Math.hypot(dx, dz);
     if (d > 1e-4) { dx /= d; dz /= d; } else { dx = 0; dz = 1; }
@@ -157,11 +134,8 @@ void main() {
   o = vec4(vCol * I * f, a * f);
 }`;
 
-/** FIRST-USE (#1144): the pass's one program, as its constructor builds it - what the hall's load starts and the
- *  look's door waits on (render/glProgram.js startPrograms, compiledPass). */
 export const EG_LIGHT_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[EG_LIGHT_VS, EG_LIGHT_FS]]));
 
-/** The pass. */
 export class EgLightPass {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -184,15 +158,11 @@ export class EgLightPass {
     this._right = new Float32Array(3); this._up = new Float32Array(3);
     this.drawn = 0;
   }
-  /**
-   * Draw `lights` (world/eliteGates/egLights.js egSpireLights) onto the frame - `eye` the camera, `fog` the frame's ({ mode,
-   * density, range, camPos }), `seconds` any clock, `still` reduced motion. Answers whether anything drew.
-   */
   draw(proj, view, eye, seconds, fog = null, lights = null, still = false) {
     this.drawn = 0;
     if (!lights?.length) return false;
     const gl = this.gl, U = this.u, V = this._vp, R = this._right, P = this._up;
-    R[0] = view[0]; R[1] = view[4]; R[2] = view[8];   // the view's own right and up (its rotation's rows)
+    R[0] = view[0]; R[1] = view[4]; R[2] = view[8];
     P[0] = view[1]; P[1] = view[5]; P[2] = view[9];
     const n = egLightVertices(lights, eye ?? fog?.camPos ?? NO_EYE, R, P, this._data);
     if (!n) return false;

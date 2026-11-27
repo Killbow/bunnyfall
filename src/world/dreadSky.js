@@ -1,64 +1,20 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// EVENT1 — THE DREAD: OBLIVION'S SKY OVER DAGGERFALL, FOR A LIVE EVENT.
-//
-// Mac (2026-09-25): "I wanna do a fun live event for the server ... turn
-// the skies of Daggerfall into a detailed oblivion styled dread in prep
-// for the world bosses. Red lightning and such."
-//
-// A dev stages it (`/event dread`, the relay's `stage` frame - net/wire.js
-// LIVE_EVENTS), every player online sees it, and it ends when a dev ends
-// it. This file is what it LOOKS like; the relay carries only the word.
-//
-// ONE GRADE, NOT A PALETTE PER RENDERER. The port draws its sky three ways
-// (the classic panorama, its own dome, Dynamic Skies) with the volumetric
-// clouds over the last two, and each keeps its colours in its own shape -
-// a panorama texture, a state object, a Unity material. So the dread is a
-// COLOUR GRADE applied where each one writes its pixel: a colour's
-// luminance, dimmed, read along a crimson ramp - near-black maroon in the
-// dark, blood red in the middle, a burning orange at the top. The zenith
-// comes out dark, the horizon glows, lit cloud edges burn and their shaded
-// bellies go black-red, at any hour and under any weather, because the
-// grade reads the sky's own light rather than replacing it. `dreadGrade`
-// is the law; DREAD_GLSL is the same law in the shaders (the sky passes
-// and the clouds' composite), and the host grades the fog, the key light
-// and the ambient with the JS twin, so the land sits under the sky it sees.
-//
-// THE STORM IS RED. The event brings its own lightning on a schedule keyed
-// to the SHARED wall clock (net/wire.js WORLD5) - every player online sees
-// a strike in the same second, each around themselves - through the same
-// bolt field and renderer the weather's storms use, in the event's colour,
-// with its thunder arriving over the speed of sound (distantStorms'
-// thunderOf).
-//
-// IT FADES. A player who watches it begin sees the dread descend over
-// DREAD_FADE_S, and lift the same way; a player who joins mid-event (or
-// logs in to it) has it whole at once - they did not watch it come.
-//
-// ONLINE ALONE (Mac chose it): offline, nothing here is reached - the host
-// asks the hub link, and there is none.
-// ═══════════════════════════════════════════════════════════════════
 
 import { seededRng } from '../weather/wind.js';
 import { thunderOf } from '../weather/distantStorms.js';
 
-/** The live event this file draws (net/wire.js LIVE_EVENTS). */
+// Must match the `dread` entry in `LIVE_EVENTS` in net/wire.js.
 export const DREAD_EVENT = 'dread';
-/** Real seconds the dread takes to descend on a player watching it begin, and to lift. */
 export const DREAD_FADE_S = 12;
 
-/** The grade dims a colour's luminance by this before reading the ramp - the dread is darker than the day it covers. */
 export const DREAD_DIM = 0.85;
-/** The crimson ramp, display space: `{at, color}` stops over dimmed luminance - black-maroon, blood, burning orange. */
 export const DREAD_RAMP = Object.freeze([
   Object.freeze({ at: 0, color: Object.freeze([0.05, 0.004, 0.012]) }),
   Object.freeze({ at: 0.35, color: Object.freeze([0.55, 0.07, 0.03]) }),
   Object.freeze({ at: 0.8, color: Object.freeze([1.0, 0.42, 0.12]) }),
 ]);
-/** Rec. 709 luminance weights - what "how bright is this colour" means for the grade. */
 const LUMA = [0.2126, 0.7152, 0.0722];
 
-/** The ramp's colour at dimmed luminance `l` (clamped to the ends). Pure. */
 export function dreadRamp(l) {
   const [s0, s1, s2] = DREAD_RAMP;
   if (!(l > s0.at)) return [...s0.color];
@@ -66,8 +22,7 @@ export function dreadRamp(l) {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
-/** `rgb` graded toward the dread by `w` (0: untouched, 1: the ramp's colour for its luminance). A new array; `rgb` is
- *  never written (the sky's colours are often a palette's own frozen rows). Pure. */
+// Returns a new array and never writes `rgb`, which is often a frozen palette row.
 export function dreadGrade(rgb, w) {
   const k = Math.max(0, Math.min(1, w || 0));
   if (k === 0) return [rgb[0], rgb[1], rgb[2]];
@@ -76,8 +31,6 @@ export function dreadGrade(rgb, w) {
 }
 
 const glslVec = (c) => `vec3(${c.map((v) => v.toFixed(4)).join(', ')})`;
-/** `dreadGrade` in GLSL - `vec3 dreadGrade(vec3 c, float w)`, the same stops, dim and weights (generated from them,
- *  so the two cannot drift). A shader includes it and grades its final colour by its own `uDread`. */
 export const DREAD_GLSL = (() => {
   const [s0, s1, s2] = DREAD_RAMP, f = (v) => v.toFixed(4);
   return `
@@ -92,11 +45,6 @@ vec3 dreadGrade(vec3 c, float w) {
 `;
 })();
 
-/**
- * The dread's weight on this client, 0..1. `set(ev, {live})` takes the hub's word (net/online.js onEvent: `{kind, at}`
- * or null); `tick(dtSeconds)` walks the weight toward it and answers it. A change the player watched (`live`) fades
- * over DREAD_FADE_S; one they did not (a welcome - they joined into it, or the relay came back without it) is whole.
- */
 export function createDread() {
   let target = 0, weight = 0;
   return {
@@ -114,39 +62,25 @@ export function createDread() {
   };
 }
 
-// ── The red storm ──────────────────────────────────────────────────
-/** The strike schedule's slot, ms of the shared clock - each slot may hold one strike. */
 export const DREAD_SLOT_MS = 900;
-/** The chance a slot holds a strike at full dread - one every ~3.2 s on average, scaled by the weight as it fades. */
 export const DREAD_STRIKE_CHANCE = 0.28;
-/** Where a strike lands from the player: metres, near and far. */
 export const DREAD_NEAR_M = 400;
 export const DREAD_FAR_M = 6000;
-/** ...where the near strikes end and the far begin, and how many of them are near. */
 export const DREAD_SPLIT_M = 1600;
 export const DREAD_NEAR_SHARE = 0.35;
-/** The share of strikes that reach the ground (a channel drawn); the rest light their cloud from inside. */
 export const DREAD_CG_SHARE = 0.75;
-/** The event's channel and the light a near strike throws: blood red, hot at the core. */
 export const DREAD_BOLT_COLOR = Object.freeze([1.0, 0.16, 0.07]);
 export const DREAD_FLASH_COLOR = Object.freeze([1.0, 0.22, 0.1]);
-/** The most slots one frame walks - a tab asleep for an hour does not fire the hour's strikes on waking. */
+// Caps the slots one call walks, so a tab that wakes after a long sleep does not fire the whole backlog of strikes.
 export const DREAD_SLOTS_MAX = 8;
 
-/** A slot's hash (a 32-bit mix of its index), the one seed its strike is read from - the same on every client. SUNBABY2: the
- *  sun baby's fireballs read their slots through it too (world/sunbabySky.js). */
+// Every client must compute the same hash for a slot; world/sunbabySky.js reads its fireball slots through it too.
 export const slotHash = (slot) => { let h = Math.imul(slot | 0, 0x9e3779b1) ^ 0x7f4a7c15; h = Math.imul(h ^ (h >>> 15), 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35); return (h ^ (h >>> 16)) >>> 0; };
 
 /**
- * The strikes of the slots in (fromMs, toMs] of the shared clock at weight `w`: `[{ atMs, seed, bearing, distance,
- * kind, strength }]`, bearing radians from +z toward +x, distance metres. A slot holds a strike when its seed's first
- * draw falls under DREAD_STRIKE_CHANCE x w, at a seeded moment inside it - so every client online reads the same
- * seconds. At most DREAD_SLOTS_MAX slots (the latest). Pure.
- *
- * WBX8: `ring` sets where the strikes fall - `salt` (a schedule of its own: 0 is the event's), `near` and `far` (the
- * distances, metres), `split` (where near ends and far begins) and `nearShare` (how many are near). Left out, it is
- * the event's own ring, strike for strike.
- * @param {number} fromMs @param {number} toMs @param {number} w
+ * @param {number} fromMs
+ * @param {number} toMs
+ * @param {number} w
  * @param {{salt?: number, near?: number, split?: number, far?: number, nearShare?: number}} [ring]
  */
 export function dreadStrikes(fromMs, toMs, w, { salt = 0, near: nearM = DREAD_NEAR_M, split = DREAD_SPLIT_M, far: farM = DREAD_FAR_M, nearShare = DREAD_NEAR_SHARE } = {}) {
@@ -167,25 +101,16 @@ export function dreadStrikes(fromMs, toMs, w, { salt = 0, near: nearM = DREAD_NE
   return out;
 }
 
-/**
- * The red storm on this client. `tick({ sharedMs, eye, weight })` once an exterior frame (`sharedMs` the shared clock,
- * `eye` host metres): answers `{ strikes, sounds }` - the strikes fired since the last tick, placed around the eye in
- * host metres with the event's colour (`[{ x, z, seed, kind, strength, color }]`, for systems/lightning.js'
- * createStormLights `distant` list), and the thunder due now (`[{ clip, volume, x, z }]`, the strike's place). The
- * first tick fires nothing (no backlog on arrival); `reset()` forgets the place (a jump, a load).
- *
- * WBX8: `ring` (dreadStrikes') gives a storm a schedule and a reach of its own, and a tick's `centre` ([x, _, z] host
- * metres) is where its strikes stand round - the gate's storm gathers over the gate, wherever the eye is - with each
- * strike's thunder from its distance to the EYE. Left out, both are the event's: round the eye, strike for strike.
- * @param {{salt?: number, near?: number, split?: number, far?: number, nearShare?: number}} [ring]
- */
+/** @param {{salt?: number, near?: number, split?: number, far?: number, nearShare?: number}} [ring] */
 export function createDreadStorm(ring = undefined) {
   let lastMs = null;
-  const thunder = [];   // { dueMs, clip, volume, x, z }
+  const thunder = [];
   return {
     tick({ sharedMs, eye, weight, centre = null }) {
       const strikes = [], sounds = [];
-      if (lastMs !== null && sharedMs < lastMs) lastMs = null;   // the clock went back (a new offset): start again from now
+      // A new shared clock offset can move time backwards; restart from this tick instead of walking a reversed
+      // range.
+      if (lastMs !== null && sharedMs < lastMs) lastMs = null;
       if (lastMs !== null) {
         const c = centre ?? eye;
         for (const s of dreadStrikes(lastMs, sharedMs, weight, ring)) {
@@ -209,20 +134,13 @@ export function createDreadStorm(ring = undefined) {
   };
 }
 
-/** The weather the SKY wears under the dread (the dome's row, the clouds' profile, Dynamic Skies' preset) - the
- *  storm's roiling dark deck, graded crimson. The sky alone: the sim's own weather, its rain, its wind and its sound
- *  go on as they were, and the sky walks back to them as the dread lifts. */
 export const DREAD_SKY_WORD = 'thunder';
 
-/** How much the dread takes off the sun's key light at full weight - the land is darker under the Deadlands' sky. */
 export const DREAD_KEY_DIM = 0.45;
-/** A light's colour (the key, the ambient - rgb, any array) under the dread: `dreadGrade` as the renderer takes a
- *  light, a fresh Float32Array. At 0 it is the colour as given. Pure. */
 export const dreadLight = (rgb, w) => new Float32Array(dreadGrade(rgb, w));
-/** How much of a burning red strike's brightness lights the whole cloud deck (the composite's flash) - the storm's
- *  sheet glow, under the channel's own. */
 export const DREAD_CLOUD_GLOW = 0.5;
-/** The deck's glow this frame from the burning strikes (systems/lightning.js bolts - the dread's by their colour). Pure. */
+// Dread bolts are matched by reference to `DREAD_BOLT_COLOR`, so weather/lightning.js must pass the strike color
+// array through uncopied.
 export function dreadCloudGlow(bolts) {
   let best = 0;
   for (const b of bolts ?? []) if (b.color === DREAD_BOLT_COLOR && b.bright > best) best = b.bright;

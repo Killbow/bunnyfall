@@ -1,14 +1,10 @@
 // @ts-check
 
-// THE LIVE VIEW (`/play/?live`): the World Builder's open draft, standing in the real world. The builder (tools/poi-editor/)
-// sends its draft on a same-origin BroadcastChannel; this lays it over the POI feed on this screen alone (poiFeed.setOverlay:
-// never sent anywhere) and, when asked, takes the body to the POI's spot. The builder's bearer rides along only so the
-// draft's uploaded models can be fetched. Not a DFU member. Refused online with the other powers (onlineLane.js).
+// Places a POI draft in the game for preview and, when asked, takes the body to the POI's spot.
 
 export const POI_LIVE_CHANNEL = 'bunnyfall-poi-live';
 
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
-/** A draft the host can stand: a place on the map and a list of parts. Anything else is ignored, never thrown at. */
 export const liveDraftOk = (doc) => !!doc && typeof doc === 'object' && !!doc.place && num(doc.place.px) && num(doc.place.py) && num(doc.place.x) && num(doc.place.z)
   && doc.place.px >= 0 && doc.place.px < 1000 && doc.place.py >= 0 && doc.place.py < 500 && Array.isArray(doc.parts);
 

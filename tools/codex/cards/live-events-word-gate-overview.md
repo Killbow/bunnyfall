@@ -23,6 +23,7 @@ invariants:
   - "Staff stage or clear live events through the `/event` chat command (`parseEventCommand` in `src/net/chatCommands.js`), rate-limited to `EVENT_HZ_MAX = 1` per second."
 traps:
   - "`\"rocket\"` (`ROCKET1`) is not present in `LIVE_EVENTS` or shipped client modules in the live tree; clients ignore unknown event words, and `/event` is a chat command rather than an HTTP route."
+  - "`dreadCloudGlow` recognizes dread bolts by reference to `DREAD_BOLT_COLOR`, so `src/weather/lightning.js` must pass a strike's `color` array through uncopied."
 dfu: []
 tags:
   - "live-event"

@@ -16,6 +16,7 @@ files:
   - src/net/nodeLaw.js
   - src/ai/cover.js
   - src/world/pixelBuild.js
+  - src/world/ecotone.js
 replacesBible:
   - "03-World/Bantha-Jungle.md"
 related:
@@ -31,6 +32,7 @@ invariants:
   - "All vegetation placement uses deterministic integer hashes and ecotone value noise over world lattices so every client, floating-origin offset, and terrain worker builds identical jungles."
   - "treeSlots returns JUNGLE_TREE_SLOTS (48) for any pixel where banthaAreaHas is true and falls back to nodeCount(climate, 'tree') elsewhere; jungle timber nodes yield tier 1 PINE_WOOD."
   - "Failed tree asset fetches retry on BUILD_RETRY_MS intervals, and any roadside pair whose model fails to load falls back to regular canopy trees."
+  - "`src/render/ecotoneGlsl.js` reads `ECOTONE` from `src/world/ecotone.js` but restates the `ecoHash` multipliers and the share formulas, so a change to either must land in both files."
 traps:
   - "Unlike ?jungle=off, the ?junglehaze=off query flag lacks an online-session guard in jungleHazeOn and disables atmospheric haze online as well."
   - "Wide jungle tree crowns (up to 15 meters) must register once in COVER_WIDE (32-meter) grid cells in src/ai/cover.js; indexing them across 4-meter cells explodes the proxy count for a pixel."

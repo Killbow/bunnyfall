@@ -2644,7 +2644,7 @@ function languageRow() {
   const main = el('div', 'row-main');
   const cur = currentLocale();
   main.append(el('div', 'row-name', t('settings.language.name', 'Language')));
-  main.append(el('div', 'row-note', t('settings.language.note', 'The language of the game\u2019s text. Takes effect at once.')));
+  main.append(el('div', 'row-note', t('settings.language.note', 'Sets the language for game text. Takes effect immediately.')));
   if (localeInfo(cur)?.source === 'machine') main.append(el('div', 'row-note', t('settings.language.machine', 'Machine translated')));
   row.append(main);
   const ctl = el('div', 'ctl');
@@ -2678,8 +2678,8 @@ function translationPackRow() {
   const main = el('div', 'row-main');
   main.append(el('div', 'row-name', t('settings.pack.name', 'Translation pack')));
   main.append(el('div', 'row-note', pack
-    ? t('settings.pack.installed', '{name}: {tables, plural, one {# table} other {# tables}}, {quests, plural, one {# quest} other {# quests}}, {books, plural, one {# book} other {# books}}. Its text replaces the machine translation.', { name: pack.name, tables: pack.counts?.table ?? 0, quests: pack.counts?.quest ?? 0, books: pack.counts?.book ?? 0 })
-    : t('settings.pack.none', 'Install a Daggerfall Unity translation into {language} from your own files. Nothing is uploaded.', { language: info.name })));
+    ? t('settings.pack.installed', '{name}: {tables, plural, one {# table} other {# tables}}, {quests, plural, one {# quest} other {# quests}}, and {books, plural, one {# book} other {# books}}. Replaces the machine translation.', { name: pack.name, tables: pack.counts?.table ?? 0, quests: pack.counts?.quest ?? 0, books: pack.counts?.book ?? 0 })
+    : t('settings.pack.none', 'Install a Daggerfall Unity {language} translation from your own files. Nothing is uploaded.', { language: info.name })));
   row.append(main);
   const ctl = el('div', 'ctl');
   const install = el('button', 'act', pack ? t('settings.pack.replace', 'Replace…') : t('settings.pack.install', 'Install…'));
@@ -2725,7 +2725,7 @@ function languageOffer() {
   const card = el('div', 'px-langoffer');
   card.lang = code;
   card.append(el('div', 'px-langoffer-q', tIn(code, 'lang.offer', 'Play in English?')));
-  if (localeInfo(code)?.source === 'machine') card.append(el('div', 'px-langoffer-note', tIn(code, 'lang.offer.machine', 'This translation is machine-made and still being checked.')));
+  if (localeInfo(code)?.source === 'machine') card.append(el('div', 'px-langoffer-note', tIn(code, 'lang.offer.machine', 'This is a machine translation and is still being reviewed.')));
   card.append(acts([
     { label: tIn(code, 'lang.offer.yes', 'Yes'), primary: true, onClick: () => { chooseLanguage(code); } },
     { label: tIn(code, 'lang.offer.no', 'No, keep English'), onClick: () => { setPref('languageOffered', true); render(); } },

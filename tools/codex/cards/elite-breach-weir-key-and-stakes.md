@@ -15,6 +15,8 @@ files:
   - server-account/src/cron.js
   - server-account/migrations/0124_elite_breach.sql
   - src/net/eliteGates/egPay.js
+  - src/systems/eliteGates/egClient.js
+  - src/systems/eliteGates/egSpoils.js
 routes:
   - /v1/eg/keys
   - /v1/eg/find
@@ -50,9 +52,15 @@ invariants:
   - "Stakes still held `EG_STAKE_CLOCK_S` (`EG_VOID_WINDOW_S + EG_RECEIPT_TTL_S`, 14 days) past `until` are consumed by `spendLapsedStakes` (`server-account/src/cron.js`, `SWEEP_ROWS` pages) with one `server_post` notice per batch (`spire-stake-<order id>`)."
   - "A Redoubt pays Marks, the guild deed, embers, the Weir Key, and Panoply pity only on the first paid `eg_redoubts` row of that Redoubt for the account in an arena week; a later take that week pays gold alone."
   - "The Reliquaries of each circle open once per account per arena week (`eg_reliqs`)."
+  - "The client saves each open as `{ rq, s, at }` under `eg.opens` before sending `/v1/eg/open`. A lost answer is retried with the same request id (`again`), so the service never stakes a second key."
+  - "A stake under `eg.stakes` with no call after `EG_VOID_WAIT_MS` gets its `void` sent to the hub at most once per `EG_VOID_ASK_MS`, never while its open is in flight. Stakes older than `EG_VOID_MAX_S` are dropped because the room refuses older voids."
+  - "Only the striking client asks `/v1/eg/find`: the owner for kills it struck, through the death handler, and a joiner through `egFindStruck`; a room body's raise never asks."
 traps:
   - "`eg_keys`, `eg_key_miss`, `eg_live_b`, `eg_live_until`, `eg_mercy`, `eg_pity`, `eg_valk_wk`, `eg_annals`, `eg_honours`, and `eg_first` are columns on `players` (`0124_elite_breach.sql`), not separate tables."
   - "A lapsed stake never refunds its Weir Key; first-breach mercy (`players.eg_mercy`) refunds at most once per account."
+  - "A receipt the hub hands again after the service counted it (saved under `eg.counted`) is never claimed again; the client resends only `claimed` so the hub drops its held copy."
+  - "Every ask that returns the key balance takes a `keysAsk` sequence number, and `restack` ignores an answer older than one already applied, because balance answers can land out of order."
+  - "`rollEgSpoils` and `egEconomy.js` both call `egPanoplyHit` on the claim seed, so the client must roll on the service's `seed` (`egSpoilsSeedOf`), never the receipt's `c`."
 tags:
   - weir-key
   - economy

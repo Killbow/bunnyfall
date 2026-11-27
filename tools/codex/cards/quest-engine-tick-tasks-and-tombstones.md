@@ -11,6 +11,7 @@ files:
   - src/systems/quest/questBridge.js
   - src/systems/quest/foe.js
   - src/systems/quest/actions.js
+  - src/systems/quest/noAsksAgain.js
   - src/world/gameDate.js
 routes: []
 tables: []
@@ -23,7 +24,10 @@ related:
 invariants:
   - "TICKS_PER_SECOND = 10 (machine.js:324). The bridge fires on real time and resets its timer to zero on fire (questBridge.js:649-654)."
   - "Tombstoned quests are removed once nowSeconds - questTombstoneTime > SECONDS_PER_WEEK (7*86400, gameDate.js)."
-  - "In a task, the first always-on trigger is PRIMARY (starts and stops the task). Later ones only start it (task.js)."
+  - "In `Task.update`, only the first always-on trigger can stop the task; later ones can only start it (`task.js`)."
+  - "Clearing a live task rearms its actions, and a dropped task's own trigger stays false whatever is set (a linked global var still receives the value)."
+  - "`Task.restoreSaveData` sets the trigger through `setTriggerValue` while `globalVarLink` is still `-1` and `dropped` is false, so a load never rewrites the global var or trips the dropped guard; actions are restored last."
+  - "A prompt answered No asks again on the next click (`askAgain` in `noAsksAgain.js`, run by `Quest.update` and after each restore) only when its asking task is a plain task triggered by clicks alone and its No task is inert, clears that asking, or gives back the toted item; a give-back No task that the questlines sheet reads never asks again."
 traps:
   - "Popup message chunking splits on `++lineCount > 22` (`src/systems/quest/quest.js`), yielding `23` lines per popup chunk."
   - "`CreateFoe` (`src/systems/quest/actions.js`) backdates its initial spawn by `Random.Range(0, spawnInterval)` with no zero guard, and `src/systems/quest/foe.js` clamps spawn counts to `1..MAX_SPAWN_COUNT` (`8`)."

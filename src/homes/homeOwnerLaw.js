@@ -12,7 +12,6 @@ export function charNameOf(raw) {
   return name && name.length <= CHAR_NAME_MAX && !/[\u0000-\u001f\u007f]/.test(name) ? name : null;
 }
 
-/** The resolve answer: `{ matches: [{ char, name, account, own, note }], more }`, at most PICK_MAX rows. */
 export function resolvedOf(answer) {
   const d = answer?.data ?? answer;
   const src = Array.isArray(d?.matches) ? d.matches : [];
@@ -73,7 +72,6 @@ const REFUSALS = {
   'home-owner-none': () => t('housing.owners.notCo', 'That character is not a co-owner.'),
   'home-not-main': () => t('housing.owners.notMain', 'Only the main owner can do that.'),
 };
-// A home-* code with no refusal text of its own gets the co-owner failure line instead of the generic server error.
 export function ownersRefusal(code, fallback) {
   const known = REFUSALS[code];
   if (known) return known();

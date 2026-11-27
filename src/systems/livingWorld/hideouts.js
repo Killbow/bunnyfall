@@ -1,87 +1,60 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// LW12 (2026-10-09, bible/06-Systems/Living-World-II.md "LW12"): THE HIDEOUT, STOOD - a band's camp off the road
-// (systems/livingWorld/outlaws.js: where, who, which generation) stood live for a player on foot within BAND_LIVE_M of
-// it, and the one standing it (the camps' own election online - the road fights' `owner`; offline always):
-//  - ITS TENTS (survival/camp.js TENT_MODEL, the camps' own, through the host's meshes) about a FIRE (FIRE_FLAT);
-//  - ITS PEOPLE as the encounter pool's foes (exteriorFoes.js spawnFoe - loose, transient: never a save's; managed: this
-//    host owns their lives, AUDIT LW-II C3), each in their class at their level and name, about the fire facing out: all
-//    of them by day; by night half, the rest out on the road;
-//  - ITS CHEST, a ground pile (droppedLoot.js seedPile, unsaved) minted from the band's take (outlaws.js takeOf: the
-//    parties it robbed of late, their goods and their share of a purse; `bandChest`, worked a slice a frame after the
-//    stand - AUDIT LW-II-2 C5) - unless the character took from it before (`looted`: it stands empty for them).
-// ROUTED: every one of its people stood killed (AUDIT LW-II C3: by blows, never the cull) - the character's tale
-// (`routed`, by the hideout and the generation: the hideout stands empty for them BAND_VACANT_DAYS, then the next band
-// forms), the towns of its region tell it, and each of the parties it robbed of late regards the player as having
-// `helped`. A hideout left (the player past BAND_KEEP_M - none of its people drawing on them, AUDIT LW-II-2 C14 - or a
-// mode's change) is let go: its living bodies taken out, those struck down kept for the session (C14). A chest taken
-// from is `looted` the frame it shows (AUDIT LW-II C2). AUDIT LW-II C11b: online the camp - tents, fire, chest - is
-// every reader's own; its people the one standing it's (AUDIT LW-II-2 C13: given up when it falls to another).
-// AN EMPTY HIDEOUT (the dice's or the character's vacancy) stands its tents and a cold camp: nobody, no chest.
-//
-// HEARD OF: a traveller passing close warns the player of a band whose hideout lies within HEARD_PX of where they
-// stand (the roads' greeting), and the character has HEARD of it (`heard`): its hideout's area is marked on the
-// Overworld, "Hideout of the Black Hand (rumoured)" - a ring about a point near it, never the point.
-//
-// EVERY ALLOCATION HAS AN OWNER: the fire's batch, the bodies and the pile are this host's until it lets them go;
-// `clear()` takes out every one.
 import { TENT_MODEL, FIRE_FLAT } from '../survival/camp.js';
 import { trs } from '../../world/mat4.js';
 import { sphereAabb } from '../../render/frustum.js';
-import { drawSeen } from '../../homes/decorRoom.js';   // PERF-WAGON: a tent by the street's view test
+import { drawSeen } from '../../homes/decorRoom.js';
 import { NATIVE_PER_M, NATIVE_PIXEL } from './trips.js';
 import { GLOBAL_SCALE } from '../../player/activate.js';
 import { lwSeed, lwRng, textSeed } from './seed.js';
 import { DAY_MIN } from './dayPlan.js';
-import { takeOf, TAKE_DAYS } from './outlaws.js';   // AUDIT LW-II-2 P5: the chest's law, here to be run
-import { isBagItem } from '../../net/bagLaw.js';   // AUDIT LW-II-2 C4: a general store's fixed pieces, none of a chest's
+import { takeOf, TAKE_DAYS } from './outlaws.js';
+import { isBagItem } from '../../net/bagLaw.js';
 import { isSurvivalItem } from '../survival/items.js';
 
-/** A hideout this near the player on foot (m) is stood; let go past BAND_KEEP_M. */
 export const BAND_LIVE_M = 200;
 export const BAND_KEEP_M = 280;
-/** Its tents stand this far from its fire (m), its people this far (the nearest and the farthest). */
 export const TENT_RING_M = 6;
 export const BAND_RING_M = Object.freeze([3, 9]);
-/** How many tents: one each three of its people, at least two. */
 export const tentsFor = (n) => Math.max(2, Math.ceil(n / 3));
-/** By night (before HIDEOUT_DAY_H[0], from HIDEOUT_DAY_H[1]) half its people are out on the road. */
 export const HIDEOUT_DAY_H = Object.freeze([6, 20]);
-/** A band is heard of from a traveller within this of its hideout (map pixels). */
 export const HEARD_PX = 3;
-/** The rumoured ring's point lies up to this far from the hideout (native: half a pixel). */
 export const RUMOUR_OFF_N = 16384;
 
-/** Those of a band standing at its hideout at minute `t`: all by day, the first half by night. @param {any} band @param {number} t */
+/**
+ * @param {any} band
+ * @param {number} t
+ */
 export function standingAt(band, t) {
   const h = (((t % DAY_MIN) + DAY_MIN) % DAY_MIN) / 60;
   const night = h < HIDEOUT_DAY_H[0] || h >= HIDEOUT_DAY_H[1];
   return night ? band.people.slice(0, Math.ceil(band.people.length / 2)) : band.people;
 }
 
-/** AUDIT LW-II C8: a region whose hideouts wait on their legs' roads is asked again no sooner than this (real ms). */
 export const HIDEOUTS_ASK_MS = 100;
 
-/** AUDIT LW-II C3: a body down by a blow - dead with its body (or executed). One the relevance cull took, one escaped,
- *  one taken out lies nowhere and beat nobody. @param {any} rec */
+/**
+ * Only a death by a blow counts: a body removed by the relevance cull, one that escaped, or one taken out is not
+ * killed.
+ * @param {any} rec
+ */
 export const killed = (rec) => !!rec?.dead && (!!rec.corpse || !!rec.executed);
 
-/** AUDIT LW-II C2: a chest as it was minted - each piece there at its count, and nothing put in. @param {any} pile @param {[any, any][]} minted */
+/**
+ * @param {any} pile
+ * @param {[any, any][]} minted
+ */
 const asMinted = (pile, minted) => { const items = pile?.items ?? []; return items.length === minted.length && minted.every(([it, n]) => items.includes(it) && it?.stackCount === n); };
 
 /**
- * AUDIT LW-II C8: THE HIDEOUTS KEPT - each region's (outlaws.js hideoutsOf, the host's `of`), kept for the network's
- * generation once its legs' roads are planned. While one is not, the region answers none, asked again no sooner than
- * HIDEOUTS_ASK_MS (a trouble read meanwhile pays a look-up, never its legs again); and its first bands after waiting are
- * told (`resolved`) - the host's books of troubles made band-less meanwhile are made again. Kept for the session, they
- * left one reader's caravan held up by the Black Hand where another's, its roads planned a few frames later, fought orcs.
+ * A region whose roads are not planned yet returns no hideouts and is retried after `HIDEOUTS_ASK_MS`; `resolved`
+ * tells the host to rebuild troubles computed without bands meanwhile.
  * @param {{ of: (region: number) => (any[] | undefined), generation: () => number, resolved?: (region: number) => void, now?: () => number }} deps
  * @returns {(region: number) => any[]}
  */
 export function createHideoutBook(deps) {
   /** @type {Map<number, any[]>} */
   const kept = new Map();
-  /** @type {Map<number, number>} the regions waiting, by when (real ms) each was last asked */
+  /** @type {Map<number, number>} */
   const waiting = new Map();
   let gen = /** @type {number | null} */ (null);
   const now = deps.now ?? (() => performance.now());
@@ -100,34 +73,31 @@ export function createHideoutBook(deps) {
   };
 }
 
-/** The rumoured ring's point: the hideout's, moved by the band's seed up to RUMOUR_OFF_N. @param {any} h @param {string} bandKey */
+/**
+ * @param {any} h
+ * @param {string} bandKey
+ */
 export function rumourAt(h, bandKey) {
-  const s = lwSeed(textSeed(bandKey), 0x72756d);   // 'rum'
+  const s = lwSeed(textSeed(bandKey), 0x72756d);
   const a = ((s % 3600) / 3600) * Math.PI * 2, d = RUMOUR_OFF_N * (((s >>> 12) % 1000) / 1000);
   return { x: h.x + Math.sin(a) * d, z: h.z + Math.cos(a) * d };
 }
 
-/** AUDIT LW-II-2 C5: the most of a frame a stood band's chest is worked for (real ms), a town-day of its take a step -
- *  read whole in the frame that stood it, its fortnight of trips cost that frame 25-110 ms (the roads' layer's 6). */
+// Frame budget in real ms for working a band's chest; reading the whole take in one frame costs tens of
+// milliseconds.
 export const CHEST_SLICE_MS = 3;
 
-/** AUDIT LW-II-2 C4: a piece a chest may hold - none of a general store's fixed pieces: its Transportation (the horse,
- *  the cart, the wagons), its Materials Bag, its provisions and Campfires. @param {any} it */
+/**
+ * Drops the general store's fixed stock (transportation, the Materials Bag, and survival items), which otherwise
+ * fills every chest with the same pieces.
+ * @param {any} it
+ */
 export const chestPiece = (it) => !!it && it.group !== 'Transportation' && !isBagItem(it) && !isSurvivalItem(it);
 
 /**
- * A BAND'S CHEST (AUDIT LW-II-2 P5: the host's, here where it can be run): its take (outlaws.js takeOf) over the troubled
- * trips of its leg's two towns of these TAKE_DAYS - goods off a general store's roll on the band's own seed (the same
- * chest each time it is stood) and the gold.
- *  - AUDIT LW-II-2 C5: a GENERATOR - a town-day read a step; the host's frame works it, CHEST_SLICE_MS a frame, from the
- *    frame after the one that stood it.
- *  - AUDIT LW-II-2 C4: its goods DRAWN on the band's seed from the roll's own draws - a back shelf's (none of the
- *    counter's: the rest supplies, the endless provisions, the shot, the potions) less its fixed pieces (`chestPiece`).
- *    The roll's first take.goods, every band's chest opened with the Horse, the Small Cart, the Open Wagon and the
- *    Caravan - some 4,050 gold to sell, every hideout alike.
- * @param {any} band @param {number} t
- * @param {{ townOf: (mapId: number) => any, tripsOf: (town: any, t: number) => (any[] | undefined),
- *   shelf: (o: { rolls: () => number, shelfIndex: number }) => any[], gold: (n: number) => any }} deps
+ * @param {any} band
+ * @param {number} t
+ * @param {{ townOf: (mapId: number) => any, tripsOf: (town: any, t: number) => (any[] | undefined), shelf: (o: { rolls: () => number, shelfIndex: number }) => any[], gold: (n: number) => any }} deps
  * @returns {Generator<void, { items: any[], robbed: any[] }, void>}
  */
 export function* bandChest(band, t, deps) {
@@ -135,37 +105,25 @@ export function* bandChest(band, t, deps) {
   const trips = [];
   for (let d = 0; d <= TAKE_DAYS; d++) for (const town of towns) { trips.push(...(deps.tripsOf(town, t - d * DAY_MIN) ?? [])); yield; }
   const take = takeOf(band, trips, t);
-  yield;   // the shelf's roll a step of its own
-  const pool = take.goods ? deps.shelf({ rolls: lwRng(textSeed(band.key), 0x63687374), shelfIndex: 1 }).filter(chestPiece) : [];   // 'chst'
-  const draw = lwRng(textSeed(band.key), 0x676f6f64);   // 'good'
+  yield;
+  const pool = take.goods ? deps.shelf({ rolls: lwRng(textSeed(band.key), 0x63687374), shelfIndex: 1 }).filter(chestPiece) : [];
+  const draw = lwRng(textSeed(band.key), 0x676f6f64);
   const items = [];
   while (items.length < take.goods && pool.length) items.push(pool.splice(Math.floor(draw() * pool.length), 1)[0]);
   if (take.gold > 0) items.push(deps.gold(take.gold));
   return { items, robbed: take.robbed };
 }
 
-/**
- * @param {{
- *   hideoutsNear: (x: number, z: number) => any[], bandAt: (h: any, t: number) => any, clock: () => number,
- *   here: () => ({ x: number, z: number } | null), ready: () => boolean, owner: (feet: number[]) => boolean,
- *   sceneOf: (nx: number, nz: number) => number[], spawn: (type: number, feet: number[], o: any) => Promise<any>,
- *   remove: (rec: any) => void, inPool: (rec: any) => boolean, relations: () => any, say: (text: string) => void,
- *   chest: (band: any, t: number) => Iterator<void, { items: any[], robbed: any[] }>, dropPile: (items: any[], feet: number[]) => any,
- *   removePile: (pile: any) => void, engaged?: (rec: any) => boolean, now?: () => number, renderer?: any, meshes?: any,
- *   getTexture?: (archive: number) => any, uploadRecordFrame?: (archive: number, record: number, frame: number) => void,
- * }} deps - `chest` the band's chest worked a step a `next()` (`bandChest`); `engaged(rec)` whether one of its people
- *   draws on this player (AUDIT LW-II-2 C14); `now` real ms (the chest's slice)
- */
+/** @param {{ hideoutsNear: (x: number, z: number) => any[], bandAt: (h: any, t: number) => any, clock: () => number, here: () => ({ x: number, z: number } | null), ready: () => boolean, owner: (feet: number[]) => boolean, sceneOf: (nx: number, nz: number) => number[], spawn: (type: number, feet: number[], o: any) => Promise<any>, remove: (rec: any) => void, inPool: (rec: any) => boolean, relations: () => any, say: (text: string) => void, chest: (band: any, t: number) => Iterator<void, { items: any[], robbed: any[] }>, dropPile: (items: any[], feet: number[]) => any, removePile: (pile: any) => void, engaged?: (rec: any) => boolean, now?: () => number, renderer?: any, meshes?: any, getTexture?: (archive: number) => any, uploadRecordFrame?: (archive: number, record: number, frame: number) => void, }} deps */
 export function createHideouts(deps) {
-  /** The hideout stood, or null. */
   let stood = /** @type {any} */ (null);
   let timer = 0;
   let tent = /** @type {any} */ (null), tentLoading = false;
   let fire = /** @type {any} */ (null), fireLoading = false;
   const rel = () => deps.relations();
   const now = deps.now ?? (() => performance.now());
-  /** AUDIT LW-II-2 C14: THE SESSION'S STRUCK-DOWN - each band's people killed, by its key (their ids), kept past the
-   *  let-go: stood again, a hideout stood its dead whole. The character's: another's records keep none of them. */
+  // Struck-down outlaw ids by band key outlive a let-go for the session, so a camp shown again omits its dead;
+  // cleared when the character changes.
   const downs = /** @type {Map<string, Set<string>>} */ (new Map());
   let downsRel = /** @type {any} */ (null);
 
@@ -188,11 +146,9 @@ export function createHideouts(deps) {
 
   const takeOut = (rec) => { try { if (deps.inPool(rec)) deps.remove(rec); } catch (e) { console.warn('[hideouts] a body would not leave', /** @type {any} */ (e)?.message ?? e); } };
 
-  /** The camp's turn about its fire (its seed's). @param {any} h */
-  const turnOf = (h) => (lwSeed(textSeed(h.key), 0x74656e74) % 628) / 100;   // 'tent'
+  /** @param {any} h */
+  const turnOf = (h) => (lwSeed(textSeed(h.key), 0x74656e74) % 628) / 100;
 
-  /** Stand a hideout: its tents, its fire, its chest (every reader's own), and its people where this player stands them
-   *  (`owned`: the election's - AUDIT LW-II C11b). */
   function stand(h, t, owned) {
     const band = deps.bandAt(h, t);
     const n = band ? band.people.length : 4;
@@ -202,33 +158,33 @@ export function createHideouts(deps) {
       const a = turn + (i / tentsFor(n)) * Math.PI * 2;
       const nx = h.x + Math.sin(a) * TENT_RING_M * NATIVE_PER_M, nz = h.z + Math.cos(a) * TENT_RING_M * NATIVE_PER_M;
       const feet = deps.sceneOf(nx, nz);
-      tents.push({ feet, yaw: a + Math.PI });   // facing the fire
+      tents.push({ feet, yaw: a + Math.PI });
     }
     const centre = deps.sceneOf(h.x, h.z);
-    // `rel` the character it stood for (AUDIT LW-II C11c); `minted` its chest's pieces and counts (C2); `killed` its
-    // people struck down (C3); `chest` its chest still worked (AUDIT LW-II-2 C5); `wave` its people's standing (C13)
     stood = { h, band, tents, centre, foes: [], spawning: 0, pile: null, minted: /** @type {[any, any][]} */ ([]), robbed: [], routed: false, batch: null,
       rel: rel(), owned: false, looted: false, killed: new Set(), chest: /** @type {any} */ (null), wave: 0, allDown: false };
     if (band) {
       if (owned) standPeople(stood, t);
-      // AUDIT LW-II-2 C5: its chest worked from the next frame (`workChest`) and its pile laid when done - read here, the
-      // take's fortnight of its towns' trips cost the frame that stood it 25-110 ms
       stood.chest = deps.chest(band, t);
     }
   }
 
-  /** Its chest laid: the take's pile - unless the character took from it before (`looted`) - and its robbed parties.
-   *  @param {any} s @param {{ items: any[], robbed: any[] }} c */
+  /**
+   * @param {any} s
+   * @param {{ items: any[], robbed: any[] }} c
+   */
   function layChest(s, c) {
-    s.robbed = c.robbed;   // its robbed parties, looted or not: the rout's thanks
+    s.robbed = c.robbed;
     if (!rel()?.turns?.()?.looted?.has(s.band.key) && c.items.length) {
       s.pile = deps.dropPile(c.items, s.centre);
-      s.minted = c.items.map((it) => [it, it?.stackCount]);   // AUDIT LW-II C2: the take's minting, the latch's measure
+      s.minted = c.items.map((it) => [it, it?.stackCount]);
     }
   }
 
-  /** AUDIT LW-II-2 C5: a stood band's chest worked for at most `budgetMs` of a frame, a step at a time (the carried word's
-   *  way), and laid once done. @param {any} s @param {number} budgetMs */
+  /**
+   * @param {any} s
+   * @param {number} budgetMs
+   */
   function workChest(s, budgetMs) {
     const t0 = now();
     while (s.chest) {
@@ -239,7 +195,10 @@ export function createHideouts(deps) {
     }
   }
 
-  /** AUDIT LW-II-2 C14: one of a stood band's people killed - the session's, by the band's key. @param {any} s @param {any} rec */
+  /**
+   * @param {any} s
+   * @param {any} rec
+   */
   function strike(s, rec) {
     const id = rec?.living?.outlaw;
     if (id == null) return;
@@ -248,13 +207,15 @@ export function createHideouts(deps) {
     set.add(id);
   }
 
-  /** Its people stood, as the pool's foes about the fire: those standing at minute `t` - AUDIT LW-II-2 C14: but those
-   *  the session struck down. @param {any} s @param {number} t */
+  /**
+   * @param {any} s
+   * @param {number} t
+   */
   function standPeople(s, t) {
     s.owned = true;
     const wave = ++s.wave, down = downs.get(s.band.key);
     const people = standingAt(s.band, t).filter((p) => !down?.has(p.id)), turn = turnOf(s.h);
-    s.allDown = !people.length;   // every one of them struck down before (the last blow in the second it was left)
+    s.allDown = !people.length;
     people.forEach((p, i) => {
       const a = turn + 0.5 + (i / Math.max(1, people.length)) * Math.PI * 2;
       const r = BAND_RING_M[0] + (BAND_RING_M[1] - BAND_RING_M[0]) * ((lwSeed(textSeed(p.id)) % 100) / 100);
@@ -263,7 +224,7 @@ export function createHideouts(deps) {
       deps.spawn(p.cls, feet, { yaw: a, level: p.level, gender: p.sex, allied: false }).then((rec) => {
         s.spawning--;
         if (!rec) return;
-        if (stood !== s || s.wave !== wave) { takeOut(rec); return; }   // let go while it came (AUDIT LW-II-2 C13: or given up)
+        if (stood !== s || s.wave !== wave) { takeOut(rec); return; }
         if (rec.entity) rec.entity.name = p.name;
         rec.living = { outlaw: p.id };
         s.foes.push(rec);
@@ -271,43 +232,40 @@ export function createHideouts(deps) {
     });
   }
 
-  /** Its living taken out - AUDIT LW-II-2 C14: those killed kept, the session's. @param {any} s */
+  /** @param {any} s */
   function takeOutPeople(s) {
     for (const rec of s.foes) if (s.killed.has(rec) || killed(rec)) strike(s, rec);
     for (const rec of s.foes) if (!rec.dead) takeOut(rec);
   }
 
-  /** AUDIT LW-II-2 C13: its people given up - the election fell to another reader, who stands them now: its living taken
-   *  out, `owned` dropped (two readers both stood them, one of them for good). @param {any} s */
+  /** @param {any} s */
   function dropPeople(s) {
     takeOutPeople(s);
     s.foes = []; s.killed = new Set(); s.owned = false; s.allDown = false; s.wave++;
   }
 
-  /** A hand in the chest: `looted` for the character it stood for. @param {any} s */
+  /** @param {any} s */
   function lootedYet(s) {
     if (!s.pile || s.looted || asMinted(s.pile, s.minted)) return;
     s.looted = true;
     if (rel() === s.rel) rel()?.turn?.('looted', s.band.key);
   }
 
-  /** Let the hideout go: its living taken out, its chest's state kept. */
   function letGo() {
     const s = stood;
     if (!s) return;
     stood = null;
     takeOutPeople(s);
     if (s.pile) {
-      lootedYet(s);   // a hand in it this very frame - the character's who stood it, never a loaded one's (C11c)
+      lootedYet(s);
       deps.removePile(s.pile);
     }
     if (s.batch) deps.renderer?.destroyBillboardBatch?.(s.batch);
   }
 
-  /** Routed: the tale, the robbed parties' thanks, the word. */
   function rout(s, t) {
     s.routed = true;
-    if (s.chest) workChest(s, Infinity);   // AUDIT LW-II-2 C5: a rout before its chest was worked - its robbed known now
+    if (s.chest) workChest(s, Infinity);
     const r = rel();
     const day = Math.floor((t - 240) / DAY_MIN);
     r?.turn?.('routed', `${s.h.key}@${s.band.gen}.${s.band.heir}`, { t, who: s.band.name });
@@ -317,21 +275,16 @@ export function createHideouts(deps) {
   }
 
   return {
-    /**
-     * One frame: a hand in the chest kept; once a second the nearest hideout within BAND_LIVE_M stood (or the one stood
-     * let go past BAND_KEEP_M), its people stood by the one it falls to, and a band stood whose people are all killed
-     * routed.
-     * @param {number} dt
-     */
+    /** @param {number} dt */
     frame(dt) {
-      // AUDIT LW-II C11c: another character's records (a load, a new game) - the hideout stood for the last let go, and
-      // nothing of it theirs (a let-go after the load wrote the last session's chest into the loaded character)
+      // A load or new game changes `rel()`; let the camp go first so its chest state is never written to the new
+      // character.
       if (stood && rel() !== stood.rel) letGo();
-      if (rel() !== downsRel) { downs.clear(); downsRel = rel(); }   // AUDIT LW-II-2 C14: the struck-down the character's
-      // AUDIT LW-II C2: a hand in the chest is `looted` the frame it shows - a piece taken, one put in, a stack split. Kept
-      // at the let-go alone, and by its count, a piece swapped in (or a save made while it stood) refilled it without end
+      if (rel() !== downsRel) { downs.clear(); downsRel = rel(); }
+      // Check `looted` every frame: a check only at let-go misses a swapped piece or a save made while the camp is
+      // live.
       if (stood) lootedYet(stood);
-      if (stood?.chest) workChest(stood, CHEST_SLICE_MS);   // AUDIT LW-II-2 C5: the chest's take, a slice a frame
+      if (stood?.chest) workChest(stood, CHEST_SLICE_MS);
       if ((timer -= dt) > 0) return;
       timer = 1;
       const here = deps.here();
@@ -339,19 +292,16 @@ export function createHideouts(deps) {
       if (!here || !deps.ready()) { letGo(); return; }
       if (stood) {
         const d = Math.hypot(here.x - stood.h.x, here.z - stood.h.z) / NATIVE_PER_M;
-        // AUDIT LW-II-2 C14: never let go under one of its people drawing on the player (the pool's cull spares such a foe,
-        // and AUDIT LW-II D8 keeps a company's) - one at the player's heels vanished at 281 m from the fire
+        // Do not let the camp go while one of its people engages the player; letting go removes bodies the pool's
+        // cull would spare.
         if (d > BAND_KEEP_M && !stood.foes.some((/** @type {any} */ rec) => !rec.dead && deps.engaged?.(rec))) { letGo(); return; }
-        // AUDIT LW-II C11b: the camp stood by every reader; its people by the one it falls to (taken up when it does) -
-        // AUDIT LW-II-2 C13: and given up when it falls to another (a reader of a lower id come within BAND_KEEP_M)
+        // Online, every client draws the camp but only the `owner` spawns its people, and they are dropped when
+        // ownership passes to another client.
         if (stood.band && !stood.routed) {
           const mine = deps.owner(deps.sceneOf(stood.h.x, stood.h.z));
           if (mine && !stood.owned) standPeople(stood, t);
           else if (!mine && stood.owned) dropPeople(stood);
         }
-        // AUDIT LW-II C3: ROUTED by blows - every one stood, killed. The cull took them as dead the frame after a player
-        // walked up (a camp's 200 m against the pool's 120), and one gone from the pool counted as one down. AUDIT LW-II-2
-        // C14: every one struck down before it was stood again, routed too
         if (stood.band && stood.owned && !stood.routed && !stood.spawning && (stood.foes.length || stood.allDown)) {
           for (const rec of stood.foes) if (killed(rec)) stood.killed.add(rec);
           if (stood.foes.every((/** @type {any} */ rec) => stood.killed.has(rec))) rout(stood, t);
@@ -365,16 +315,17 @@ export function createHideouts(deps) {
       ensureArt();
       stand(near.h, t, deps.owner(deps.sceneOf(near.h.x, near.h.z)));
     },
-    /** The fire's batch (the exterior's billboard pass): a band's camp burns, an empty one is cold. */
     batches() {
       const s = stood;
       if (!s?.band || s.routed || !fire || !deps.renderer?.createBillboardBatch) return [];
       if (!s.batch) { s.batch = deps.renderer.createBillboardBatch(FIRE_FLAT.archive, FIRE_FLAT.record, fire.size, [s.centre]); if (s.batch) s.batch.frame = 0; }
       return s.batch ? [s.batch] : [];
     },
-    /** The tents, in the host's world mesh pass. PERF-WAGON: `cull` the host's view test over each tent's sphere
-     *  (decorRoom.js drawSeen); none, every tent drawn as before. Answers how many were drawn on screen.
-     *  @param {any} r @param {any} [texRemap] @param {any} [cull] */
+    /**
+     * @param {any} r
+     * @param {any} [texRemap]
+     * @param {any} [cull]
+     */
     draw(r, texRemap = null, cull = null) {
       if (!stood || !tent?.gpu || !r?.drawMesh) return 0;
       let n = 0;
@@ -385,9 +336,9 @@ export function createHideouts(deps) {
       return n;
     },
     /**
-     * HEARD OF: the band whose hideout lies within HEARD_PX of native (`x`, `z`) the character has not heard of yet, or
-     * null - the roads' greeting warns of it, and `heard` keeps it.
-     * @param {number} x @param {number} z @param {number} t
+     * @param {number} x
+     * @param {number} z
+     * @param {number} t
      */
     unheardNear(x, z, t) {
       const heard = rel()?.turns?.()?.heard;
@@ -398,12 +349,12 @@ export function createHideouts(deps) {
       }
       return null;
     },
-    /** The character heard of a band. @param {any} band */
+    /** @param {any} band */
     heard(band) { return rel()?.turn?.('heard', band.key) ?? false; },
     /**
-     * The Overworld's rumoured hideouts about native (`x`, `z`): each band standing whose name the character has heard -
-     * a ring (`wayfarer hideout`) about a point near it.
-     * @param {number} x @param {number} z @param {number} t
+     * @param {number} x
+     * @param {number} z
+     * @param {number} t
      */
     marks(x, z, t) {
       const heard = rel()?.turns?.()?.heard;
@@ -418,9 +369,8 @@ export function createHideouts(deps) {
       return out;
     },
     /**
-     * AUDIT LW-II-2 H2: the floating origin moved (the host's recentre) - the camp with it: its tents, its fire's centre
-     * (its chest is laid there) and the fire's batch minted again at it. Left, they stood 819.2 behind at every map
-     * pixel crossed. Its people are the pool's and its pile the ground's, each moved by its own.
+     * Floating origin shift: moves the tents and fire and rebuilds the fire batch; the pool and the ground pile
+     * move the people and the chest themselves.
      * @param {number[]} offset
      */
     offsetAll(offset) {
@@ -436,9 +386,7 @@ export function createHideouts(deps) {
         if (s.batch) s.batch.frame = frame;
       }
     },
-    /** What stands (the probes; the pins). */
     shown: () => (stood ? { key: stood.h.key, band: stood.band?.key ?? null, foes: stood.foes.length, tents: stood.tents.length, pile: !!stood.pile, routed: stood.routed } : null),
-    /** Every body taken out, the pile and the fire let go. */
     clear() { letGo(); timer = 0; },
   };
 }

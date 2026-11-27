@@ -85,7 +85,7 @@ export const PORTAL_TEXT = Object.freeze({
   room: 'There is no room here for a portal.',
   ground: 'There is no ground here for a portal to stand on.',
   /** RPT1026-EVENTS GATE-WAY (systems/eventGround.js): the place stands on an event's gate's ground. */
-  get event() { return t('portal.refused.event', 'A portal cannot open this close to an event\'s gate.'); },
+  get event() { return t('portal.refused.event', 'You cannot open a portal this close to an event gate.'); },
   gone: `The ${PORTAL_STONE.name} is no longer where you kept it.`,
   opened: (name) => `A portal to ${name} tears open. Step through before it closes.`,
   /** PORTAL-GIFT (gateSpoils.js givePortalGift): said once the world stands. */

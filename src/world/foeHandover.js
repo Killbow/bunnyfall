@@ -1,6 +1,7 @@
 import { FOES_FRAME_MAX } from '../net/wire.js';
 
-/** Split ownership records without splitting an enemy's inventory. Partial frames must not remove the other batch. */
+// Splits a handover into frames within `FOES_FRAME_MAX` without splitting one enemy record. Every frame sets
+// `full: 0` so the receiver keeps the enemies sent in the other frames.
 export function foeHandoverFrames(frame, nextSequence) {
   if (!frame) return [];
   const frames = [];
@@ -24,7 +25,8 @@ export function foeHandoverFrames(frame, nextSequence) {
   let batch = [], n = nextSequence();
   for (const record of frame.f ?? []) {
     if (!record.e || record.it === undefined) continue;
-    if (!fits(make([record], n))) continue; // Leave an unreadable/oversized foe with its original owner.
+    // An enemy record too large for one frame is skipped and stays with its original owner.
+    if (!fits(make([record], n))) continue;
     if (batch.length && !fits(make([...batch, record], n))) {
       frames.push(make(batch, n)); batch = []; n = nextSequence();
     }

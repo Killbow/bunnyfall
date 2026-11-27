@@ -100,7 +100,7 @@ export const piecesOf = (/** @type {any[]} */ items) => (items ?? []).reduce((n,
 export const confiscatedText = (/** @type {number} */ n) => t('stolen.taken', 'The guards take the stolen goods you carried ({n, plural, one {# item} other {# items}}).', { n });
 
 /** The piece's card line (the enhanced pack's, beside the lock's and the junk's). */
-export const stolenLine = () => t('stolen.card', 'Stolen. Merchants buy it but never sell it on, and the court takes it if you are convicted.');
+export const stolenLine = () => t('stolen.card', 'Stolen. Merchants will buy this item but never resell it, and it is confiscated if you are convicted.');
 
 /** RPT1026-LEDGERLAW (a private report: a stolen piece another player sold looked like any other): the word a piece
  *  offered to another player carries in its row - the market's Goods (ui/marketTab.js) and a home's trader

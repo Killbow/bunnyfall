@@ -1,7 +1,4 @@
 // @ts-check
-// Finds the dungeon wall picture at a point, the one most of SIGHT_RAYS level sight lines meet first. A count of nearby
-// faces would reach through walls into the next room. Its repeat sizes (`tile`, `tileV`) are area-weighted medians
-// over that picture's nearby faces, so a few odd faces do not move them.
 import { rayTriangle } from '../maps/automapPick.js';
 
 const UPRIGHT = 0.2;
@@ -56,9 +53,7 @@ function put(m, v, o) {
 }
 const dist2 = (p, x, y, z) => (p[0] - x) ** 2 + (p[1] - y) ** 2 + (p[2] - z) ** 2;
 
-/**
- * @returns {{ archive: number, record: number, tile: number, tileV: number } | null}
- */
+/** @returns {{ archive: number, record: number, tile: number, tileV: number } | null} */
 export function dungeonWallPicture(block, at, modelOf, resolve = (archive, record) => `${archive}_${record}`) {
   if (!block) return null;
   const x = at[0] - block.originX, y = at[1], z = at[2] - block.originZ, eye = [x, y + SIGHT_EYE_M, z];

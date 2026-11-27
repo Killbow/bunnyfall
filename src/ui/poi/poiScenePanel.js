@@ -70,8 +70,8 @@ export function createPoiScenePanel(c) {
     b.dataset.flag = flag;
     b.setAttribute('aria-pressed', String(on));
     const label = flag === 'visible'
-      ? (on ? t('poi.scene.hide', 'Hide in the editor (it still shows in the game)') : t('poi.scene.show', 'Show in the editor'))
-      : (on ? t('poi.scene.unlock', 'Unlock') : t('poi.scene.lock', 'Lock (it cannot be picked or moved)'));
+      ? (on ? t('poi.scene.hide', 'Hide in editor (still visible in-game)') : t('poi.scene.show', 'Show in editor'))
+      : (on ? t('poi.scene.unlock', 'Unlock') : t('poi.scene.lock', 'Lock (cannot be selected in the world or moved)'));
     b.title = label; b.setAttribute('aria-label', label);
     return b;
   };
@@ -137,7 +137,7 @@ export function createPoiScenePanel(c) {
   function searchRow() {
     drawn = [];
     const find2 = el('input', 'dfpoi-grow');
-    find2.type = 'search'; find2.value = filter; find2.placeholder = t('poi.scene.search', 'Search the open POIs');
+    find2.type = 'search'; find2.value = filter; find2.placeholder = t('poi.scene.search', 'Search open POIs');
     find2.addEventListener('input', () => { filter = find2.value; applyFilter(); });
     const r = el('div', 'dfpoi-row');
     r.append(find2);
@@ -151,7 +151,7 @@ export function createPoiScenePanel(c) {
     const hidden = rowsAt.every((r) => r.visible === false), locked = rowsAt.every((r) => r.locked === true);
     const out = [field(t('poi.scene.hidden', 'Hidden here'), check(hidden, (v) => acts.flag(id, items, 'visible', !v))),
       field(t('poi.scene.locked', 'Locked'), check(locked, (v) => acts.flag(id, items, 'locked', v)))];
-    out.push(el('div', 'dfpoi-sub', t('poi.scene.hiddenNote', 'Hidden is for the editor only; it still shows in the game. Locked things cannot be picked in the world, moved, or deleted.')));
+    out.push(el('div', 'dfpoi-sub', t('poi.scene.hiddenNote', 'Hidden items are only hidden in the editor and still appear in-game. Locked items cannot be selected in the world, moved, or deleted.')));
     return out;
   }
 
@@ -179,7 +179,7 @@ export function createPoiScenePanel(c) {
       btn(t('poi.scene.moveGo', 'Move'), () => { if (by.some((x) => x !== 0)) acts.arrange('move', [...by]); }));
     out.push(moveRow);
     const r2 = el('div', 'dfpoi-row');
-    r2.append(btn(t('poi.scene.reset', 'Reset turn and size'), () => acts.arrange('reset')), btn(t('poi.scene.ground', 'Drop to the ground'), () => acts.arrange('ground')));
+    r2.append(btn(t('poi.scene.reset', 'Reset turn and size'), () => acts.arrange('reset')), btn(t('poi.scene.ground', 'Drop to ground'), () => acts.arrange('ground')));
     out.push(r2);
     return out;
   }
@@ -211,21 +211,21 @@ export function createPoiScenePanel(c) {
       const inside = buildTree(d);
       const count = (ns) => ns.reduce((a, n) => a + (n.id === items[0] ? countAll(n.children) : count(n.children)), 0);
       const countAll = (ns) => ns.reduce((a, n) => a + (n.kind === 'group' ? countAll(n.children) : 1 + countAll(n.children)), 0);
-      out.push(el('div', 'dfpoi-sub', t('poi.scene.groupHolds', 'It holds {n, plural, one {# thing} other {# things}}.', { n: count(inside) })));
+      out.push(el('div', 'dfpoi-sub', t('poi.scene.groupHolds', 'Contains {n, plural, one {# item} other {# items}}.', { n: count(inside) })));
     } else if (one?.kind === 'npc') {
       out.push(el('div', 'dfpoi-h', t('poi.scene.kindPerson', 'Person')));
       out.push(field(t('poi.editor.name', 'Name'), text(one.row.name ?? '', (v) => acts.rename(sel.id, items[0], v), nameMaxOf('npc'))));
       const offset = field(t('poi.editor.offset', 'Offset (m)'), ...one.row.t.map((v, k) => numberInput(v, (x) => edit.edit(sel.id, 'person', (doc2) => { const q = find(doc2, items[0])?.row; if (q) q.t = q.t.map((o, j) => (j === k ? x : o)); }), { step: 0.1, min: -2000, max: 2000 })));
       // a locked person's spot is read-only, as a locked part's is
-      if (marksOf(d).get(items[0])?.frozen) { for (const i of offset.querySelectorAll?.('input') ?? []) i.disabled = true; out.push(el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked: unlock it in the list to move it.'))); }
+      if (marksOf(d).get(items[0])?.frozen) { for (const i of offset.querySelectorAll?.('input') ?? []) i.disabled = true; out.push(el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked. Unlock this item in the list to move it.'))); }
       out.push(offset);
-      out.push(el('div', 'dfpoi-sub', t('poi.scene.personFacing', 'People always face the player, so they have no turn.')));
+      out.push(el('div', 'dfpoi-sub', t('poi.scene.personFacing', 'People always face the player, so they cannot be turned.')));
     } else if (one?.kind === 'flat' && c.flatFields) {
       // a flat picture's own rows (ui/poi/poiFlatUi.js)
       out.push(...c.flatFields(d, sel, one));
     } else {
-      out.push(el('div', 'dfpoi-h', t('poi.scene.many', '{n, plural, one {# thing} other {# things}} selected', { n: items.length })));
-      out.push(el('div', 'dfpoi-sub', t('poi.scene.manyHint', 'Move, turn, and size them together with the gizmo. Shift+click in the world or Ctrl+click in the list adds or removes one; Shift+click in the list selects a range.')));
+      out.push(el('div', 'dfpoi-h', t('poi.scene.many', '{n, plural, one {# item} other {# items}} selected', { n: items.length })));
+      out.push(el('div', 'dfpoi-sub', t('poi.scene.manyHint', 'Move, turn, and size the selection with the gizmo. Shift+click in the world or Ctrl+click in the list to toggle items, or Shift+click in the list to select a range.')));
     }
     out.push(...markRows(sel.id, d, items));
     out.push(...groupRows(items));

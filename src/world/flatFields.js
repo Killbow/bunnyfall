@@ -1,79 +1,49 @@
-// WD3 (2026-10-01): A MODEL ID THAT IS A FIELD OF FLATS.
-//
-// The RMB Resource Pack's crop prefabs (53211-53214) carry no mesh: each is a component, RMBCropBillboardBatch, that
-// sows a rectangle of Daggerfall's own crop billboards round the spot the block places it - a grid `range` metres on a
-// side, one plant every `spacing` metres, each nudged up to `noise` metres, the plant of the climate (TEXTURE.301's
-// wheat in the woodlands, corn shocks in the mountains, sunflowers in the subtropics, vines in rainforest and swamp)
-// and in winter the snowed stubble (511_22). Beautiful Cities lays them over the farmland its composite blocks run
-// up to the walls. The port's stand-in is the same field: a registered id answers the flats it sows
-// (world/rmbFlats.js asks for each of a block's scene models), the plant the climate's, the nudges seeded by the
-// spot so a field stands the same every visit.
-//
-// FIELD BUGS 2026-10-04d CROPS: read again off the component's own source (drcarademono/rmb-resource-pack,
-// Scripts/RMBCropBillboardBatch.cs) and its four prefabs (Prefabs/Crops/5321x.prefab). The field is the component's
-// own law now, where the port's had drifted from it:
-//   - GenerateBillboardPositions runs `for (float x = -rangeX / 2; x <= rangeX / 2; ...)` over an INT rangeX, so the
-//     halves are C#'s integer ones - an 85 m field from -42 to 42 (not -42.5 to 41.5), a 35 m one from -17 to 15 -
-//     and the grid is laid in the world's axes round the batch (`transform.position + position`): the batch's own turn
-//     is never read;
-//   - AddBillboardsToBatch sows no plant where IsOverlapping finds anything but the terrain within overlapCheckRadius
-//     (1 on all four prefabs) of its foot - Physics.OverlapSphere, with DFU's queries syncing transforms and hitting
-//     triggers (ProjectSettings/DynamicsManager.asset) - so a field keeps a metre off every wall, tower and fence the
-//     block stands, where the port's grew through them;
-//   - each plant sown is GetRandomRecord's pick among the climate's records (not the two taken in turn), and the
-//     second desert's is its own (`case MapsFile.Climates.Desert2: return new[] { 20 }`), which a nature archive cannot
-//     tell from the first's (both are 503) - the caller hands the climate.
+// Crop fields follow RMBCropBillboardBatch. The grid lies in world axes around the batch and ignores its rotation,
+// and plant offsets are seeded by position so a field is the same on every visit.
 
 import { mulberry32 } from '../render/grassPixelArt.js';
 import { CLIMATES } from '../formats/mapsTables.js';
 
-const _fields = new Map();   // id -> { spec, isOn }
+const _fields = new Map();
 
-/** `spec`: { rangeX, rangeZ, spacing, noise, firstRecordOnly } in metres. */
 export function registerFlatField(id, spec, isOn = () => true) { _fields.set(Number(id), { spec: Object.freeze({ ...spec }), isOn }); }
 export function flatFieldFor(id) { const f = _fields.get(Number(id)); return f && f.isOn() ? f.spec : null; }
 export function _resetFlatFields() { _fields.clear(); }
 
-/** The crop archive and the plants of each climate's nature archive (RMBCropBillboardBatch.AdjustRecordBasedOnClimate):
- *  [archive, records]. A snowed nature archive (the odd ones from 505) is winter: the stubble. `climateIndex` is the
- *  raw CLIMATE.PAK value the component reads (PlayerGPS.CurrentClimateIndex): the second desert has a plant of its own. */
+// Follows RMBCropBillboardBatch.AdjustRecordBasedOnClimate. Odd nature archives from 505 are winter sets, and
+// `climateIndex` is the raw climate value because both deserts use nature archive 503.
 export const CROP_ARCHIVE = 301;
 export function cropRecordsFor(natureArchive, climateIndex = null) {
-  if (natureArchive >= 505 && natureArchive % 2 === 1) return [511, [22]];   // winter, outside the desert and the south
-  if (climateIndex === CLIMATES.Desert2) return [CROP_ARCHIVE, [20]];   // FIELD BUGS 2026-10-04d CROPS: Desert2's own
+  if (natureArchive >= 505 && natureArchive % 2 === 1) return [511, [22]];
+  if (climateIndex === CLIMATES.Desert2) return [CROP_ARCHIVE, [20]];
   switch (natureArchive) {
-    case 510: return [CROP_ARCHIVE, [0, 1]];       // Mountain
-    case 503: return [CROP_ARCHIVE, [2]];          // Desert
-    case 501: return [CROP_ARCHIVE, [3, 4]];       // Subtropical
-    case 500: case 502: return [CROP_ARCHIVE, [7, 8]];   // Rainforest, Swamp
-    default: return [CROP_ARCHIVE, [19, 21]];      // the woodlands and hills
+    case 510: return [CROP_ARCHIVE, [0, 1]];
+    case 503: return [CROP_ARCHIVE, [2]];
+    case 501: return [CROP_ARCHIVE, [3, 4]];
+    case 500: case 502: return [CROP_ARCHIVE, [7, 8]];
+    default: return [CROP_ARCHIVE, [19, 21]];
   }
 }
 
-/** RMBCropBillboardBatch.overlapCheckRadius - 1 on all four prefabs: no plant within a metre of anything solid. */
 export const CROP_OVERLAP_RADIUS = 1;
 
-/** The flats a field sows round (x, y, z) - metres, the block's own frame; `y` the batch's own, where every plant's foot
- *  stands - in the world's axes (FIELD BUGS 2026-10-04d CROPS: the batch's turn is never read): { archive, record, x,
- *  y, z } each. `solid(x, y, z, r)` answers whether anything solid stands within `r` of a plant's foot (IsOverlapping;
- *  none asked, none refused); `climateIndex` the raw climate (cropRecordsFor). */
 export function sowField(spec, natureArchive, x, y, z, { climateIndex = null, solid = null } = {}) {
   const [archive, all] = cropRecordsFor(natureArchive, climateIndex);
   const records = spec.firstRecordOnly && all.length > 1 ? all.slice(1) : all;
   const rnd = mulberry32(((Math.round(x * 40) * 73856093) ^ (Math.round(z * 40) * 19349663)) >>> 0);
-  const hx = Math.trunc(spec.rangeX / 2), hz = Math.trunc(spec.rangeZ / 2);   // `-rangeX / 2` over C#'s int: -42 for 85
+  // Truncates like C# integer division, so an 85 m field runs from -42 to 42.
+  const hx = Math.trunc(spec.rangeX / 2), hz = Math.trunc(spec.rangeZ / 2);
   const out = [];
   for (let u = -hx; u <= hx; u += spec.spacing) {
     for (let v = -hz; v <= hz; v += spec.spacing) {
       const px = x + u + (rnd() * 2 - 1) * spec.noise, pz = z + v + (rnd() * 2 - 1) * spec.noise;
-      if (solid && solid(px, y, pz, CROP_OVERLAP_RADIUS)) continue;   // IsOverlapping: the plant is not sown
-      out.push({ archive, record: records[Math.floor(rnd() * records.length)], x: px, y, z: pz });   // GetRandomRecord
+      if (solid && solid(px, y, pz, CROP_OVERLAP_RADIUS)) continue;
+      out.push({ archive, record: records[Math.floor(rnd() * records.length)], x: px, y, z: pz });
     }
   }
   return out;
 }
 
-/** The squared distance from p to the triangle abc (Ericson's ClosestPtPointTriangle), all [x, y, z]. */
 function pointTriangleDist2(px, py, pz, ax, ay, az, bx, by, bz, cx, cy, cz) {
   const abx = bx - ax, aby = by - ay, abz = bz - az, acx = cx - ax, acy = cy - ay, acz = cz - az;
   const apx = px - ax, apy = py - ay, apz = pz - az;
@@ -97,17 +67,14 @@ function pointTriangleDist2(px, py, pz, ax, ay, az, bx, by, bz, cx, cy, cz) {
 }
 
 /**
- * FIELD BUGS 2026-10-04d CROPS: IsOverlapping over a block's own solids - `Physics.OverlapSphere(position, radius)`
- * against everything but the terrain, here the triangles of the block's placed models as the hosts draw and collide
- * them (`models` layoutRmbBlock's, the block's frame; `meshOf(placed)` the host's mesh for it, or null where it stands
- * nothing). A mesh collider is its surface to a sphere, so a foot deep inside a closed model, farther than the radius
- * from every face, overlaps nothing. The triangles are laid on the first ask: a block with no field never pays.
+ * Matches a Unity mesh collider: only the surface counts, so a point deep inside a closed model and farther than
+ * `r` from every face does not overlap.
  * @param {Iterable<{modelIdNum:number, matrix:ArrayLike<number>}>} models
  * @param {(placed:object) => ?{positions:ArrayLike<number>, indices:ArrayLike<number>}} meshOf
  * @returns {(x:number, y:number, z:number, r:number) => boolean}
  */
 export function blockSolids(models, meshOf) {
-  let solids = null;   // per model: [box (6), triangles laid out flat, nine numbers each]
+  let solids = null;
   const lay = () => {
     solids = [];
     for (const placed of models ?? []) {

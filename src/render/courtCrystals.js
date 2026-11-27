@@ -1,52 +1,22 @@
 // @ts-check
-// WB9c (2026-09-30, Mac: "The boss should have a detailed wipe mechanic on the final phase that should require players to
-// destroy oblivion crystaline formations that grow anywhere within the final phase arena, which then stuns his wipe
-// mechanic"): THE CRYSTALS OF OBLIVION, DRAWN - each a cluster of faceted crystal grown up out of the court's floor as
-// Dagon's Reckoning is called, glowing from within in his aspect's colour, feeding a beam of that colour into his chest,
-// cracking as it is broken down, flashing as it is struck, and shattering outward into tumbling shards when it breaks.
-// Design: bible/11-Multiplayer/World-Bosses.md section 14 (WB9c).
-//
-// TWO PROGRAMS, one pass:
-//   - THE CLUSTER, OPAQUE: one model made once (`crystalCluster` - a great prism and its lesser ones, each a piece that
-//     flies on its own when it breaks), placed, grown and shattered by uniforms; depth-tested and WRITTEN (a crystal hides
-//     what stands behind it, as stone does), lit by its own heart and the Deadlands' light from above, fogged to the
-//     frame's fog colour.
-//   - THE GLOW, ADDED: under each crystal a pool of its light on the floor, and from each one standing a ribbon of light
-//     into his chest while the Reckoning winds up - the duel wall's law (render/duelWall.js): fixed geometry and uniforms,
-//     added onto the frame (ONE, ONE), no depth written, fogged, every rate whole over the wrapped clock.
-//
-// Every crystal the fight grows is the same model; what tells them apart is uniforms (its turn, its seed). Pure where it
-// can be: `crystalCluster` and `crystalGrowth` are the pins' doors.
-//
-// Not a DFU member. Ledger A (WB).
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { duelClock } from './duelWall.js';
 import { seededRng } from '../weather/wind.js';
 import { CRYSTAL_R, CRYSTAL_H } from '../net/gateBrain.js';
 
-/** How long a crystal takes to grow out of the floor from the Reckoning's word, and how long its shards fly (ms). */
 export const CRYSTAL_GROW_MS = 1400;
 export const CRYSTAL_SHATTER_MS = 900;
-/** A struck crystal flashes this long (ms). */
 export const CRYSTAL_FLASH_MS = 220;
-/** The most crystals one draw takes (net/gate/gateBrain.js RECKON_CRYSTALS' most). */
+// This must cover the most crystals RECKON_CRYSTALS grows in src/net/gateBrain.js.
 export const CRYSTALS_DRAW_MAX = 8;
-/** The floor's glow under a crystal - its radius (m); the beam's width (m) and its flow (cycles a second, whole over
- *  duelWall.js DUEL_CLOCK_PERIOD). */
 export const CRYSTAL_POOL_R = 2.6;
 export const CRYSTAL_BEAM_W = 0.45;
+// The beam flow is a whole number of cycles over DUEL_CLOCK_PERIOD, so the wrapped clock never makes it jump.
 export const CRYSTAL_FLOW_HZ = 2;
 
-/** How far grown a crystal is `since` ms after its word (0..1, eased - quick out of the stone, slow to its full height). */
 export const crystalGrowth = (since) => (since <= 0 ? 0 : since >= CRYSTAL_GROW_MS ? 1 : 1 - Math.pow(1 - since / CRYSTAL_GROW_MS, 3));
 
-/**
- * THE CLUSTER, made once: a great six-sided prism rising to a point (CRYSTAL_H tall, CRYSTAL_R about its foot, leaning a
- * little) and five lesser ones leaning out from its foot - each a PIECE (its own centre and seed, so it flies on its own
- * when the crystal breaks). Unindexed triangles, their normals flat (facets): `{ positions, normals, pieces, count }`, its
- * local frame the crystal's foot at the origin, y up. Seeded: every crystal the same.
- */
 export function crystalCluster() {
   const rolls = seededRng(0xc7157a1);
   const pos = [], nrm = [], pc = [];
@@ -55,7 +25,6 @@ export function crystalCluster() {
     const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]], l = Math.hypot(...n) || 1;
     for (const p of [a, b, c]) { pos.push(p[0], p[1], p[2]); nrm.push(n[0] / l, n[1] / l, n[2] / l); pc.push(piece[0], piece[1], piece[2], piece[3]); }
   };
-  /** One prism: `sides` about a foot at `foot`, `r` wide, `h` to its shoulder and `tip` more to its point, along `dir`. */
   const prism = (foot, dir, r, h, tip, sides, seed) => {
     const l = Math.hypot(...dir), d = dir.map((x) => x / l);
     const ref = Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
@@ -68,8 +37,8 @@ export function crystalCluster() {
     const point = [foot[0] + d[0] * (h + tip), foot[1] + d[1] * (h + tip), foot[2] + d[2] * (h + tip)];
     for (let k = 0; k < sides; k++) {
       const b0 = at(-0.25, k, r * 0.9), b1 = at(-0.25, k + 1, r * 0.9), s0 = at(h, k, r), s1 = at(h, k + 1, r);
-      tri(b0, b1, s1, piece); tri(b0, s1, s0, piece);   // the facet up to the shoulder
-      tri(s0, s1, point, piece);                        // and to the point
+      tri(b0, b1, s1, piece); tri(b0, s1, s0, piece);
+      tri(s0, s1, point, piece);
     }
   };
   prism([0, 0, 0], [0.08, 1, 0.05], CRYSTAL_R * 0.55, CRYSTAL_H * 0.72, CRYSTAL_H * 0.28, 6, 0.3);
@@ -83,10 +52,11 @@ export function crystalCluster() {
   return { positions: new Float32Array(pos), normals: new Float32Array(nrm), pieces: new Float32Array(pc), count: pos.length / 3 };
 }
 
+// Both glow stages read the int uniform uKind, so both declare highp int: a fragment stage defaults to mediump.
 const HEAD = `#version 300 es
 precision highp float;
 precision highp int;
-`;   // the int uniforms shared by the glow's two stages (uKind) must agree in precision - a fragment stage's default is mediump
+`;
 const NOISE_GLSL = `
 float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vnoise(vec2 p) {
@@ -169,7 +139,6 @@ void main() {
   float f = fogFactorAt(vWorld);
   o = vec4(mix(uFogColor, c, f), 1.0);
 }`;
-/** THE GLOW: `aP` a unit quad's corner; `uKind` 0 the floor's pool under a crystal, 1 the beam from it into his chest. */
 export const CRYSTAL_GLOW_VS = HEAD + `layout(location = 0) in vec2 aP;   // x across -1..1, y 0..1
 uniform mat4 uVP;
 uniform int uKind;
@@ -222,7 +191,6 @@ void main() {
 
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_ITEMS = Object.freeze([]);
-/** Whether a crystal of a draw's list is drawn: placed, grown out of the stone, and not yet flown to nothing. */
 export const crystalDrawn = (q) => !!q && Array.isArray(q.at) && Number.isFinite(q.at[0]) && Number.isFinite(q.at[1]) && Number.isFinite(q.at[2])
   && q.grow > 0.001 && !(q.broke >= CRYSTAL_SHATTER_MS / 1000);
 function mat4Multiply(out, a, b) {
@@ -230,8 +198,6 @@ function mat4Multiply(out, a, b) {
   return out;
 }
 
-/** SHADER-STALL: the pass's two programs, the crystal's and its glow's, as its constructor builds them - what a host
- *  starts ahead of the build (render/glProgram.js compiledPass). */
 export const CRYSTAL_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[CRYSTAL_VS, CRYSTAL_FS], [CRYSTAL_GLOW_VS, CRYSTAL_GLOW_FS]]));
 
 export class CourtCrystalRenderer {
@@ -261,28 +227,19 @@ export class CourtCrystalRenderer {
     this._vp = new Float32Array(16);
     /** @type {any[]} */
     this._items = [];
-    /** how many crystals and glows the last draw put down, for the stats and the tests */
     this.drawn = 0;
     this.glowed = 0;
   }
 
-  /**
-   * Draw the crystals `list` ([{ at: [x, y, z] its foot in the scene, yaw, seed, grow 0..1, broke (s since it broke, < 0
-   * standing), hp 0..1, flash 0..1, color, beam: [x, y, z]|null - his chest, while the Reckoning winds up }], at most
-   * CRYSTALS_DRAW_MAX): the clusters (opaque, depth written), then their glow (added). `fog` the frame's fog as the renderer
-   * set it ({ mode, density, range, color, camPos }). Nothing to draw, nothing touched.
-   */
   draw(list, proj, view, eye, seconds, fog = null) {
     this.drawn = 0; this.glowed = 0;
-    if (!this.gl) return;   // AUDIT EG V (L6-5): a destroyed pass draws nothing
-    // AUDIT WB D10's law: the frame's crystals picked into a list kept, never a new one each frame
+    if (!this.gl) return;
     const items = this._items;
     items.length = 0;
     for (const q of Array.isArray(list) ? list : NO_ITEMS) if (items.length < CRYSTALS_DRAW_MAX && crystalDrawn(q)) items.push(q);
     if (!items.length) return;
     const gl = this.gl, U = this.u, G = this.g, time = duelClock(seconds), at = eye ?? items[0].at;
     mat4Multiply(this._vp, proj, view);
-    // the clusters: opaque, depth written
     gl.useProgram(this.program);
     gl.uniformMatrix4fv(U.uVP, false, this._vp);
     gl.uniform3f(U.uEye, at[0], at[1], at[2]);
@@ -306,7 +263,6 @@ export class CourtCrystalRenderer {
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
       this.drawn++;
     }
-    // the glow: the floor's pools and the beams, added
     gl.useProgram(this.glowProgram);
     gl.uniformMatrix4fv(G.uVP, false, this._vp);
     gl.uniform3f(G.uEye, at[0], at[1], at[2]);
@@ -335,9 +291,6 @@ export class CourtCrystalRenderer {
     gl.depthMask(true); gl.disable(gl.BLEND); gl.enable(gl.CULL_FACE);
   }
 
-  /** AUDIT EG V (L6-5; Elite-Gates.md section 29, EVERY ALLOCATION HAS AN OWNER): its two programs, two vertex arrays and four
-   *  buffers let go - once; a destroyed pass draws nothing. The breach's fight frees its own at every way out of the Spire
-   *  (scenes/eliteGates/egFight.js leave); the Burning Court's is a screen's, kept. */
   destroy() {
     const gl = this.gl;
     if (!gl) return;

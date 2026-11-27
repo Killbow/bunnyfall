@@ -1,8 +1,3 @@
-// INTRO2: one decoded source, from the first note through the menu.
-// A user gesture unlocks AudioContext BEFORE any await. Playback starts only
-// after every cinematic asset is ready. No silent wall-clock substitute.
-// getOutputTimestamp maps the audio DEVICE clock onto performance.now():
-// currentTime alone is ahead of what is heard by the output pipeline latency.
 import { trackGain } from './songPlayer.js';
 import { onSettingChange } from '../platform/settings.js';
 
@@ -11,9 +6,8 @@ export const INTRO_THEME_GAIN = 0.82;
 export const MENU_THEME_GAIN = 0.26;
 export const THEME_LOAD_TIMEOUT_MS = 15000;
 
-/** Audio device time corresponding to a presentation time (milliseconds).
- * A zero timestamp before the device starts is not a usable clock. Fallback
- * subtracts reported output latency; it never substitutes a wall clock. */
+// currentTime runs ahead of what is heard by the output latency, so the device timestamp maps heard time.
+// A zero stamp before the device starts is no clock, and the fallback never substitutes the wall clock.
 export function audibleContextTime(context, presentationMs) {
   const stamp = context.getOutputTimestamp?.();
   if (stamp && stamp.performanceTime > 0 && Number.isFinite(stamp.contextTime)) {
@@ -22,7 +16,7 @@ export function audibleContextTime(context, presentationMs) {
   return context.currentTime - Math.max(0, context.outputLatency ?? context.baseLatency ?? 0);
 }
 
-/** Session ownership belongs to the front door, NOT the cinematic DOM. */
+// The front door owns this session, not the intro DOM, so one source plays from the first note through the menu.
 export class IntroTheme {
   constructor({ makeContext, fetcher = globalThis.fetch?.bind(globalThis), readVolume = trackGain, subscribe = onSettingChange, now = () => performance.now() } = {}) {
     this.makeContext = makeContext ?? (() => {
@@ -71,8 +65,7 @@ export class IntroTheme {
         if (this.disposed) return null;
         return context.decodeAudioData(bytes);
       };
-      // Bound fetch AND decode. Aborting fetch alone cannot stop a decoder
-      // that never settles, and the player's Begin button must not get stuck.
+      // The timeout bounds fetch and decode together: aborting the fetch cannot stop a decoder that never settles.
       this.buffer = await Promise.race([load(), new Promise((_, reject) => {
         this.loadTimer = setTimeout(() => { this.abort.abort(); reject(new Error('Theme loading timed out')); }, THEME_LOAD_TIMEOUT_MS);
       })]);
@@ -87,7 +80,7 @@ export class IntroTheme {
     }
   }
 
-  /** Must be called directly from a trusted click/key handler. */
+  // Call this directly from a trusted click or key handler, so the context resumes before any await.
   unlock() {
     if (this.disposed) return Promise.resolve(false);
     this.prepare();
@@ -136,7 +129,6 @@ export class IntroTheme {
     }
   }
 
-  /** Release the graph, decode buffer, timer, fetch and settings listener. */
   async dispose() {
     if (this.disposed) return;
     this.disposed = true;
@@ -146,13 +138,13 @@ export class IntroTheme {
     this.unsubscribe = null;
     const source = this.source;
     this.source = null;
-    try { source?.stop(); } catch { /* a source can already have ended */ }
+    try { source?.stop(); } catch { }
     source?.disconnect();
     this.gain?.disconnect();
     this.buffer = null;
     this.gain = null;
     const context = this.context;
     this.context = null;
-    try { await context?.close(); } catch { /* already closed */ }
+    try { await context?.close(); } catch { }
   }
 }

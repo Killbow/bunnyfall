@@ -48,7 +48,7 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
       const clip = copyNodes(c.d, ids);
       if (!clipRows(clip)) { say(t('poi.editor.copyNone', 'Select something to copy first.'), 'bad'); return false; }
       keep(clip);
-      say(t('poi.editor.copied', '{n, plural, one {Copied # thing. Ctrl+V pastes it into the selected POI.} other {Copied # things. Ctrl+V pastes them into the selected POI.}}', { n: clipRows(clip) }));
+      say(t('poi.editor.copied', '{n, plural, one {Copied # item. Press Ctrl+V to paste it into the selected POI.} other {Copied # items. Press Ctrl+V to paste them into the selected POI.}}', { n: clipRows(clip) }));
       if (cut && c.items.length) acts.remove();
       return true;
     },
@@ -81,19 +81,19 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
       if (!c) return false;
       if (c.items.length) {
         // a locked row is not deleted (by its own lock, its group's, or inside a group being deleted): unlocked first
-        if (lockedIn(c.d, c.items)) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return false; }
+        if (lockedIn(c.d, c.items)) { say(t('poi.scene.deleteLocked', 'Locked items cannot be deleted. Unlock them first.'), 'bad'); return false; }
         const one = c.items.length === 1 ? parseId(c.items[0]) : null;
         const label = one?.kind === 'part' ? 'remove part' : one?.kind === 'npc' ? 'remove person' : one?.kind === 'light' ? 'light' : 'delete';
         return edit.edit(c.s.id, label, (x) => { removeNodes(x, c.items); }, { id: c.s.id, items: [] });
       }
       if (edit.entryOf(c.s.id)?.state === 'new' && !edit.entryOf(c.s.id)?.saved) return edit.remove(c.s.id);
-      say(t('poi.editor.deleteSaved', 'To take a saved POI out of the world, ask to retire it.'), 'bad');
+      say(t('poi.editor.deleteSaved', 'To remove a saved POI from the world, request to retire it.'), 'bad');
       return false;
     },
     /** What is selected put in a new group, the group selected. */
     group() {
       const c = current();
-      if (!c || !c.items.length) { say(t('poi.scene.groupNone', 'Select the things to group first.'), 'bad'); return false; }
+      if (!c || !c.items.length) { say(t('poi.scene.groupNone', 'Select items to group first.'), 'bad'); return false; }
       const name = t('poi.scene.groupName', 'Group');
       const r = groupNodes(structuredClone(c.d), c.items, name);
       if ('refused' in r) { say(refusedText(/** @type {string} */ (r.refused)), 'bad'); return false; }
@@ -151,7 +151,7 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
      *  `move` (a delta in the POI's frame), `ground`. Answers how many rows changed. */
     arrange(/** @type {'align' | 'distribute' | 'reset' | 'move' | 'ground'} */ how, /** @type {any} */ a = null, /** @type {any} */ b = null) {
       const c = current();
-      if (!c || !c.items.length) { say(t('poi.scene.arrangeNone', 'Select the things to arrange first.'), 'bad'); return 0; }
+      if (!c || !c.items.length) { say(t('poi.scene.arrangeNone', 'Select items to arrange first.'), 'bad'); return 0; }
       let n = 0;
       edit.edit(c.s.id, 'arrange', (x) => {
         if (how === 'align') n = alignNodes(x, c.items, a, b);
@@ -171,12 +171,12 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
   function arrangeNone(how, d, items) {
     const free = movable(d, items), all = movable(d, items, true);
     const kinds = new Set(free.map((i) => parseId(i).kind));
-    if (!free.length && all.length) return t('poi.scene.arrangeLocked', 'Nothing was changed: what is selected is locked.');
-    if (how === 'align') return t('poi.scene.alignTwo', 'Align needs two things that are not locked.');
-    if (how === 'distribute') return t('poi.scene.spreadThree', 'Spread needs three things that are not locked.');
-    if (how === 'reset') return t('poi.scene.resetNone', 'Nothing was changed: people and lights have no turn or size to reset.');
-    if (how === 'ground' && [...kinds].every((k) => k === 'light')) return t('poi.scene.groundLights', 'Nothing was moved: lights stay where they shine from.');
-    if (how === 'ground') return t('poi.scene.groundUnknown', 'Nothing was moved: the ground under it has not loaded yet.');
+    if (!free.length && all.length) return t('poi.scene.arrangeLocked', 'Nothing changed: the selected items are locked.');
+    if (how === 'align') return t('poi.scene.alignTwo', 'Select at least two unlocked items to align.');
+    if (how === 'distribute') return t('poi.scene.spreadThree', 'Select at least three unlocked items to spread evenly.');
+    if (how === 'reset') return t('poi.scene.resetNone', 'Nothing changed: people and lights have no turn or size to reset.');
+    if (how === 'ground' && [...kinds].every((k) => k === 'light')) return t('poi.scene.groundLights', 'Nothing moved: lights cannot be dropped to the ground.');
+    if (how === 'ground') return t('poi.scene.groundUnknown', 'Nothing moved: the ground below has not loaded yet.');
     return t('poi.scene.arrangeNothing', 'Nothing was changed.');
   }
 
@@ -198,8 +198,8 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
   const made = (id, out) => (out && out.top.length ? selectionOf(id, partsLast(out.top)) : undefined);
   function told(out) {
     if (!out) return false;
-    if (out.missing.length) say(t('poi.clip.missing', 'Left out {n, plural, one {# thing} other {# things}} whose model or picture the store does not have: {names}.', { n: out.missing.length, names: out.missing.slice(0, 4).join(', ') }), 'bad');
-    else if (out.full.length) say(t('poi.editor.pasteFull', 'The POI is full: {n, plural, one {# thing was} other {# things were}} left out.', { n: out.full.length }), 'bad');
+    if (out.missing.length) say(t('poi.clip.missing', 'Skipped {n, plural, one {# item} other {# items}} with a missing model or picture: {names}.', { n: out.missing.length, names: out.missing.slice(0, 4).join(', ') }), 'bad');
+    else if (out.full.length) say(t('poi.editor.pasteFull', 'This POI is full: {n, plural, one {# item was} other {# items were}} left out.', { n: out.full.length }), 'bad');
     return out.ids.length > 0;
   }
   return acts;
@@ -214,8 +214,8 @@ export function lockedIn(d, ids) {
 
 /** A refused group change in the builder's words. @param {string} why */
 export function refusedText(why) {
-  if (why === 'groups') return t('poi.scene.tooManyGroups', 'A POI holds {n} groups at most.', { n: 64 });
-  if (why === 'depth') return t('poi.scene.tooDeep', 'Groups go {n} deep at most.', { n: 8 });
-  if (why === 'cycle') return t('poi.scene.cycle', 'A group cannot go inside itself.');
-  return t('poi.scene.refused', 'That cannot be grouped.');
+  if (why === 'groups') return t('poi.scene.tooManyGroups', 'A POI can have at most {n} groups.', { n: 64 });
+  if (why === 'depth') return t('poi.scene.tooDeep', 'Groups can be nested at most {n} levels deep.', { n: 8 });
+  if (why === 'cycle') return t('poi.scene.cycle', 'A group cannot be placed inside itself.');
+  return t('poi.scene.refused', 'Cannot group the selected items.');
 }

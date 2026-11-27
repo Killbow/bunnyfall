@@ -1,28 +1,6 @@
-// ═══════════════════════════════════════════════════════════════════
-// FORAGE1 (2026-09-28): QUEST ACTIONS EXTENSION'S FOUR ACTIONS - the ones
-// Harbinger451's Foraging quests say (bible/06-Systems/Foraging.md 9.2).
-// Quest Actions Extension is Jagget's (2.0.0, github.com/Jagget/
-// QuestActionsExtension at 56a407e, Actions/*.cs); nothing of it is
-// carried - each class here restates one of its actions' behaviour, cited
-// to its file, and Jagget is credited on the About screen beside the mod
-// that needs it (Mac: "Your lead").
-//
-//   raise time by H:MM          RaiseTime.cs           WorldTime.Now.RaiseTime(seconds) - a bare clock advance
-//                                                      (online, FORAGE4: the host's wait - the clock is shared)
-//   reduce player fatigue by N  ReducePlayerFatigue.cs  N percent of the maximum, the floor 1 (raw x64 values)
-//   player possesses N items class C subclass S   PlayerPossesses.cs   an always-on trigger, pack and wagon
-//   player handsover N items class C subclass S   PlayerHandsover.cs   removes N, pack first then wagon
-//
-// `update-quest-item _x_ Leveled` matches no action of QAE's in any
-// version (its form is `... set-material <material>`), so DFU drops the
-// line; the port's parser already keeps an unmatched line inert
-// (task.js pendingActionLines). Nothing here answers it.
-//
-// FORAGE-FIX Q11: QAE's handsover searches the PACK for the wagon's share
-// (`WagonItems = player.Items.SearchItems(...)`), so pack items count
-// twice and the wagon's are never taken. The port searches the wagon -
-// the one departure here, recorded in FORAGE0 12 and the Port-Ledger.
-// ═══════════════════════════════════════════════════════════════════
+// The four Quest Actions Extension actions the Foraging quests use: raise time, reduce player fatigue, player
+// possesses, and player handsover. One departure: handsover takes the wagon's share from the wagon, where the
+// original searched the pack twice.
 
 import { ActionTemplate } from './actions.js';
 import { ITEM_GROUPS } from '../../characters/equipRules.js';
@@ -30,14 +8,10 @@ import { isSummoned } from '../../items/inventory.js';
 import { maxFatigue } from '../../characters/statMods.js';
 import { raiseTimeSeconds, reduceFatigueBy } from '../../professions/foragingLaw.js';
 
-/** ItemGroups' number -> the port's group name. */
 const GROUP_NAME_OF = Object.freeze(Object.fromEntries(Object.entries(ITEM_GROUPS).map(([name, n]) => [n, name])));
 
-/**
- * .NET's unanchored Regex.Match over an alternation: at the leftmost position where any alternative matches, the
- * first alternative that matches there. The patterns here are kept as their alternatives, since a JS pattern may
- * not repeat a group name.
- */
+// .NET Regex.Match over an alternation takes the leftmost match position, then the first alternative there.
+// Patterns stay split into alternatives because a JS pattern may not repeat a group name.
 function matchAlternatives(alternatives, source) {
   let best = null;
   alternatives.forEach((re, i) => {
@@ -47,18 +21,15 @@ function matchAlternatives(alternatives, source) {
   return best;
 }
 
-/** ItemCollection.SearchItems(group, templateIndex), quest items excluded (the actions' FindAll). */
 function searchNonQuest(list, itemClass, itemSubClass) {
   const group = GROUP_NAME_OF[itemClass];
   return (list ?? []).filter((it) => it && it.group === group && it.templateIndex === itemSubClass && !it.questItem);
 }
-/** Helpers.CalculateLengthOrStackCount: a stack counts its size, anything else 1; a summoned item counts nothing. */
 export function lengthOrStackCount(items) {
   let count = 0;
   for (const it of items ?? []) if (!isSummoned(it)) count += (it.stackCount ?? 1) > 1 ? it.stackCount : 1;
   return count;
 }
-/** Helpers.RemoveNFromList: whole items or stacks, then part of a stack, until `amount` are gone. */
 function removeNFromList(storage, items, amount) {
   let removed = 0;
   for (const it of items) {
@@ -81,7 +52,6 @@ function removeNFromList(storage, items, amount) {
   }
 }
 
-/** The player's pack and wagon counts of a class and subclass. */
 function heldCounts(entity, itemClass, itemSubClass) {
   const pack = searchNonQuest(entity?.items, itemClass, itemSubClass);
   const wagon = searchNonQuest(entity?.wagonItems, itemClass, itemSubClass);
@@ -89,16 +59,12 @@ function heldCounts(entity, itemClass, itemSubClass) {
 }
 
 const RAISE_TIME = Object.freeze([
-  // RaiseTime.cs's Pattern, alternative by alternative: THREE, not four - the file forgot the `|` between its second
-  // and third lines, so its second alternative is `raise time to H:MMraise time by H:MM saying N` and neither a bare
-  // `raise time to H:MM` nor `raise time by H:MM saying N` exists on its own (the latter matches as the bare `by`, its
-  // saying unread).
+  // RaiseTime.cs lacks a `|` between its second and third lines, so its pattern has three alternatives, not four.
   /raise time to (?<hoursTo>\d+):(?<minutesTo>\d+) saying (?<sayingID>\d+)/,
   /raise time to (?<hoursTo>\d+):(?<minutesTo>\d+)raise time by (?<hours>\d+):(?<minutes>\d+) saying (?<sayingID>\d+)/,
   /raise time by (?<hours>\d+):(?<minutes>\d+)/,
 ]);
 
-/** RaiseTime.cs: `raise time by H:MM` (a bare advance) or `raise time to H:MM` (to that hour, today or tomorrow). */
 export class RaiseTime extends ActionTemplate {
   static typeName = 'RaiseTime';
   get saveShape() { return [['hours'], ['minutes'], ['hoursTo'], ['minutesTo'], ['sayingID']]; }
@@ -118,7 +84,7 @@ export class RaiseTime extends ActionTemplate {
     a.hoursTo = g.hoursTo != null ? Math.min(Math.max(Number(g.hoursTo), 0), 23) : 0;
     a.minutesTo = g.minutesTo != null ? Math.min(Math.max(Number(g.minutesTo), 0), 59) : 0;
     a.sayingID = g.sayingID != null ? Number(g.sayingID) : 0;
-    if (a.hours + a.minutes + a.hoursTo + a.minutesTo === 0) return null;   // CreateNew's own refusal: DFU drops the line
+    if (a.hours + a.minutes + a.hoursTo + a.minutesTo === 0) return null;
     return a;
   }
   update(_caller) {
@@ -127,15 +93,12 @@ export class RaiseTime extends ActionTemplate {
     if (this.minutes + this.hours > 0) {
       seconds = raiseTimeSeconds(this.hours, this.minutes);
     } else if (this.minutesTo + this.hoursTo > 0) {
-      const now = Math.floor(((hooks?.skySeconds ?? hooks?.nowSeconds)?.() ?? 0) / 60);   // classic minutes: midnight on a whole day - TIME3: the time of day is the sky's
+      const now = Math.floor(((hooks?.skySeconds ?? hooks?.nowSeconds)?.() ?? 0) / 60);
       const current = 60 * (now % 60) + 3600 * (Math.floor(now / 60) % 24);
       const desired = 60 * this.minutesTo + 3600 * this.hoursTo;
       seconds = desired >= current ? desired - current : desired - current + 86400;
     }
-    // FORAGE4 (the Ledger A FORAGING row's departure 5): online the shared clock is nobody's to move (WORLD5), so the
-    // seconds are the host's WAIT (scenes/foragingWait.js, FORAGE0 13.1); offline the clock moves, as QAE's. MERGE 2
-    // (main's LIVED1, "your own time"): online they pass on the character's OWN clock too, after the wait page - the
-    // host's raiseTime is the character's time in both lanes (the one clock offline)
+    // Online the shared clock cannot move, so the host waits instead; the character's clock advances either way.
     if (seconds > 0) {
       if (hooks?.sharedClock?.()) hooks?.waitOnline?.(seconds, this.parentQuest);
       hooks?.raiseTime?.(seconds);
@@ -147,7 +110,6 @@ export class RaiseTime extends ActionTemplate {
 
 const REDUCE_FATIGUE = Object.freeze([/reduce player fatigue by (?<percent>\d+)/, /reduce player fatigue on (?<amount>\d+)/]);
 
-/** ReducePlayerFatigue.cs: `by N` is N percent of the maximum, `on N` is N raw; never below 1. */
 export class ReducePlayerFatigue extends ActionTemplate {
   static typeName = 'ReducePlayerFatigue';
   get saveShape() { return [['percent'], ['amount']]; }
@@ -169,7 +131,7 @@ export class ReducePlayerFatigue extends ActionTemplate {
       let fatigue = 0;
       if (this.percent > 0) fatigue = reduceFatigueBy(current, maxFatigue(e), this.percent);
       if (this.amount > 0) fatigue = current - this.amount;
-      e.fatigue = Math.min(maxFatigue(e), Math.max(1, fatigue));   // then CurrentFatigue's setter clamps to the maximum
+      e.fatigue = Math.min(maxFatigue(e), Math.max(1, fatigue));
     }
     this.setComplete();
   }
@@ -184,7 +146,6 @@ const itemFields = (a, m) => {
   return a;
 };
 
-/** PlayerPossesses.cs: true while the pack and the wagon together hold N (quest items not counted). */
 export class PlayerPossesses extends ActionTemplate {
   static typeName = 'PlayerPossesses';
   get saveShape() { return [['numberOfItems'], ['itemClass'], ['itemSubClass']]; }
@@ -207,7 +168,6 @@ export class PlayerPossesses extends ActionTemplate {
   }
 }
 
-/** PlayerHandsover.cs: takes N from the pack first and the rest from the wagon; nothing unless all N are held. */
 export class PlayerHandsover extends ActionTemplate {
   static typeName = 'PlayerHandsover';
   get saveShape() { return [['numberOfItems'], ['itemClass'], ['itemSubClass']]; }
@@ -220,7 +180,7 @@ export class PlayerHandsover extends ActionTemplate {
   update(_caller) {
     const e = this.parentQuest?.hooks?.playerEntity?.();
     if (!e) return;
-    const { pack, wagon, inPack, inWagon } = heldCounts(e, this.itemClass, this.itemSubClass);   // Q11: the wagon's own
+    const { pack, wagon, inPack, inWagon } = heldCounts(e, this.itemClass, this.itemSubClass);
     if (inPack + inWagon < this.numberOfItems) return;
     const fromPack = Math.min(this.numberOfItems, inPack);
     const fromWagon = this.numberOfItems - fromPack;
@@ -230,5 +190,4 @@ export class PlayerHandsover extends ActionTemplate {
   }
 }
 
-/** The four, for a quest machine to register (the host does, before any save's quests are restored). */
 export const questActionsExtensionTemplates = () => [new RaiseTime(null), new ReducePlayerFatigue(null), new PlayerPossesses(null), new PlayerHandsover(null)];

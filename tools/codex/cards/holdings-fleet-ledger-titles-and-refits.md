@@ -30,6 +30,7 @@ invariants:
   - "A refit never heals a ship; existing hull and sail damage carry over as the same percentage of its refitted maximums."
   - "A crew holds at most one `'First Mate'`; assigning a new First Mate demotes the previous holder to `'Deckhand'` (`src/systems/naval/shipCrew.js`)."
   - "`repairAway` requires a crewed hull with crew aboard and no active combat, capped by `FIELD_MEND_CAP` and available onboard repair stores."
+  - "Refits take stores that melt nothing (timber, iron, and pitch) first, and ingots before any melted piece. A steel ingot counts for both Iron and Steel, so Iron takes one only when no other iron is at hand."
 traps:
   - "Do not stamp `credit` on new ship purchases; only legacy saves carry `credit` for `loanOwed` and `settleCredit` checks."
   - "`CREW_ROLES` (`src/systems/naval/shipCrew.js`, plus `'Bard'` in `src/systems/naval/fleetHost.js`) defines assignable roster roles persisted locally without peer wire sync, and is distinct from the 5-post `ROLE_POSTS` deck-station list in `src/systems/naval/crewLife.js`."

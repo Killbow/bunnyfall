@@ -1,10 +1,6 @@
 // @ts-check
-// BUNNYFALL FARM EXPANSION, PHASE 1: THE FARMSTEAD DRAWN - each fixture's parts as Daggerfall's own flats (the art
-// register's records, farmstead.js FIXTURES), standing on the ground the layout chose. Batched by picture and height,
-// rebuilt only when the layout or the farm's upgrades change (a part with `min` appears with its upgrade). Drawn for
-// anyone near the farm, in the normal view as in Farming Mode: the farm is a place, not a menu.
 import { FIXTURE_ARCHIVES, fixtureParts } from './farmstead.js';
-import { setFarmSway } from '../farmGardenArt.js';   // PHASE 4.0: wind over the haystack's shocks
+import { setFarmSway } from '../farmGardenArt.js';
 
 /**
  * @param {any} renderer
@@ -46,13 +42,16 @@ export function createFarmsteadArt(renderer, assets = {}) {
       if (!size?.width || !size?.height) continue;
       assets.uploadRecord(a, r);
       const dims = h != null ? { w: h * size.width / size.height, h } : { w, h: w * size.height / size.width };
-      batches.push(setFarmSway(renderer.createBillboardBatch(a, r, dims, centers), sway));   // PHASE 4.0: a shock leans, a fixture stands
+      batches.push(setFarmSway(renderer.createBillboardBatch(a, r, dims, centers), sway));
     }
   }
   return {
     prepare, update,
     get ready() { return ready; },
-    /** @param {number[]} right @param {number[]} up */
+    /**
+     * @param {number[]} right
+     * @param {number[]} up
+     */
     draw(right, up) { if (batches.length) renderer.drawBillboards(batches, right, up); },
     dispose() { clear(); },
   };

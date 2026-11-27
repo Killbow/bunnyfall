@@ -1,57 +1,15 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// CSA-F (2026-09-27): COME SAIL AWAY'S WAVES, DRAWN - the wave object's
-// mesh (systems/comeSailAway/comeSailAwayWaves.js) on the bundle's CurrentMaterial, its
-// shader Daggerfall/Dither/Wave as the bundle's compiled program has it:
-//
-//   - the frame, tiled ten times each way (_MainTex_ST), point-sampled and
-//     repeating, cut out below half its alpha times the tint's (_Cutoff);
-//   - dithered out across the strip: the raw uv's v (the tiled one over
-//     ten) folded about a half, `1 - x^2(3 - 2x)` of its span from
-//     _DitherStart to _DitherEnd (LoadSettings' Fade and Length), against
-//     the 8x8 Bayer threshold at the screen pixel (_DitherPattern, point,
-//     one texel a pixel);
-//   - tinted (0.5, 0.75, 1), Lambert-lit and fogged (the FORWARDBASE pass's
-//     FOG_LINEAR / FOG_EXP / FOG_EXP2 variants), opaque, writing its depth,
-//     back faces culled (Unity's winding, the port's world projection);
-//   - (FIELD BUGS 2026-09-29 (the sea) #4) in its place in the sea's stack of
-//     sheets in window depth: over the ground and the surface film
-//     (render/waterSurface.js WATER_LAYER_UNITS).
-//
-// THE FRAME IS COMPOSED WHERE IT IS SAMPLED. Each of the 32 frames is one of
-// the author's two paints scrolled down its rows, the paint's key colour
-// standing for Daggerfall's snow (TEXTURE.303 record 1) tiled under it
-// (formats/derivedTexture.js composeTiledPicture - the frame is a render of
-// game data, so it is rebuilt from the player's ARENA2, never shipped). The
-// shader does that composition for the one texel a fragment samples - the
-// same integer arithmetic, point-sampled either way - so the port uploads
-// the two paints and the snow, not 32 frames of 640x640.
-//
-// FIELD BUGS 2026-09-29 (the sea) #4 - AND FROM AFAR, THE CHAIN'S TEXEL. The
-// mod's frames carry one level (m_MipCount 1), so a strip seen from a few
-// hundred metres picked one texel of dozens a pixel and boiled as the deck
-// bobbed the camera. Each paint is uploaded as its chain instead
-// (systems/comeSailAway/comeSailAwayWaves.js wavePaintLevels): level 0 the paint itself,
-// and past it the mean of the frame it composes, premultiplied - the snow at
-// its record's mean. The shader picks the level NEAREST_MIPMAP_NEAREST would
-// (GL ES 3.0 3.8.10, from the texel footprint): at level 0 - a texel a pixel
-// and nearer - the mod's own read and cut, texel for texel; past it one fetch
-// of the chain, its coverage dithered by the material's own Bayer table (a hard
-// cut at a level's mean would fill the strip solid). A departure, in the
-// Port-Ledger's Come Sail Away row.
-//
-// LIT AS THE PORT LIGHTS ITS FLATS (Port-Ledger, the Come Sail Away row):
-// the scene's ambient plus the sun's Lambert term, where Unity's forward
-// path adds its spherical-harmonic ambient, its vertex lights and the
-// screen-space shadow.
-// ═══════════════════════════════════════════════════════════════════
+// The shader composes each frame from the two paints and the snow with the same integer arithmetic as
+// composeTiledPicture, so only the paints and the snow are uploaded.
+// Each paint uploads as a mip chain that texelFetch reads at the level NEAREST_MIPMAP_NEAREST would pick,
+// so a far strip does not boil.
 
 import { buildProgram, startPrograms } from './glProgram.js';
 import { FOG_GLSL } from './fogGlsl.js';
 import { BAYER_8X8, WAVE_MATERIAL, wavePaintLevels, wavePictureMean } from '../systems/naval/comeSailAwayWaves.js';
-import { WATER_LAYER_UNITS } from './waterSurface.js';   // FIELD BUGS 2026-09-29 (the sea) #4: the breakers' place in the sea's stack
-import { quatRotateInto } from '../world/quat.js';   // SHIP-FLAGS: quatRotate's answer, written in place
-const _flagP = [0, 0, 0], _flagN = [0, 0, 0];   // SHIP-FLAGS: the flag cubes' two scratch turns
+import { WATER_LAYER_UNITS } from './waterSurface.js';
+import { quatRotateInto } from '../world/quat.js';
+const _flagP = [0, 0, 0], _flagN = [0, 0, 0];
 
 const WAVE_VS = `#version 300 es
 layout(location = 0) in vec3 aPos;
@@ -145,13 +103,6 @@ void main() {
   outColor = vec4(dwWaterFog(mix(uFogColor, lit, fogFactorAt(vWorldPos)), vWorldPos), c.a);   // and Iliac Puddle No More's water, under it
 }`;
 
-// ── CSA-F: the particles (world/unityParticles.js), as their ParticleSystemRenderers draw them ──
-// HorizontalBillboard quads flat on the water, turned by each particle's rotation about the vertical, no larger than
-// the renderer's maxParticleSize of the view's height; the flag's Mesh particles are Unity's cube, sized per axis and
-// turned by the system's rotation and their own. Three materials: WakeMaterial (Daggerfall/BillboardWaterMasked - its
-// splash cut out at half alpha, Lambert-lit, depth written, back faces culled), Default-Particle (Legacy
-// Particles/Alpha Blended Premultiply - `tex * colour * colour.a` added over the frame, no depth, no fog, both faces;
-// the port's own soft dot for Unity's built-in picture) and FlagMaterial (Daggerfall/Default: orange, opaque, lit).
 const PART_VS = `#version 300 es
 layout(location = 0) in vec3 aCentre;
 layout(location = 1) in vec2 aCorner;
@@ -239,14 +190,12 @@ void main() {
   vec3 lit = uColor.rgb * (uAmbient + uSunColor * (uSunScale * max(dot(normalize(vNormal), uLightDir), 0.0)));
   outColor = vec4(dwWaterFog(mix(uFogColor, lit, fogFactorAt(vWorldPos)), vWorldPos), 1.0);
 }`;
-/** Unity's built-in cube: six faces, each two triangles wound as Unity's (their cross product along the face's outward normal). */
 const CUBE_FACES = [
   { n: [1, 0, 0], u: [0, 0, 1], v: [0, 1, 0] }, { n: [-1, 0, 0], u: [0, 0, -1], v: [0, 1, 0] },
   { n: [0, 1, 0], u: [1, 0, 0], v: [0, 0, 1] }, { n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, -1] },
   { n: [0, 0, 1], u: [-1, 0, 0], v: [0, 1, 0] }, { n: [0, 0, -1], u: [1, 0, 0], v: [0, 1, 0] },
 ];
-/** The cube's 36 corners (unit cube about the origin) and their normals, each face's triangles wound so that
- *  cross(b - a, c - a) points out. */
+// Each face's triangles wind so that cross(b - a, c - a) points out, Unity's front face.
 export const CUBE_TRIANGLES = (() => {
   const out = [];
   const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -260,9 +209,6 @@ export const CUBE_TRIANGLES = (() => {
   return out;
 })();
 /**
- * NAV-B (2026-09-28): the flags in RUNS OF ONE COLOUR, in the order each colour first flies - a sea ship's flag
- * particle carries her faction's `color` (systems/naval/navalShips.js NAVAL_FACTIONS' `flag`: the pirates' black, a
- * merchantman's gold, a navy's red), a player's boat none (FlagMaterial's own orange, the mod's). One upload, one draw a run.
  * @param {any[]} flags
  * @returns {{ color: number[] | null, list: any[] }[]}
  */
@@ -276,14 +222,7 @@ export function flagRuns(flags) {
   }
   return [...runs.values()];
 }
-/**
- * The port's own stand-in for Unity's Default-Particle picture: a soft white disc (Port-Ledger, declared), PREMULTIPLIED
- * - its colour is its coverage (rgb = alpha), as the one material that samples it needs. That material is the drops'
- * "Alpha Blended Premultiply" (PART_PREMUL_FS: the texel times the premultiplied particle colour, blended One
- * OneMinusSrcAlpha), whose `One` takes the texel's rgb WHOLE: a disc white to its clear rim (rgb 255 where alpha is
- * 0) added full white over every pixel of the quad - each oar's and rudder's drop a white square on the sea. Found by
- * the naval arc (NAV-B, 2026-09-28), whose ships row and splash through this same pass.
- */
+// The disc is premultiplied (rgb equals alpha): its material blends One, OneMinusSrcAlpha and takes rgb whole.
 export function softParticleTexture(size = 64) {
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -291,16 +230,14 @@ export function softParticleTexture(size = 64) {
     const r = Math.min(1, Math.hypot(dx, dy));
     const a = Math.round(255 * Math.pow(1 - r, 2));
     const i = (y * size + x) * 4;
-    data[i] = a; data[i + 1] = a; data[i + 2] = a; data[i + 3] = a;   // white, premultiplied
+    data[i] = a; data[i + 1] = a; data[i + 2] = a; data[i + 3] = a;
   }
   return { width: size, height: size, data };
 }
 
 const locs = (gl, p, names) => Object.fromEntries(names.map((n) => [n, gl.getUniformLocation(p, n)]));
-const LIGHT_FOG = ['uAmbient', 'uSunColor', 'uSunScale', 'uLightDir', 'uCamPos', 'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uDwFog', 'uFocus', 'uJungleHaze'];   // TV1: and the travel view's focus (fogGlsl.js FOCUS_GLSL)
+const LIGHT_FOG = ['uAmbient', 'uSunColor', 'uSunScale', 'uLightDir', 'uCamPos', 'uFogColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uDwFog', 'uFocus', 'uJungleHaze'];
 
-/** #4: a chain of levels (systems/comeSailAway/comeSailAwayWaves.js wavePaintLevels), every level uploaded - texelFetch reads it,
- *  at a level the shader picks. */
 const uploadLevels = (gl, levels) => {
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -308,7 +245,7 @@ const uploadLevels = (gl, levels) => {
   levels.forEach((l, i) => gl.texImage2D(gl.TEXTURE_2D, i, gl.RGBA8, l.width, l.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, l.data));
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, levels.length - 1);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);   // complete; texelFetch names its own level
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -322,7 +259,7 @@ const uploadPicture = (gl, pic) => {
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, pic.width, pic.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pic.data);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);   // texelFetch reads it; no filter, no mips
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -330,26 +267,22 @@ const uploadPicture = (gl, pic) => {
   return tex;
 };
 
-/** Come Sail Away's own passes, on the world renderer they draw beside. */
-/** SHADER-STALL: the particles' three programs (cut out, premultiplied, the cube) and the waves' one, as _ensurePart and
- *  _ensureWave build them - what the warm starts ahead of the build (warmSteps; render/glProgram.js startPrograms). */
 export const CSA_PART_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[PART_VS, PART_CUT_FS], [PART_VS, PART_PREMUL_FS], [CUBE_VS, CUBE_FS]]));
 export const CSA_WAVE_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[WAVE_VS, WAVE_FS]]));
 
 export class ComeSailAwayRenderer {
-  /** @param {any} renderer - render/renderer.js's (its frame's matrices, light and fog are these passes' too) */
+  /** @param {any} renderer */
   constructor(renderer) {
     this.renderer = renderer;
     this.gl = renderer.gl;
     this._wave = null;
     /** @type {{ paints: WebGLTexture[], lastLevel: number, snow: WebGLTexture, snowSize: number[], specs: any[] } | null} */
     this._frames = null;
-    this._mesh = null;   // the mesh uploaded, and the one it was uploaded from
+    this._mesh = null;
     this._part = null;
     /** @type {Map<string, WebGLTexture>} */ this._partTex = new Map();
   }
 
-  /** A particle material's picture (top-down RGBA, as decoded), point-sampled and clamped as its import has it. */
   setParticleTexture(name, pic, { linear = false } = {}) {
     const gl = this.gl;
     const tex = uploadPicture(gl, pic);
@@ -365,11 +298,9 @@ export class ComeSailAwayRenderer {
   }
   hasParticleTexture(name) { return this._partTex.has(name); }
 
-  /** PERF-COMPILE1's idle warm of the sea's four programs (scenes/world.js warmPrograms) - SHADER-STALL: each build once
-   *  the driver says its programs are done (render/warmPrograms.js's named steps), never an idle task waiting on them. */
   warmSteps() {
     return [
-      { start: () => startPrograms(this.gl, CSA_PART_PROGRAMS), run: () => { this._ensurePart(); }, need: () => !this._part },   // AUDIT SHADER-STALL: built by a draw first, the warm stands down
+      { start: () => startPrograms(this.gl, CSA_PART_PROGRAMS), run: () => { this._ensurePart(); }, need: () => !this._part },
       { start: () => startPrograms(this.gl, CSA_WAVE_PROGRAMS), run: () => { this._ensureWave(); }, need: () => !this._wave },
     ];
   }
@@ -412,17 +343,16 @@ export class ComeSailAwayRenderer {
     gl.uniform1f(u.uFogDensity, r._fogDensity);
     gl.uniform2fv(u.uFogRange, r._fogRange);
     if (r._dwFog) gl.uniform4fv(u.uDwFog, r._dwFog);
-    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);   // AUDIT DEEP R-1 (merged beside CSA-F): under the travel view the fog is the traveller's
-    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);   // BANTHA1: the jungle's haze (render/hazeGlsl.js)
+    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);
+    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);
   }
 
-  /** Streams the quads of `parts` ({ position, size, rotation, maxSize }) into the quad buffer; returns the vertex count. */
   _fillQuads(st, parts) {
     const gl = this.gl;
     const n = parts.length * 6;
     if (st.cap < n) { st.cap = Math.max(n, st.cap * 2, 96); st.data = new Float32Array(st.cap * 8); gl.bindBuffer(gl.ARRAY_BUFFER, st.vbo); gl.bufferData(gl.ARRAY_BUFFER, st.data.byteLength, gl.STREAM_DRAW); }
     const d = st.data;
-    // two triangles, wound so that cross(b - a, c - a) is up (Unity's front face seen from above)
+    // Wound so that cross(b - a, c - a) points up, Unity's front face seen from above.
     const corners = [[-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5], [0.5, 0.5], [0.5, -0.5]];
     let o = 0;
     for (const q of parts) {
@@ -434,9 +364,7 @@ export class ComeSailAwayRenderer {
   }
 
   /**
-   * The cut-out and opaque particles - the wake's and the splashes' WakeMaterial, the flag's cubes - with the waves.
-   * @param {{ wake: any[], flags: any[] }} lists - each particle { position, size, rotation, maxSize } (a flag's with
-   *   its `systemRotation`, turned by `rotate(systemRotation, rotation)` to a quaternion)
+   * @param {{ wake: any[], flags: any[] }} lists
    * @param {(q: number[], r: number[]) => number[]} rotate
    */
   drawParticlesOpaque({ wake, flags }, rotate) {
@@ -476,8 +404,7 @@ export class ComeSailAwayRenderer {
         const first = o / 6;
         for (const q of run.list) {
           const rot = rotate(q.systemRotation, q.rotation);
-          // SHIP-FLAGS (FIELD BUGS 2026-10-01 #7): the corner and the normal turned into two scratch triples - quatRotate's
-          // products to the bit, without the five arrays each turn made (two turns a triangle, 36 a cube, ~25 cubes a flag)
+          // The corner and normal turn in scratch triples, matching quatRotate to the bit without new arrays.
           for (const t of CUBE_TRIANGLES) {
             const p = quatRotateInto(rot, t.p[0] * q.size[0], t.p[1] * q.size[1], t.p[2] * q.size[2], _flagP);
             const nn = quatRotateInto(rot, t.n[0] / (q.size[0] || 1), t.n[1] / (q.size[1] || 1), t.n[2] / (q.size[2] || 1), _flagN);
@@ -496,8 +423,8 @@ export class ComeSailAwayRenderer {
       gl.enable(gl.CULL_FACE);
       gl.bindVertexArray(st.vao);
       for (const sp of spans) {
-        if (sp.color) gl.uniform4f(u.uColor, sp.color[0], sp.color[1], sp.color[2], 1);   // NAV-B: a sea ship's own colours
-        else gl.uniform4f(u.uColor, 1, 0.5, 0, 1);   // FlagMaterial's _Color
+        if (sp.color) gl.uniform4f(u.uColor, sp.color[0], sp.color[1], sp.color[2], 1);
+        else gl.uniform4f(u.uColor, 1, 0.5, 0, 1);
         gl.drawArrays(gl.TRIANGLES, sp.first, sp.count);
       }
       gl.bindVertexArray(null);
@@ -507,7 +434,7 @@ export class ComeSailAwayRenderer {
     r.markForeignPass?.();
   }
 
-  /** The blended particles - the oars' and rudders' drops (Default-Particle) - after the sea's transparent top. */
+  // Drawn after the transparent top of the sea.
   drawParticlesBlended(drops) {
     if (!drops.length || !this._partTex.has('Default-Particle')) return;
     const gl = this.gl, r = this.renderer;
@@ -523,10 +450,10 @@ export class ComeSailAwayRenderer {
     gl.uniform1i(u.uTex, 0);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-    gl.depthMask(false);   // ZWrite Off
+    gl.depthMask(false);
     gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // Blend One OneMinusSrcAlpha
-    gl.disable(gl.CULL_FACE);   // Cull Off
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.disable(gl.CULL_FACE);
     gl.bindVertexArray(P.quads.vao);
     const n = this._fillQuads(P.quads, drops);
     gl.drawArrays(gl.TRIANGLES, 0, n);
@@ -539,14 +466,9 @@ export class ComeSailAwayRenderer {
     r.markForeignPass?.();
   }
 
-  /**
-   * The waves' pictures: the two paints (top-down RGBA, as decoded), the snow record (top-down RGBA) and each frame's
-   * spec, in frame order (Textures/derived.json's `112395_2-i`: its paint's index, scroll and tile).
-   * @param {{ paints: {width:number,height:number,data:Uint8Array}[], snow: {width:number,height:number,data:Uint8Array}, specs: {paint:number, scroll:number, tile:number[], size:number[]}[] }} frames
-   */
+  /** @param {{ paints: {width:number,height:number,data:Uint8Array}[], snow: {width:number,height:number,data:Uint8Array}, specs: {paint:number, scroll:number, tile:number[], size:number[]}[] }} frames */
   setWaveFrames(frames) {
     const gl = this.gl;
-    // #4: each paint as its chain - level 0 itself, past it the frame's means with the snow at its own mean
     const snowMean = wavePictureMean(frames.snow);
     const chains = frames.paints.map((p) => wavePaintLevels(p, snowMean));
     this._frames = { paints: chains.map((c) => uploadLevels(gl, c)), lastLevel: chains[0] ? chains[0].length - 1 : 0, snow: uploadPicture(gl, frames.snow), snowSize: [frames.snow.width, frames.snow.height], specs: frames.specs };
@@ -588,7 +510,6 @@ export class ComeSailAwayRenderer {
   }
 
   /**
-   * The wave object, as the runtime's `waves()` reads it, with the dither LoadSettings set.
    * @param {{ position:number[], scale:number, mesh:any, frame:number }} waves
    * @param {{ start:number, end:number }} dither
    */
@@ -608,7 +529,7 @@ export class ComeSailAwayRenderer {
     gl.uniform2f(u.uTile, WAVE_MATERIAL.tile[0], WAVE_MATERIAL.tile[1]);
     gl.uniform2i(u.uFrameSize, spec.size[0], spec.size[1]);
     gl.uniform2i(u.uSnowSize, this._frames.snowSize[0], this._frames.snowSize[1]);
-    gl.uniform1i(u.uLastLevel, this._frames.lastLevel);   // #4
+    gl.uniform1i(u.uLastLevel, this._frames.lastLevel);
     gl.uniform1i(u.uScroll, spec.scroll);
     gl.uniform2i(u.uTileOffset, spec.tile[0], spec.tile[1]);
     gl.uniform4fv(u.uColor, WAVE_MATERIAL.color);
@@ -625,8 +546,8 @@ export class ComeSailAwayRenderer {
     gl.uniform1f(u.uFogDensity, r._fogDensity);
     gl.uniform2fv(u.uFogRange, r._fogRange);
     if (r._dwFog) gl.uniform4fv(u.uDwFog, r._dwFog);
-    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);   // AUDIT DEEP R-1 (merged beside CSA-F): under the travel view the fog is the traveller's
-    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);   // BANTHA1: the jungle's haze (render/hazeGlsl.js)
+    if (u.uFocus) gl.uniform4fv(u.uFocus, r._focus);
+    if (u.uJungleHaze && r._haze) gl.uniform4fv(u.uJungleHaze, r._haze);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this._frames.paints[spec.paint]);
     gl.uniform1i(u.uPaint, 0);
@@ -637,8 +558,9 @@ export class ComeSailAwayRenderer {
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(true);
     gl.disable(gl.BLEND);
-    gl.enable(gl.CULL_FACE);   // Cull Back, the shader's default, on Unity's winding
-    gl.enable(gl.POLYGON_OFFSET_FILL);   // FIELD BUGS 2026-09-29 (the sea) #4: the breakers' place in the sea's stack (render/waterSurface.js WATER_LAYER_UNITS)
+    gl.enable(gl.CULL_FACE);
+    // The polygon offset puts the waves in their layer of the sea's stack, over the ground and the surface film.
+    gl.enable(gl.POLYGON_OFFSET_FILL);
     gl.polygonOffset(0, WATER_LAYER_UNITS.breakers);
     gl.bindVertexArray(w.vao);
     gl.drawElements(gl.TRIANGLES, this._mesh.count, gl.UNSIGNED_INT, 0);

@@ -27,6 +27,7 @@ related:
 invariants:
   - "`PLACE_RAY_DISTANCE` = 100; `WATER_LEVEL` = 34 (100 when World of Daggerfall terrain is present)."
   - "LOST-BOAT: an uncrewed boat more than `LOST_UNDER_M` (2) below ground or sea top is packed into parts once."
+  - "`recoverLostBoats` judges only boats within `2 * TERRAIN_EDGE` of the player's terrain tile, and packs one only after the lost reading has held for `LOST_CONFIRM_S` (5) seconds of game time."
   - "`cabinShipType`: hull 2 maps to the small bank ship, hulls 3 and 4 to the large one; `WA_SHIP_BLOCKS` = ['SHIPAA00.RMB', 'SHIPAA01.RMB']; Rowboat and Large Boat have no cabin."
   - "`cabinSceneName(uid)` returns `SailingCabin [UID=<uid>]`; `hasSailingCabin` excludes chartered boats and boats already inside."
 traps:

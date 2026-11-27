@@ -1354,11 +1354,11 @@ const kindName = (t) => enemyDisplayName(t) ?? 'monster';
  *  is said as an area (mob 2026-10-24: "make sure to add that it is a city ... and make sure to say its an area if it not"). */
 const staffCity = (r) => r.locationIndex >= 0 && (r.staff?.ct === 1 || !!regionsNow()?.find((x) => x.region === r.regionIndex)?.towns.some((t) => t.index === r.locationIndex));
 export const staffAttackLine = (r) => r.staff?.tx || (staffCity(r)
-  ? t('staffEvent.attackCity', 'The city of {place} is under attack!', { place: staffPlaceName(r) })
-  : t('staffEvent.attackArea', 'The area of {place} is under attack!', { place: staffPlaceName(r) }));
+  ? t('staffEvent.attackCity', 'The city of {place} is under attack.', { place: staffPlaceName(r) })
+  : t('staffEvent.attackArea', 'The area of {place} is under attack.', { place: staffPlaceName(r) }));
 export const staffBossLine = (r) => r.staff?.bl || (staffCity(r)
-  ? t('staffEvent.bossCity', 'A mighty {kind} has come to the city of {place}!', { kind: kindName(r.staff.b), place: staffPlaceName(r) })
-  : t('staffEvent.bossArea', 'A mighty {kind} has come to the area of {place}!', { kind: kindName(r.staff.b), place: staffPlaceName(r) }));
+  ? t('staffEvent.bossCity', 'A mighty {kind} has come to the city of {place}.', { kind: kindName(r.staff.b), place: staffPlaceName(r) })
+  : t('staffEvent.bossArea', 'A mighty {kind} has come to the area of {place}.', { kind: kindName(r.staff.b), place: staffPlaceName(r) }));
 export function staffEndLine(r) {
   if (r.staff?.el) return r.staff.el;   // EVENT-EXTRAS: staff's own words
   const city = staffCity(r), args = { kind: kindName(r.staff.b), place: staffPlaceName(r) };
@@ -1417,8 +1417,8 @@ const _staffBoards = new Set();
 /** The board as one line: "The top fighters: 1. Ana (23), 2. Bo (19) ..." - the boss's killer marked. @param {[string, number, number][]} top */
 export function staffBoardLine(top) {
   const who = t('staffEvent.boardWho', 'A fighter');   // a nameless row (the law's '')
-  const list = top.map(([name, n, k], i) => [name || who, n, k]).map(([nm, n, k], i) => (k ? t('staffEvent.boardRowKiller', '{rank}. {name} ({kills}, the killing blow)', { rank: i + 1, name: nm, kills: n }) : t('staffEvent.boardRow', '{rank}. {name} ({kills})', { rank: i + 1, name: nm, kills: n }))).join(', ');
-  return t('staffEvent.board', 'The top fighters: {list}', { list });
+  const list = top.map(([name, n, k], i) => [name || who, n, k]).map(([nm, n, k], i) => (k ? t('staffEvent.boardRowKiller', '{rank}. {name} ({kills}, killing blow)', { rank: i + 1, name: nm, kills: n }) : t('staffEvent.boardRow', '{rank}. {name} ({kills})', { rank: i + 1, name: nm, kills: n }))).join(', ');
+  return t('staffEvent.board', 'Top fighters: {list}', { list });
 }
 /**
  * TIMERS1 / EVENTS1: THE DAY'S RAIDS AS THE TIMERS WINDOW AND THE EVENT BOARD READ THEM (systems/eventTimers.js

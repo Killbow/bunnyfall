@@ -1,11 +1,5 @@
 // @ts-check
-// Draws pictures of the game's models for the asset browser in software (poi/poiThumb.js renderThumbShown: typed
-// arrays, no WebGL context, and no canvas) and caches them as small PNG object URLs. createPoiModelReader reads a model
-// without uploading or pinning anything on the GPU: the world's copy (cpuModels), else a built custom model (cached by
-// the custom model registry, as the world caches it), else an alias or the ARCH3D record, which is dropped once drawn.
-// Classic textures come from a few TEXTURE files it reads itself. Each step waits for idle time, and a picture no
-// longer wanted is skipped. The page caches PAGE_KEEP pictures and Cache Storage saves STORE_KEEP, under a cache name
-// that changes with each build; when storage is blocked, pictures are drawn but not saved.
+// Renders model thumbnails in idle time without WebGL and caches them as small PNG object URLs.
 
 import { renderThumbShown, encodePng } from './poiThumb.js';
 import { TextureFile, texName, LAST_CLASSIC_TEXTURE_ARCHIVE } from '../formats/textureFile.js';
@@ -14,30 +8,19 @@ import { patchSeams } from '../world/arch3dSeams.js';
 import { customModelBuilt, customModelNeeds, customAliasFor, aliasSubMeshes, hasCustomModel } from '../world/customModels.js';
 import { getBytes, forgetBytes } from '../scenes/dataSource.js';
 
-/** Rendered width and height of a card thumbnail in pixels (displayed at 56 CSS pixels in grid view). */
 export const MODEL_THUMB_SIZE = 64;
-/** Maximum number of classic TEXTURE archives cached by a reader across models. */
 const TEXTURE_FILES = 8;
-/** Maximum number of model thumbnail URLs cached in page memory. */
 const PAGE_KEEP = 4000;
-/** Maximum number of model thumbnails saved in the browser's Cache Storage. */
 const STORE_KEEP = 2000;
-/** Minimum remaining idle time in milliseconds required before starting a work step (rendering one thumbnail takes
- *  about 1 to 2 ms). */
 const IDLE_NEED = 4;
-/** Cache format version, incremented whenever thumbnail rendering changes. */
 const THUMB_FORMAT = 2;
 const STORE_PREFIX = 'bunnyfall-poi-model-thumbs';
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
-/** Returns this build's suffix for the cache name of saved pictures (the format version and the module's file name).
- *  A built page's module file name carries its content hash, so a new build reads none of an old build's pictures. */
 export function modelThumbBuild(url = import.meta.url) {
   try { return `${THUMB_FORMAT}-${new URL(url).pathname.split('/').pop()}`; } catch { return `${THUMB_FORMAT}`; }
 }
 
-/** Resolves to an idle deadline with at least `need` ms remaining, or to null when `requestIdleCallback` times out
- *  after 1 second (or after 50 ms when unavailable) so one step still runs on a busy page. */
 function idleSlot(/** @type {number} */ need) {
   return new Promise((ok) => {
     const ric = /** @type {any} */ (globalThis).requestIdleCallback;
@@ -47,14 +30,9 @@ function idleSlot(/** @type {number} */ need) {
   });
 }
 
-/** Returns whether `bytes` is longer than the 8-byte PNG signature and starts with it. */
 const isPng = (/** @type {Uint8Array | null} */ bytes) => !!bytes && bytes.length > 8 && PNG_SIGNATURE.every((b, i) => bytes[i] === b);
 
 /**
- * Returns a store of rendered model pictures in the browser's Cache Storage, opened on first use, or null when there is
- * none (such as in Node or when storage is blocked). All operations catch storage errors; `get` deletes and ignores
- * non-PNG entries, `put` trims the oldest entries once the store exceeds `cap`, caches from other builds are deleted on
- * first use, and `settled()` resolves once all in-flight writes finish.
  * @param {{ caches?: any, build?: string, cap?: number }} [o]
  */
 export function browserThumbStore({ caches = undefined, build = modelThumbBuild(), cap = STORE_KEEP } = {}) {
@@ -68,7 +46,7 @@ export function browserThumbStore({ caches = undefined, build = modelThumbBuild(
   let opened = null;
   const box = () => (opened ??= (async () => {
     const b = await c.open(name);
-    try { for (const k of await c.keys()) if (k.startsWith(STORE_PREFIX) && k !== name) await c.delete(k); } catch { /* ignore cleanup failure */ }
+    try { for (const k of await c.keys()) if (k.startsWith(STORE_PREFIX) && k !== name) await c.delete(k); } catch { }
     try { count = (await b.keys()).length; } catch { count = 0; }
     return b;
   })());
@@ -92,7 +70,6 @@ export function browserThumbStore({ caches = undefined, build = modelThumbBuild(
         try {
           const b = await box();
           await b.put(url(key), new Response(/** @type {any} */ (bytes), { headers: { 'content-type': 'image/png' } }));
-          // one trim at a time: writes that land during a trim are counted, and the next write after it trims them
           if (++count > cap && !trimming) {
             trimming = true;
             try {
@@ -102,7 +79,7 @@ export function browserThumbStore({ caches = undefined, build = modelThumbBuild(
               count -= drop.length;
             } finally { trimming = false; }
           }
-        } catch { /* not saved */ }
+        } catch { }
       })();
       writing.add(p);
       void p.finally(() => writing.delete(p));
@@ -114,9 +91,8 @@ export function browserThumbStore({ caches = undefined, build = modelThumbBuild(
 }
 
 /**
- * Converts a `dfMeshToModel` model into `renderThumb` input pieces, grouping submesh index runs by texture and flipping
- * V coordinates to top-down order to match `dfModelAsImport` in `poi/dfModelImport.js`.
- * @param {any} m @param {(archive: number, record: number) => any} pictureOf
+ * @param {any} m
+ * @param {(archive: number, record: number) => any} pictureOf
  */
 export function modelThumbPieces(m, pictureOf) {
   const matOf = new Map(), pictures = [], runs = [];
@@ -143,8 +119,6 @@ export function modelThumbPieces(m, pictureOf) {
   return [{ mesh: { positions: m.positions, normals: m.normals, uvs, indices, submeshes }, materials }];
 }
 
-/** Decodes a TEXTURE record into top-down RGBA pixels (`{ width, height, data }`, matching `dfTexturePng` in
- *  `poi/dfModelImport.js`), or returns null. */
 function recordRgba(/** @type {any} */ t, /** @type {number} */ record) {
   const bm = t?.getDFBitmap?.(record, 0);
   if (!bm?.width || !bm.height || typeof t.getColor32 !== 'function') return null;
@@ -155,29 +129,21 @@ function recordRgba(/** @type {any} */ t, /** @type {number} */ record) {
 }
 
 /**
- * Creates a model reader that bypasses GPU uploads and pinning. Classic texture archives are held in a small local
- * cache and freed on eviction or `release()`, while mod archives (above `TEXTURE.511`) are loaded through `getTexture`
- * into the pipeline's `textureFiles` cache. Awaits `room()` (when provided) between steps to yield to idle time.
  * @param {{ arch: any, palette?: any, cpuModels?: Map<number, any> | null, textureFiles?: Map<number, any> | null,
  *   getTexture?: ((archive: number) => Promise<any>) | null, fetch?: (name: string) => Promise<Uint8Array>,
  *   forget?: (name: string) => void, room?: (() => Promise<any>) | null }} o
  */
 export function createPoiModelReader({ arch, palette = null, cpuModels = null, textureFiles = null, getTexture = null, fetch = getBytes, forget = forgetBytes, room = null }) {
   const step = () => (room ? room() : Promise.resolve());
-  // the TEXTURE files the last few models used, newest last
   /** @type {Map<number, any>} */
   const files = new Map();
   /** @type {Map<number, Promise<any>>} */
   const reading = new Map();
-  /** the archives of the model being read */
   let using = new Set();
   function letGo(/** @type {number} */ archive) {
     files.delete(archive);
-    // do not evict the raw archive bytes from dataSource if the world pipeline has loaded this archive
-    if (!textureFiles?.has(archive)) { try { forget(texName(archive)); } catch { /* ignore release failure */ } }
+    if (!textureFiles?.has(archive)) { try { forget(texName(archive)); } catch { } }
   }
-  /** Loads a TEXTURE archive: reads classic archives locally and delegates mod archives (above `TEXTURE.511`) to
-   *  `getTexture`. */
   async function textureFile(/** @type {number} */ archive) {
     if (archive > LAST_CLASSIC_TEXTURE_ARCHIVE) return getTexture ? getTexture(archive).catch(() => null) : null;
     const had = files.get(archive);
@@ -192,7 +158,6 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
           if (f.load(bytes, texName(archive), palette)) t = f;
         } catch { t = null; }
         files.set(archive, t);
-        // once more than TEXTURE_FILES files are held, evict the oldest, but never one the current model uses
         for (const a of [...files.keys()]) { if (files.size <= TEXTURE_FILES) break; if (!using.has(a)) letGo(a); }
         return t;
       })().finally(() => reading.delete(archive)));
@@ -207,9 +172,6 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
   const classicOf = (/** @type {number} */ mid) => { const i = arch.getRecordIndex(mid); return i === -1 ? null : arch.getMesh(i); };
   const usable = (/** @type {any} */ m) => !!(m?.positions?.length && m.normals && m.uvs && m.indices);
 
-  /** Loads model `id` in `dfMeshToModel` format along with its texture archives, or returns null, checking in
-   *  pipeline order (`buildGpuMesh` in `scenes/dataPipeline.js`): `cpuModels`, custom models, model aliases, and
-   *  finally `ARCH3D.BSA`. */
   async function read(/** @type {number} */ id) {
     const own = cpuModels?.get(id);
     if (usable(own)) {
@@ -227,9 +189,6 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
       for (const sm of m?.subMeshes ?? []) { using.add(sm.textureArchive); await textureFile(sm.textureArchive); }
       return usable(m) ? m : null;
     }
-    // loads a classic ARCH3D model, or a model alias (a classic model with remapped textures via world/customModels.js
-    // registerModelAlias, such as dyed town beds from 42069 up, which are not in the asset catalog and are only
-    // requested by ID)
     const alias = customAliasFor(id);
     const from = alias ? alias.model : id;
     const dm = classicOf(from);
@@ -243,7 +202,6 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
   }
   return {
     read, textureFile,
-    /** Returns record `r` of loaded texture archive `a` as top-down RGBA pixels, or null. */
     pictureOf: (/** @type {number} */ a, /** @type {number} */ r) => recordRgba(fileOf(a), r),
     files: () => files.size,
     release() { for (const a of [...files.keys()]) letGo(a); },
@@ -251,8 +209,6 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
 }
 
 /**
- * Creates a cache of model pictures at one `size`. `wanted(id)` returns whether model `id` still needs its picture (its
- * card is on screen, or it is selected), and `onReady(id)` runs once the picture, or its absence, is known.
  * @param {{ arch: any, palette?: any, cpuModels?: Map<number, any> | null, textureFiles?: Map<number, any> | null,
  *   getTexture?: ((archive: number) => Promise<any>) | null, fetch?: (name: string) => Promise<Uint8Array>, forget?: (name: string) => void,
  *   store?: ReturnType<typeof browserThumbStore>, idle?: (need: number) => Promise<any>, size?: number, keep?: number,
@@ -260,13 +216,12 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
  */
 export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, textureFiles = null, getTexture = null, fetch = getBytes, forget = forgetBytes,
   store = browserThumbStore(), idle = idleSlot, size = MODEL_THUMB_SIZE, keep = PAGE_KEEP, wanted = () => true, onReady = () => {} }) {
-  /** @type {Map<number, string | null>} model id -> object URL (null: no picture), oldest first */
+  /** @type {Map<number, string | null>} */
   const made = new Map();
   /** @type {number[]} */
   const queue = [];
   let running = false, gone = false;
   const counts = { drawn: 0, stored: 0, failed: 0, skipped: 0, drawMs: 0, drawMsMax: 0, slots: 0 };
-  // the idle period the current step runs in: a step waits for a new one once this one has too little time left
   /** @type {any} */
   let deadline = null;
   async function room() {
@@ -276,8 +231,6 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
   }
   const reader = createPoiModelReader({ arch, palette, cpuModels, textureFiles, getTexture, fetch, forget, room });
 
-  /** Renders model `id` as PNG bytes, returning null if it cannot be rendered or undefined if it is no longer
-   *  needed. */
   async function draw(/** @type {number} */ id) {
     await room();
     if (gone || !wanted(id)) return undefined;
@@ -286,7 +239,6 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
     await room();
     if (gone || !wanted(id)) return undefined;
     const t0 = performance.now();
-    // a model that renders nothing even two-sided has no picture, and its card shows its number
     const img = renderThumbShown(/** @type {any} */ (modelThumbPieces(m, reader.pictureOf)), { size });
     if (!img) return null;
     const png = encodePng(img);
@@ -299,7 +251,6 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
   const keyOf = (/** @type {number} */ id) => `${size}/${id}${hasCustomModel(id) ? 'c' : customAliasFor(id) ? 'a' : ''}`;
   function keepUrl(/** @type {number} */ id, /** @type {string | null} */ url) {
     made.set(id, url);
-    // when the cache exceeds keep, revoke and evict the oldest entries that are no longer needed
     if (made.size > keep) {
       for (const [k, u] of made) {
         if (made.size <= keep) break;
@@ -330,7 +281,6 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
     try {
       while (queue.length && !gone) {
         const id = /** @type {number} */ (queue.shift());
-        // skip a model that is no longer needed before its turn starts (it will be queued again if needed later)
         if (made.has(id)) continue;
         if (!wanted(id)) { counts.skipped++; continue; }
         await one(id);
@@ -339,18 +289,14 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
   }
 
   return {
-    /** Returns the cached object URL for model `id`, null if it has no picture, or undefined if not yet loaded. */
     url: (/** @type {number} */ id) => made.get(id),
-    /** Queues model `id` for thumbnail loading and calls `onReady(id)` once the result is known. */
     want(/** @type {number} */ id) {
       if (gone || made.has(id) || queue.includes(id)) return;
       queue.push(id);
       void run();
     },
     stats: () => ({ ...counts, kept: made.size, queued: queue.length, textureFiles: reader.files(), store: store?.name ?? null, writing: store?.writing() ?? 0 }),
-    /** Resolves once all in-flight Cache Storage writes have finished. */
     settled: () => store?.settled() ?? Promise.resolve(),
-    /** Cancels queued work, revokes all cached object URLs, and releases cached texture archives. */
     destroy() {
       gone = true;
       queue.length = 0;
@@ -362,9 +308,6 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
 }
 
 /**
- * Builds a one-model pipe (`{ getGpuMesh, cpuModels, getTexture, done }`) for `dfModelAsImport` in
- * `poi/dfModelImport.js`, served by its own `createPoiModelReader`, so reading a model for the editor uploads and pins
- * nothing on the GPU. `done()` releases the model and texture files it read.
  * @param {{ arch: any, palette?: any, cpuModels?: Map<number, any> | null, textureFiles?: Map<number, any> | null, getTexture?: ((archive: number) => Promise<any>) | null }} o
  */
 export function poiModelImportPipe(o) {

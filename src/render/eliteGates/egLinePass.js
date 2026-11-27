@@ -1,39 +1,13 @@
 // @ts-check
-// EG-G2 (2026-10-12, Mac: "I said I want everything"; bible/11-Multiplayer/Elite-Gates.md sections 25.3 and 25.6, and
-// layer two's "still owed" tells): THE SPIRE'S LINES - THE EDGE LINE along every edge a member could fall from, the Rail's
-// and the Drum's dashed track under its whole travel, and the Gust's streamers across its section, in one pass.
-//
-// SD-LOOK's ghosts' technique (render/superDungeon/sdStepsPass.js): every segment a screen-width quad (never GL_LINES - WebGL caps those
-// at one pixel, gone on a high-DPI phone), two pixels on a desktop and three on a phone (world/eliteGates/egLook.js egEdgeLinePx),
-// placed in the vertex stage from its two ends. The circle's edges and tracks are one static buffer made once a circle
-// (world/eliteGates/egLook.js egCircleEdges); the streamers a small dynamic one written a frame from the breath's clock.
-//   THE EDGE LINE  gold at its luminance (EG_EDGE_LINE.luma, the ambient rung - never pulsing), opaque over what it lies on;
-//   A TRACK        the same gold, dashed EG_TRACK.dash on and off along its travel;
-//   A STREAMER     white (the place's own timed hazard), throbbing at two beats a second (under WCAG's three);
-//   THE TRAIL      AUDIT EG V (h; section 8.2): the first across's route once a span's door opens, the same gold faint
-//                  (EG_TRAIL.alpha) and wider (EG_TRAIL.width), never pulsing - a small dynamic buffer of its own, written a
-//                  frame (world/eliteGates/egLook.js egTrailSegs), freed with the pass.
-// READABLE IN THE FOG (section 25.6): every line keeps a fog visibility of at least EG_FOG_FLOOR.floor within its
-// `within` metres (world/eliteGates/egLook.js egFogKept - the same numbers), mixed toward the frame's own fog colour, and is drawn
-// after every transparent volume (the mist - render/eliteGates/egMistPass.js) by its host (scenes/eliteGates/egLookDraw.js). Depth-tested,
-// never written, pulled a hair toward the eye so it wins over the stone it lies on.
-//
-// A foreign pass: it owns its program and its state; the host marks it. Not a DFU member. Ledger A (ELITE-GATES).
+// Each segment is a screen-width quad placed in the vertex stage, since WebGL caps GL_LINES at one pixel.
 import { buildProgram } from '../glProgram.js';
 import { FOG_FACTOR_GLSL } from '../labGrass.js';
 import { EG_LINE_KIND, EG_TRACK, EG_FOG_FLOOR, EG_TRAIL, egEdgeLineColor, egEdgeLinePx } from '../../world/eliteGates/egLook.js';
 
-/** Floats a vertex: aA xyz, aB xyz, aM (side, end, kind, alpha). */
 export const EG_LINE_FLOATS = 10;
-/** The streamers' room (segments) - a hall's sections' worth, written a frame. */
 export const EG_STREAMERS_MAX = 64;
-/** The six corners of a segment's quad: [side, end]. */
 const CORNERS = Object.freeze([[-1, 0], [1, 0], [1, 1], [-1, 0], [1, 1], [-1, 1]]);
 
-/**
- * Segments (six floats each - two ends) as the pass's vertices: six a segment, `kind` (EG_LINE_KIND) and an alpha each
- * (`alphas[i]`, 1 when none). Into `out` at vertex `at` when given (the dynamic buffer), else a new array. Pure.
- */
 export function egLineVertices(segs, kind, alphas = null, n = segs.length / 6, out = null, at = 0) {
   const v = out ?? new Float32Array(n * 6 * EG_LINE_FLOATS);
   let o = at * EG_LINE_FLOATS;
@@ -111,11 +85,8 @@ void main() {
   o = vec4(mix(uFogColor, c, f) * a, a);
 }`;
 
-/** FIRST-USE (#1144): the pass's one program, as its constructor builds it - what the hall's load starts and the
- *  look's door waits on (render/glProgram.js startPrograms, compiledPass). */
 export const EG_LINE_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[EG_LINE_VS, EG_LINE_FS]]));
 
-/** The pass. */
 export class EgLinePass {
   /** @param {WebGL2RenderingContext} gl */
   constructor(gl) {
@@ -138,7 +109,7 @@ export class EgLinePass {
     this._static = null; this.staticCount = 0;
     this._dyn = mk(gl.DYNAMIC_DRAW, EG_STREAMERS_MAX * 6 * EG_LINE_FLOATS * 4);
     this._dynData = new Float32Array(EG_STREAMERS_MAX * 6 * EG_LINE_FLOATS);
-    this._trail = mk(gl.DYNAMIC_DRAW, EG_TRAIL.max * 6 * EG_LINE_FLOATS * 4);   // AUDIT EG V (h): THE TRAIL's own
+    this._trail = mk(gl.DYNAMIC_DRAW, EG_TRAIL.max * 6 * EG_LINE_FLOATS * 4);
     this._trailData = new Float32Array(EG_TRAIL.max * 6 * EG_LINE_FLOATS);
     this._mk = mk;
     this._vp = new Float32Array(16);
@@ -147,9 +118,6 @@ export class EgLinePass {
     this._pal = 'standard';
     this.drawn = 0;
   }
-  /** AUDIT EG III (lane4 #5, sections 25.2, 25.3 and 25.7): the danger palette the lines are drawn in (ui/eliteGates/egAccess.js) -
-   *  THE EDGE LINE in its safety at the line's luminance (world/eliteGates/egLook.js egEdgeLineColor), the tracks and streamers in its
-   *  hazard; made again only when the palette changes. None: the Standard. */
   palette(pal) {
     const key = pal?.key ?? 'standard';
     if (key === this._pal) return;
@@ -157,7 +125,6 @@ export class EgLinePass {
     this._gold = egEdgeLineColor(pal);
     this._white = Array.isArray(pal?.hazard) ? pal.hazard : EG_LINE_WHITE;
   }
-  /** The circle's edges and tracks (world/eliteGates/egLook.js egCircleEdges), made the static buffer - once a circle. */
   setCircle(edges) {
     const gl = this.gl;
     if (this._static) { gl.deleteBuffer(this._static.vbo); gl.deleteVertexArray(this._static.vao); this._static = null; }
@@ -168,11 +135,6 @@ export class EgLinePass {
     this._static = this._mk(gl.STATIC_DRAW, v);
     this.staticCount = (ne + nt) * 6;
   }
-  /**
-   * Draw the circle's lines and `streamers` (six floats a segment, `n` of them, an alpha each in `alphas`) onto the frame
-   * - `fog` the frame's ({ mode, density, range, color, camPos }), `seconds` any clock, `vw` x `vh` the world image (px).
-   * AUDIT EG V (h): and THE TRAIL's `tn` segments `trail` (six floats a segment). Answers whether anything drew.
-   */
   draw(proj, view, eye, seconds, fog = null, streamers = null, n = 0, alphas = null, vw = 0, vh = 0, trail = null, tn = 0) {
     this.drawn = 0;
     if (!this.staticCount && !(n > 0) && !(tn > 0 && trail)) return false;
@@ -220,10 +182,9 @@ export class EgLinePass {
     const gl = this.gl;
     this.setCircle(null);
     gl.deleteBuffer(this._dyn.vbo); gl.deleteVertexArray(this._dyn.vao); gl.deleteProgram(this.program);
-    gl.deleteBuffer(this._trail.vbo); gl.deleteVertexArray(this._trail.vao);   // AUDIT EG V (h): THE TRAIL's
+    gl.deleteBuffer(this._trail.vbo); gl.deleteVertexArray(this._trail.vao);
   }
 }
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_FOG_COLOR = new Float32Array(3);
-/** The place's white under the Standard (ui/eliteGates/egAccess.js EG_DANGER_PALETTES.standard.hazard - the tracks' and streamers'). */
 const EG_LINE_WHITE = Object.freeze([0.95, 0.95, 1.0]);

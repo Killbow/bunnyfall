@@ -8,8 +8,6 @@ export const REACH_EVENTS = /** @type {readonly Readonly<{ key: string, title: s
 ].map(Object.freeze)));
 export const reachDay = ms => Math.floor(ms / 86400000);
 const hash = (a,b,c) => { let n = Math.imul(a,73856093)^Math.imul(b,19349663)^Math.imul(c,83492791); n=Math.imul(n^(n>>>16),2246822507); return (n^(n>>>13))>>>0; };
-/** One destination in each 3x3 map-pixel sector. Every client uses the same
- * daily positions; settlements, water and the sealed city are excluded by host. */
 export function reachSite(sx, sy, day) {
   const n=hash(sx,sy,day), px=sx*3+n%3, py=sy*3+(n>>>4)%3;
   const kind=(n>>>8)%3;

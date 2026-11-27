@@ -1,20 +1,12 @@
 // @ts-check
-// SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md "The shared kit"): THE HOUR'S HALOS - the classic set's
-// bloom, and the lane's soft core: up to SD_HALO_MAX camera-facing quads added onto the frame in one draw from one
-// dynamic buffer, their falloff posterized to four steps through the ordered dither (the pixel law), depth-tested and
-// never written, fogged as the world is. For a light's core that must read edge-on and through the classic set's lack of
-// bloom: the Rift's heart, the ways out, lanterns. Gain 1 on the classic set, 0.5 on the lane (the lane blooms it too).
-//
-// A foreign pass: it owns its program and its state, and the host marks it (renderer.markForeignPass). Not a DFU member.
-// Ledger A (SUPER-DUNGEONS).
+// Additive halo pass with its own program and GL state; the host calls renderer.markForeignPass after a true draw.
 import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { BAYER_GLSL } from './orderedDither.js';
 
 export const SD_HALO_MAX = 64;
-/** The halo's gain on the classic set and on the lane. */
 export const SD_HALO_GAIN = Object.freeze({ classic: 1, lane: 0.5 });
-const FLOATS = 9;   // centre xyz, corner xy, size, colour rgb - a vertex
+const FLOATS = 9;
 
 export const SD_HALO_VS = `#version 300 es
 precision highp float;
@@ -52,13 +44,9 @@ void main() {
   o = vec4(vColor * k * uGain * fogFactorAt(vWorld), 1.0);
 }`;
 
-/** The halos, one foreign pass. */
-/** A halo's quad as two triangles' corners (x, y each), made once. */
 const CORNERS = new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]);
 const NO_RANGE = new Float32Array([0, 1]), NO_CAM = new Float32Array(3);
 
-/** FIRST-USE (#1144): the pass's one program, as its constructor builds it - what the hall's load starts and the
- *  look's door waits on (render/glProgram.js startPrograms, compiledPass). */
 export const SD_HALO_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[SD_HALO_VS, SD_HALO_FS]]));
 
 export class SdHaloRenderer {
@@ -83,16 +71,15 @@ export class SdHaloRenderer {
     gl.bindVertexArray(null);
     this.drawn = 0;
   }
-  /** Add `halos` ({ at, size, color } each - the world frame, metres, linear light) onto the frame. Answers whether any drew. */
   draw(proj, view, halos, fog = null, gain = SD_HALO_GAIN.classic) {
     const gl = this.gl, U = this.u, d = this.data;
     const n = Math.min(halos?.length ?? 0, SD_HALO_MAX);
     this.drawn = 0;
-    if (!n || !this.prog) return false;   // EG-LOOK: a destroyed pass draws nothing
+    if (!n || !this.prog) return false;
     let o = 0;
     for (let i = 0; i < n; i++) {
       const h = halos[i];
-      for (let c = 0; c < 12; c += 2) { d[o++] = h.at[0]; d[o++] = h.at[1]; d[o++] = h.at[2]; d[o++] = CORNERS[c]; d[o++] = CORNERS[c + 1]; d[o++] = h.size; d[o++] = h.color[0]; d[o++] = h.color[1]; d[o++] = h.color[2]; }   // AUDIT SD V (P6): the corners made once
+      for (let c = 0; c < 12; c += 2) { d[o++] = h.at[0]; d[o++] = h.at[1]; d[o++] = h.at[2]; d[o++] = CORNERS[c]; d[o++] = CORNERS[c + 1]; d[o++] = h.size; d[o++] = h.color[0]; d[o++] = h.color[1]; d[o++] = h.color[2]; }
     }
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(U.uView, false, view); gl.uniformMatrix4fv(U.uProj, false, proj);
@@ -112,8 +99,6 @@ export class SdHaloRenderer {
     this.drawn = n;
     return true;
   }
-  /** EG-LOOK (Elite-Gates-Look.md section 29 - EVERY ALLOCATION HAS AN OWNER): every GL object it made, freed once (the
-   *  Spire's look releases its halos at the breach's end - scenes/eliteGates/egLookDraw.js). */
   destroy() {
     const gl = this.gl;
     if (!this.prog) return;

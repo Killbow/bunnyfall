@@ -1,127 +1,44 @@
 // @ts-check
-// THE WATER SURFACE (WATER1, 2026-09-08). Mac: "develop proper water
-// shader for the oceans/rivers/ponds of daggerfall."
-//
-// WHAT DAGGERFALL DRAWS. Water is record 0 of the terrain tileset, and
-// the terrain pass draws it exactly as it draws dirt: one opaque layer
-// of the tile array, Lambert-lit, unmoving (render/renderer.js
-// TERRAIN_FS - the verbatim TilemapTextureArray decode). The ocean's
-// vertices are clamped flat at SCALED_OCEAN_ELEVATION (terrainSampler.js)
-// but nothing about the shading says "water". Classic Daggerfall
-// palette-cycled the tile; DFU draws it flat. This is the port's
-// ENHANCED-LANE DEPARTURE (Ledger section A, row WATER1): a second pass
-// over the same terrain grid, alpha-blended above it, that shades every
-// water tile as a water surface - waves on the wind, the sky reflected
-// by Fresnel, the sun and the moon glinting, the cloud deck's shadow,
-// rain pocking the surface, the shore feathered along the marching
-// squares' own diagonal. The classic lane and the terrain pass are
-// untouched: the switch is `enhancedWater`, the kill door `?water=off`.
-//
-// THE GEOMETRY IS THE TERRAIN'S. There is no water mesh: the pass draws
-// the pixel's own terrain surface (positions, normals, indices - the
-// far ring's strided twin included) lifted WATER_LIFT above the ground,
-// and the fragment shader DISCARDS everything that is not water. So the
-// ocean is flat because the terrain under it is flat, a river follows
-// its slope because the tiles do, and a town pond sits at the town's
-// ground. Nothing here asserts a water surface height to the game
-// (player/exteriorSurface.js: DFU has none outdoors) - it is a draw.
-//
-// WHICH TEXEL IS WATER. The tile byte says, through the 256-entry
-// table of WATER CORNERS in world/water/waterCorners.js (MAC2 lifted it out of
-// this file: the player's feet read the same table now, so where this
-// pass draws water the player swims). The coverage inside a tile is
-// the bilinear blend of its corners - the diagonal the shore tile's own
-// art follows - feathered by SHORE_SOFTNESS.
+// Enhanced water: a second pass over the terrain grid, lifted WATER_LIFT and alpha-blended, that discards every
+// texel that is not water. The classic lane and the terrain pass stay untouched.
 import { WATER_DRAW_MASK_TABLE } from '../world/waterCorners.js';
-import { snowCoreGlsl } from './snowCoverGlsl.js';   // AUDIT PRECIP GROUND-5: the ground's snow, for a puddle's mask under it
-import { PUDDLE_RECORDS } from '../world/puddleMask.js';   // WATER-PUDDLE: the records whose water is their art's   // MAC2: the corner table is a leaf the player's feet share; WATER-DRAW1: the DRAW's half of it - the feet's is the law's own table, and the two are not the same question
+import { snowCoreGlsl } from './snowCoverGlsl.js';
+import { PUDDLE_RECORDS } from '../world/puddleMask.js';
 import { WIND_ROW_CALM, WIND_ROW_SPAN } from '../weather/wind.js';
-import { getPref } from '../ui/uiPrefs.js';   // FT6: the switch, read here alone
+import { getPref } from '../ui/uiPrefs.js';
 import { isEnhanced } from '../ui/uiSkin.js';
-import { FOG_GLSL } from './fogGlsl.js';   // AUDIT 68 S17-fog-glsl-dup: the fog every world pass takes, one home
-import { SEA_LOOK_GLSL, SEA_HAZE_BAND } from './horizonHaze.js';   // FAR-SEA1: the sea takes the far ring's haze; AUDIT FAR-SEA1 C12: and the open sea's light is one text with the ring's sea
+import { FOG_GLSL } from './fogGlsl.js';
+import { SEA_LOOK_GLSL, SEA_HAZE_BAND } from './horizonHaze.js';
 import { AIR_ADAPT_GLSL } from './airPass.js';
 import { EL_TONEMAP_GLSL, EL_CODEC_GLSL } from './enhancedLighting.js';
 import { pageParam } from '../platform/pageQuery.js';
 import { RIPPLE_CELLS, RIPPLE_SCALE } from '../world/waterRipples.js';
-import { NO_BED_DEPTH, SHELF_SHEET_DEPTH } from '../world/waterCorners.js';   // AUDIT WATER-NEXT H2: its one home, the water's leaf (the kernel's worker writes it)   // WATER-NEXT 4: the ripple field the shader reads   // PERF-URL: the page's query, parsed once a search
+import { NO_BED_DEPTH, SHELF_SHEET_DEPTH } from '../world/waterCorners.js';
 
-/** FT6 (2026-09-14, the Features arc): THE SWITCH, ONE HOME. Both
- *  exterior hosts composed "the enhanced skin, the pref, the kill door"
- *  inline, word for word - two copies of one law. This is the copy:
- *  the enhanced skin (the classic lane draws DFU's flat tile), the
- *  Enhanced water pref, and `?water=off` as the kill door. A town host
- *  still asks tilemapRectHasWater beside it - that is the town's, not
- *  the switch's. */
 export function waterSwitchOn(search = globalThis.location?.search ?? '') {
-  return isEnhanced() && !!getPref('enhancedWater') && pageParam('water', search) !== 'off';   // PERF-URL
+  return isEnhanced() && !!getPref('enhancedWater') && pageParam('water', search) !== 'off';
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// FIELD BUGS 2026-09-29 (the sea) #4 (the Discord, through Mac: "Water flickers from a distance"): THE WATER'S LAYERS
-// IN WINDOW DEPTH. The sea is a stack of sheets a few centimetres apart: the ground under it (the beach at the sea's
-// own 34 m, Iliac Puddle No More's carved floor at least 5 cm under it), the sea's surface film over that (Iliac Puddle
-// No More's top 3 cm up, SurfaceRenderYOffset; WATER1 a hand's breadth over the ground it lies on), and Come Sail Away's
-// breakers 10 cm up (WAVE_LIFT). Unity draws them on a reversed, floating-point depth buffer that parts a centimetre
-// at any range; this port's world pass is the GL convention's - a 24-bit buffer, the near plane 0.2 m out - where a
-// step of depth is z^2 / (0.2 x 2^24) metres of eye depth: 3 mm at 100 m, 30 cm at 1 km. Seen from a raised eye a
-// sheet 3 cm over another is a fraction of a step apart at a few hundred metres, and which of the two a pixel shows is
-// the rounding's, which moves with every centimetre the deck bobs the camera: the far beach and the breakers flicker
-// (tools/fbseaWaterProbe.mjs measures it on a real pipeline). WATER1 met the same law first and took a polygon offset
-// (renderer.js, WATER-AUDIT M3): a nudge in WINDOW depth, so worth one resolvable step at every distance, never a lift
-// in metres that is worth nothing past a few hundred. Every sheet of the stack takes it now, in the order the sheets
-// stand in, from this one table:
-//
-//   the ground and the floor .......... 0 (opaque, written)
-//   the surface film (the top, WATER1)  SURFACE: it covers what lies under it by two steps
-//   Come Sail Away's breakers ......... BREAKERS: they stand over the film by four more - they write their depth, and
-//                                       the film is drawn after them and tested against it
-//
-// The CONSTANT term only (WATER-AUDIT M3's reason: a slope factor grows with the sheet's own depth slope, hundreds of
-// units a pixel at a grazing look, and would pull the water in front of a hull or a shore standing above it). What a
-// step of bias costs: a sheet shows through what stands within that many steps in front of it - under a millimetre
-// at 100 m, and at a kilometre a hull's waterline creeps up by a few centimetres, a fraction of the one pixel it is.
-// ═══════════════════════════════════════════════════════════════════
-
-/** polygonOffset's units (constant term, factor 0) for each sheet of the sea, the ground's 0 under them. */
+// polygonOffset units (constant term only) for each sheet over the ground's 0. Window depth resolves at every
+// range, while a lift in meters stops resolving past a few hundred meters; a slope factor would pull water over hulls.
 export const WATER_LAYER_UNITS = Object.freeze({
-  /** The sea's surface film: Iliac Puddle No More's top and WATER1 - never both over one texel (DW-F). */
   surface: -2,
-  /** Come Sail Away's breakers: opaque, written, and drawn before the film - so the film tests against them. */
+  // The breakers write depth and draw before the surface film, so the film tests against them.
   breakers: -6,
 });
 
-/** How far above the ground the surface is drawn, in world units (a
- *  tile is 6.4). Enough to clear the depth test on a slope, too little
- *  to read as a step at the shore. */
 export const WATER_LIFT = 0.08;
-/** The classic water texel's tint under the surface - a deep blue-green
- *  multiplier, so the tile's own palette colour reads as the body of the
- *  water and not as a floor seen through it. MAC2: darkened from
- *  0.62/0.78/0.86 - the body is the water's depth now, not its floor. */
 export const WATER_TINT = Object.freeze([0.36, 0.50, 0.60]);
-/** Schlick's F0 for water (n = 1.33). */
 export const WATER_F0 = 0.02;
-/** Half-width of the shore feather, in coverage (0.5 is the diagonal). */
 export const SHORE_SOFTNESS = 0.16;
-/** The classic texel's slow flow, in tiles per second. AUDIT 65 CV-3:
- *  the ONE home for the rate - scenes/dungeon.js and scenes/worldModes.js
- *  import it, so a river and a dungeon pool crawl alike. */
 export const WATER_SCROLL_TILES_PER_SEC = 0.05;
-/** The sky the surface reflects when no sky says otherwise (a test, a
- *  lab without a dome): a plain day. */
 export const DEFAULT_SKY_ZENITH = Object.freeze([0.17, 0.35, 0.72]);
 export const DEFAULT_SKY_HORIZON = Object.freeze([0.66, 0.78, 0.92]);
 const NO_GLOW = Object.freeze([0, 0, 0]);
 const NO_GLOW_DIR = Object.freeze([0, 1]);
-/** A lamp's reflection on the waves shows up to this many times its light's range from it. */
 const LAMP_PATH_REACH = 8.0;
 
-/** WATER-AUDIT: does a sub-rectangle of a `dim`-wide tilemap carry any
- *  water? The fixed city pads its square tilemap with zeros past the
- *  location's real extent, and zero converts to water, so the whole map
- *  answered yes for every non-square town (AUDIT 65 MC-6: the one gate -
- *  the whole-map twin it replaced had no caller left and is retired). */
+// The fixed city pads its tilemap with zeros past the real extent, and zero converts to water.
 export function tilemapRectHasWater(bytes, dim, width, height, table = WATER_DRAW_MASK_TABLE) {
   const w = Math.min(width, dim), h = Math.min(height, dim);
   for (let y = 0; y < h; y++) {
@@ -131,20 +48,9 @@ export function tilemapRectHasWater(bytes, dim, width, height, table = WATER_DRA
   return false;
 }
 
-/**
- * WATER-AUDIT (M4): THE WATER'S OWN INDEX SET. The pass drew the pixel's
- * whole terrain grid - 32,768 triangles for one stream tile, the far
- * ring's twin skirt included (a 40-unit vertical curtain of water at a
- * coast, both windings, four times). The quads of buildTerrainIndices'
- * layout whose tiles carry any water corner, and nothing else: an open
- * sea keeps every quad, a stream pixel keeps a few hundred triangles, no
- * pixel keeps a skirt. Null when the tilemap carries no water at all.
- * A quad (x, z) of the stride-`stride` grid covers the stride x stride
- * tiles at (x * stride.., z * stride..) - the grid's cell IS the tile at
- * stride 1 (6.4 units), which is the frame the shader samples in.
- */
+// Keeps only the quads of the buildTerrainIndices layout whose tiles carry water; null when none do.
 export function buildWaterIndices(bytes, stride = 1, table = WATER_DRAW_MASK_TABLE, tileDim = 128, width = tileDim, height = tileDim) {
-  const g = width / stride + 1;   // WATER-NEXT 2: a grid `width` x `height` tiles (the fixed town's), `tileDim` a row
+  const g = width / stride + 1;
   const qx = g - 1, qz = height / stride;
   const out = [];
   for (let z = 0; z < qz; z++) {
@@ -162,26 +68,16 @@ export function buildWaterIndices(bytes, stride = 1, table = WATER_DRAW_MASK_TAB
   return out.length ? Uint32Array.from(out) : null;
 }
 
-
-/** 0..1: the eased wind row's strength on the sky's own scale
- *  (systems/wind/wind.js: a row's vector runs WIND_ROW_CALM to
- *  WIND_ROW_CALM + WIND_ROW_SPAN). null = no wind is known = calm. */
 export function windStrength01(wind) {
   if (!wind) return 0;
   const m = Math.hypot(wind[0] ?? 0, wind[1] ?? 0);
   return Math.min(1, Math.max(0, (m - WIND_ROW_CALM) / WIND_ROW_SPAN));
 }
 
-/**
- * The frame's water uniforms, from what the hosts hold: the clock in
- * real seconds, the eased wind row (null = calm; the direction is the
- * row's), the front's rain intensity 0..1, and the sky's two colours
- * ({zenith, horizon} 0..1 rgb, or null for the default day).
- */
 export function waterUniforms({ seconds = 0, wind = null, rain = 0, sky = null, still = false } = {}) {
   const t = still ? 0 : seconds;
   const s = windStrength01(wind);
-  let dx = 0.7, dz = Math.sqrt(1 - 0.49);   // a unit direction: the wind the sea takes when none is known
+  let dx = 0.7, dz = Math.sqrt(1 - 0.49);
   if (wind) {
     const m = Math.hypot(wind[0] ?? 0, wind[1] ?? 0);
     if (m > 1e-9) { dx = wind[0] / m; dz = wind[1] / m; }
@@ -196,50 +92,29 @@ export function waterUniforms({ seconds = 0, wind = null, rain = 0, sky = null, 
     glow: sky?.glow ?? NO_GLOW,
     glowDir: sky?.glowDir ?? NO_GLOW_DIR,
     night: sky?.night ?? 0,
-    // AUDIT WATER-NEXT m6: no `scroll` and no `opacity` - WATER-NEXT 2's sheet scrolls no texel and has no one opacity
-    // (the body swallows light by its depth; MAC2's "darker and not as see through" is the deep water's now), and
-    // WATER_OPACITY, forwarded here and pinned as the surface's floor, was a law nothing drew
     lift: WATER_LIFT,
     tint: WATER_TINT,
     f0: WATER_F0,
     shoreSoft: SHORE_SOFTNESS,
-    swell: swellAmplitude(s),   // WATER-NEXT 2: the sheet's swell, the wind's
+    swell: swellAmplitude(s),
     absorb: WATER_ABSORB,
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// WATER-NEXT 2 - THE SWELL (2026-10-07, Mac: "real translucent water with proper waves"; asked, the waves "modest,
-// weather-driven"): THE SHEET MOVES. WATER1's waves were a normal map on a still sheet; the sheet now rides three
-// long trains - one down the wind, two crossing it - whose height the vertex shader lifts the sheet by and whose slope
-// the fragment shader lights, ONE field (SWELL_GLSL, written from SWELL_TRAINS, and swellAt below, the same sum for the
-// CPU - AUDIT WATER-NEXT m10: its pins read it; no hull bobs on it yet, so a still boat's waterline rides the swell's
-// height up and down its side, as a wave runs along a moored hull). The trains run at deep water's own speed (omega = sqrt(g k), a unit a metre) and
-// none is shorter than four of the sheet's 6.4-unit cells, so the grid carries it without facets. Over the bank the
-// swell dies (the bed's depth fades it - water never lifts off its shore), and its height is the WIND's: a calm pond
-// barely breathes, a gale heaves. The fine ripples and the rain stay WATER1's normal map (waveGradient).
-// ═══════════════════════════════════════════════════════════════════
-
-/** The swell's trains: [angle off the wind (radians), wavelength (units), share of the amplitude]. */
+// No train is shorter than four 6.4-unit cells, so the grid carries it without facets.
 export const SWELL_TRAINS = Object.freeze([
   Object.freeze([0.0, 48.0, 0.55]),
   Object.freeze([0.54, 31.0, 0.28]),
   Object.freeze([-0.75, 25.6, 0.17]),
 ]);
-/** g for the trains' speed, in units a second squared (a unit is a metre). */
 export const SWELL_G = 9.8;
-/** The swell's height (the sum of the trains' amplitudes, units) at a calm and at a gale, between them the wind's. */
 export const SWELL_CALM = 0.05;
 export const SWELL_GALE = 0.34;
-/** The bed depth (units) over which the swell grows from nothing at the bank to its whole height. */
 export const SWELL_DEPTH = 2.5;
-/** AUDIT WATER-NEXT G8: the distance (units) over which the sheet's heave fades out - inside a near pixel's reach of the
- *  eye (a pixel is 819.2 across), before a strided ring's cells grow as long as the shortest train. */
 export const SWELL_REACH = Object.freeze([300, 600]);
-/** The swell's height for a wind strength 0..1. */
 export const swellAmplitude = (windStrength01) => SWELL_CALM + (SWELL_GALE - SWELL_CALM) * Math.min(1, Math.max(0, windStrength01));
 
-/** The swell at a world point, the shader's own sum: [height, d/dx, d/dz]. `windDir` a unit [x, z]. */
+// The same sum as SWELL_GLSL; change both together.
 export function swellAt(x, z, t, windDir, amplitude) {
   let h = 0, gx = 0, gz = 0;
   for (const [ang, len, share] of SWELL_TRAINS) {
@@ -254,7 +129,6 @@ export function swellAt(x, z, t, windDir, amplitude) {
   return [h, gx, gz];
 }
 
-/** The same sum in GLSL - the vertex shader's lift and the fragment shader's slope, one text. */
 export const SWELL_GLSL = `
 vec3 swellAt(vec2 p, float t, vec2 wind, float amp) {
   vec3 r = vec3(0.0);
@@ -267,48 +141,20 @@ ${SWELL_TRAINS.map(([ang, len, share]) => {
   return r;
 }`;
 
-// ═══════════════════════════════════════════════════════════════════
-// WATER-NEXT 2 - THE BODY: water is a depth of something that swallows light, red first. What lies under it is seen
-// through it by Beer-Lambert - exp(-WATER_ABSORB * path), the path the eye's through the water - and where the light is
-// swallowed the water's own colour stands (the climate's water texel, averaged, tinted - a swamp's water is a swamp's).
-// A hand's depth is clear, a man's depth green-blue, a lake's heart and the sea dark: Mac's MAC2 water, "darker and
-// not as see through", is the deep water's, and the shallows are glass.
-// ═══════════════════════════════════════════════════════════════════
-
-/** Beer-Lambert's absorption, per unit of path, red, green, blue. */
 export const WATER_ABSORB = Object.freeze([0.55, 0.30, 0.22]);
-/** How far the refracted look is pushed by the waves' slope, in screen fractions at a unit of depth. */
 export const REFRACT_STRENGTH = 0.035;
-/** The depth a sheet without a bed stands for - world/water/waterCorners.js NO_BED_DEPTH, its one home, re-exported for the renderer. */
 export { NO_BED_DEPTH };
-/** The path, in units, past which the water is taken as deep everywhere it cannot measure itself (the open sea
- *  without a depth copy). */
 export const OPEN_PATH = 60.0;
-// ═══════════════════════════════════════════════════════════════════
-// WATER-NEXT 3 - THE SHORE (Mac: "shoreline interactivity"): WHERE THE WATER RUNS OUT, IT BREAKS. A band of foam where
-// the water is shallow - FOAM_DEPTH of it, wider in a wind - pushed up the bank by the swell's crest and drawn back by
-// its trough (the run-up: the band's edge rides the swell's own height), cut into lace by a noise that drifts down the
-// wind; and on open water in a strong wind, where the swell is steep, its crests whiten. Lit by the light the water
-// is, never glowing. One field with the waves: no sprite, no second sheet.
-// ═══════════════════════════════════════════════════════════════════
 
-/** The water depth (units, vertical) over which the shore's foam fades out, at a calm; a gale doubles it. */
 export const FOAM_DEPTH = 0.22;
-/** How far the swell's height pushes the foam's edge up and down the bank, in multiples of that height. */
 export const FOAM_RUNUP = 2.2;
-/** The swell's slope past which a crest whitens, at a gale (never below a strong wind). */
 export const CREST_SLOPE = 0.075;
 
-/** The texture units the scene's copy rides (bound before every water draw, never trusted to persist - inside
- *  Dynamic Skies' nine and under the lane's own, as BB_SURFACE_UNIT). */
+// These units are bound again before every water draw and never trusted to persist.
 export const WATER_SCENE_UNIT = 7;
-/** WATER-NEXT 4: the ripple field's unit - 1, the billboards' emission unit, its shadow forgotten after the bind. */
 export const WATER_RIPPLE_UNIT = 1;
 export const WATER_SCENE_DEPTH_UNIT = 6;
 
-/** WATER-NEXT 2: the sheet - the grid AS IT STOOD before the bed was carved under it (world/water/waterBed.js), its bed's
- *  depth on attribute 1, lifted WATER_LIFT and heaved by the swell. The open sea's sheet (Deep Waters' top, `uOpen`)
- *  has no bed attribute - a constant - and swells everywhere. */
 export const WATER_SURFACE_VS = `#version 300 es
 layout(location=0) in vec3 aPos;
 layout(location=1) in float aDepth;
@@ -346,21 +192,7 @@ void main() {
   gl_Position = uProj * uView * world;
 }`;
 
-/**
- * WATER-NEXT 2: the water's fragment shader, with the renderer's cloud-shadow block interpolated (a GLSL declaration
- * is visible only to the compilation unit that carries it - the EE5 lesson in renderer.js).
- *
- * WHERE: the terrain's water, a texel at a time - WATER1's corner table, its shore feather and WATER-PUDDLE's art
- * mask, unchanged - or, under `uOpen`, the whole sheet (Deep Waters' sea).
- * THE SLOPE: the swell's (the vertex shader's own field, per pixel) and WATER1's fine trains and rain.
- * THE PATH through the water: the scene's depth copy where the frame has one (the bed's own distance behind the
- * surface, so a boat's hull or a rock in a pond is where it is), else the bed's depth over the view's slant.
- * THE LOOK: what lies under the surface - the scene's colour copy, pushed by the waves' slope (never by a thing in
- * front of the water: a pushed look that lands on something nearer than the surface takes the straight look) - through
- * Beer-Lambert, the water's own lit colour where the light is swallowed, the sky reflected by Fresnel, the sun's, the
- * moon's and the lamps' glints, the fog. Without a copy (the classic lane's frame), the blend does the same sum: the
- * ground under the sheet is drawn, and the sheet's alpha is how much of it the water hides.
- */
+// The cloud-shadow block is interpolated because a GLSL declaration is visible only to the program that carries it.
 export const waterSurfaceFs = (cloudShadowGlsl, shadowGlsl = '') => `#version 300 es   // EL7: with SHADOW_GLSL the water receives the lane's sun shadow
 precision highp float;
 precision highp int;   // WATER-NEXT 2: uOpen is the vertex stage's too - an int's precision must agree across the two

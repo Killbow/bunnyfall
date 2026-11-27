@@ -1,17 +1,8 @@
-// THE DATA TABLE (Q1) - DFU Utility/Table.cs, the members the quest
-// layer reads (AUDIT 68 S30-dead-table-api: GetRow/GetRowIndex/
-// GetColumnIndex/GetColumnName had no reader and went). The quest
-// machine's tables (Quests-StaticMessages, Quests-GlobalVars, the
-// QuestLists, Quests-Places/Items/Foes/...) all ride this one reader:
-// '-' starts a comment, '//' starts an inline comment, 'schema:'
-// names the columns ('*' marks the primary key, '$' a quoted string
-// literal), every other non-empty line is a row. Values are always
-// strings; GetInt's int.TryParse failure answer is -1 (Table.cs:407).
-// Duplicate keys warn and keep the FIRST row (LoadRow's else arm) -
-// which is load-bearing for Quests-StaticMessages, whose case-variant
-// alias rows (RumorsPostfailure/RumorsPostFailure) share one id.
+// Quest data table reader: '-' starts a comment line, '//' an inline comment, and 'schema:' names the columns
+// ('*' marks the primary key, '$' a quoted string). Duplicate keys warn and keep the first row, which
+// Quests-StaticMessages relies on for its case-variant alias rows.
 
-import { intTryParse } from './parseUtils.js';   // AUDIT 68 S30-tryparse-dup: the quest layer's one int.TryParse
+import { intTryParse } from './parseUtils.js';
 
 const INLINE_COMMENT = '//';
 const LITERAL = '"';
@@ -19,7 +10,7 @@ const SEPARATOR = ',';
 
 
 export class Table {
-  /** @param {string[]|string} source lines array, or whole text. */
+  /** @param {string[]|string} source */
   constructor(source = null) {
     this.columnCount = 0;
     this.primaryColumnIndex = -1;
@@ -50,7 +41,6 @@ export class Table {
     }
   }
 
-  /** AddIntoTable: extra rows against the existing schema. */
   addIntoTable(lines) {
     for (let i = 0; i < lines.length; i++) {
       let text = lines[i].trim();
@@ -68,11 +58,7 @@ export class Table {
   getValue(columnName, key) {
     if (!this.hasColumn(columnName)) throw new Error(`GetValue() columnName '${columnName}' does not exist.`);
     if (typeof key === 'number') {
-      // GetValue(columnName, index) overload. AUDIT quest-5: C#'s guard
-      // is `> RowCount` but values[index] then throws IndexOutOfRange at
-      // index == RowCount; JS would silently answer undefined (and
-      // ParseInt would fold it to 0) - so the guard here matches the
-      // OBSERVED C# behavior: any out-of-range index throws.
+      // C# also throws at index == RowCount, so any out-of-range index throws here instead of returning undefined.
       if (key < 0 || key >= this.rowCount) throw new Error(`GetValue() index '${key}' does not exist.`);
       return this.columns[this.columnIndexDict.get(columnName)].values[key];
     }
@@ -81,13 +67,10 @@ export class Table {
     return this.columns[this.columnIndexDict.get(columnName)].values[valueIndex];
   }
 
-  /** int.TryParse fail -> -1 (Table.cs GetInt). */
   getInt(columnName, key) {
     return intTryParse(this.getValue(columnName, key)) ?? -1;
   }
 
-  /** GetKeyForValue (Table.cs:285-297): the primary key of the FIRST
-   *  row whose column holds the value; null when none does. */
   getKeyForValue(columnName, value) {
     if (!this.hasColumn(columnName)) throw new Error(`GetKeyForValue() columnName '${columnName}' does not exist.`);
     const column = this.columns[this.columnIndexDict.get(columnName)];
@@ -113,7 +96,7 @@ export class Table {
       if (name.startsWith('$')) { isStringLiteral = true; name = name.slice(1); }
       this.columns.push({ name, values: [], keyIndexDict: new Map(), isStringLiteral });
       if (isStringLiteral) this.hasStringLiteralInSchema = true;
-      if (this.columnIndexDict.has(name)) throw new Error(`Duplicate schema column: ${name}`);   // C# Dictionary.Add throws (AUDIT quest-P9)
+      if (this.columnIndexDict.has(name)) throw new Error(`Duplicate schema column: ${name}`);
       this.columnIndexDict.set(name, i);
     }
     if (this.primaryColumnIndex === -1) throw new Error('Table must tag at least one column as primary using *.');
@@ -134,7 +117,7 @@ export class Table {
       this.columns[i].values.push(value);
       if (i === this.primaryColumnIndex) {
         if (this.columns[i].keyIndexDict.has(value)) {
-          console.warn(`[table] Duplicate key found: ${value}`);   // Debug.LogErrorFormat; first row keeps the key
+          console.warn(`[table] Duplicate key found: ${value}`);
         } else {
           this.columns[i].keyIndexDict.set(value, this.columns[i].values.length - 1);
         }
@@ -142,7 +125,6 @@ export class Table {
     }
   }
 
-  /** The literal-aware splitter (Table.cs SplitLine), positionally verbatim. */
   _splitLine(text) {
     let position = 0;
     const substrings = [];

@@ -1,6 +1,5 @@
-// A town's places: the open sea and whether a port town lies on it, and each town's yards,
-// shipyard, and lighthouse placed on its ground with their keepers. It also measures a model's
-// ground rectangles once per model.
+// Town places for the world: the open sea and whether a port town lies on it.
+// It also places each town's yards, shipyard, and lighthouse with their keepers, and measures model ground.
 import { ALL_YARD_KINDS, isYardTown, yardKeeper } from './merchantYards/merchantYards.js';
 import { ARENA_BLOCK } from './arenaCity.js';
 import { blockBuildingCount } from '../talk/talkTopics.js';
@@ -28,13 +27,7 @@ import { windmillsOn } from './windmills.js';
 /** @param {any} shared */
 export function createTownPlacesWorld(shared) {
   const { archAabb, blocks, dfMeshSize, etherSea, maps, seaPixel, tamrielLand } = shared;
-  /** FIELD BUGS 2026-10-14 INLAND-PORTS: THE OPEN SEA - a pixel of the Bay's map whose water reaches the map's border
-   *  (world/portSites.js openSeaOf over seaPixel, flooded the first time it is asked: every lake and pond the map draws
-   *  inland left out); past the Veil, the Eltheric Ocean's water round its isles (the ether's own ground - each isle a
-   *  hill of land in open water, ethericSea.js isleByte); past the map's edge, only where the land beyond the Bay stands
-   *  (AUDIT CAPTAIN'S SEA B10, the harbour's sites' law, moved here: else nothing streams there) - the continent's sea,
-   *  its land a province's and no lake in it (world/tamriel/tamrielGround.js authoredHeightByte). The one set the port towns, the
-   *  harbour board's ports and the harbour office's sites, cargoes and charts ask. */
+  // The open sea excludes the inland lakes the map draws; past the Veil it is the Eltheric Ocean's water.
   let _openSea = null;
   const openSea = (x, y) => {
     if (etherSea && inEther(x, y)) return seaPixel(x, y);
@@ -42,28 +35,16 @@ export function createTownPlacesWorld(shared) {
     _openSea ??= openSeaOf(seaPixel, MAP_WIDTH, MAP_HEIGHT);
     return _openSea[y * MAP_WIDTH + x] === 1;
   };
-  /** SHIPYARDS: whether a town stands the port's places (systems/portPlaces.js isPortTown) - a port by its own data
-   *  (Travel Options' hand-written harbours, travelPorts.js hasPort, or Daggerfall's PortTownAndUnknown byte) that the open
-   *  sea bears on (INLAND-PORTS: world/portSites.js portTownOnSea - the open sea within SEA_RING, the ring its bearing is
-   *  read off; the data alone stood a shipyard and a lighthouse at the middle of 36 region capitals, beside a pond in
-   *  Ilessan Hills' blocks). Never a seat's members' harbour (hasPortFor's word is one guild's - every client stands the
-   *  same shipyard), and never csaIsPortTown, declared below the stream (BOOT-TDZ). */
+  // A port is a town the open sea bears on; csaIsPortTown is declared below the stream, so it is not used here.
   const portOnSea = (dfLocation) => portTownOnSea(dfLocation, hasPort, openSea);
-  const _yardMemo = new Map();   // mapId -> { sig, sites, ports }, the latest few towns
-  const _yardBoxes = new Map();   // a registered model's local box, by id
+  const _yardMemo = new Map();
+  const _yardBoxes = new Map();
   const palaceIn = (b) => {
     const list = b.dfBlock?.rmbBlock?.fldHeader?.buildingDataList ?? [];
     const n = Math.min(list.length, blockBuildingCount(b.dfBlock));
     for (let i = 0; i < n; i++) if (list[i]?.buildingType === TALK_BUILDING_TYPES.Palace) return true;
     return false;
   };
-  /** MERCHANT-YARDS + SHIPYARDS: A TOWN'S PLACES - its yards placed on its ground as they always were (townGroundOf, then
-   *  yardSitesOn - yardSitesOf's own two steps; CARP-YARD: the joinery last, on what the port left - craftYardSitesOn),
-   *  and a port town's shipyard and lighthouse on what they left (portSitesOn
-   *  off the sea: the town's own shoreline cells, else the sea's bearing off the map pixels round it - seaPixel), each
-   *  keyed by the town and its kind, with its keepers (systems/portPlaces.js portKeeper - the shipyard's crewmaster beside
-   *  its shipmaster), its name and the town's people. One memo a town, keyed by its measures and whether it is a port;
-   *  one call a build (AUDIT SHIPYARDS L3-3: the yards' and the port's each asked it whole). */
   function townPlacesFor(dfLocation, lefaySpot, people, loc = null) {
     try {
       const yl = loc && isEnhanced() && windmillsOn() ? loc : layoutLocation(dfLocation, maps, blocks, { enhanced: true, windmills: true });
@@ -91,10 +72,10 @@ export function createTownPlacesWorld(shared) {
         let ports = [];
         if (g && port) {
           const lp = longitudeLatitudeToMapPixel(dfLocation.mapTableData.longitude, dfLocation.mapTableData.latitude);
-          const bearing = seaBearing(lp.x, lp.y, openSea);   // AUDIT SHIPYARDS U2: and the town's own water against it is no sea; INLAND-PORTS: nor a lake the map draws
+          const bearing = seaBearing(lp.x, lp.y, openSea);
           ports = portSitesOn(g, seaField(g.width, g.height, townSeaOf(yl, bearing), bearing));
         }
-        if (g && yardTown) sites.push(...craftYardSitesOn(g));   // CARP-YARD: the joinery on what the yards and the port left - none of theirs moves
+        if (g && yardTown) sites.push(...craftYardSitesOn(g));
         memo = { sig, sites, ports };
         _yardMemo.delete(mapId);
         _yardMemo.set(mapId, memo);
@@ -116,7 +97,6 @@ export function createTownPlacesWorld(shared) {
       };
     } catch (e) { console.warn('[yards] the town\'s yards would not place', e?.message ?? e); return { yards: [], ports: [] }; }
   }
-  /** FB1009 HOME-FOOT: each model's ground seen from above (homeYards.js modelFootRects), in its own frame - measured once. */
   const modelFeet = new Map();
   const modelFeetOf = (id, cpu) => {
     let rs = modelFeet.get(id);

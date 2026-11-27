@@ -25,6 +25,7 @@ invariants:
 traps:
   - "Wild Zone halls (`wildHall`) and `superTier` sites are excluded in `_spawnSeen` and `_locationToBuild`."
   - "Default `merge` `now` to `NaN` so cell welcome rows arriving before `playerTicker` initializes are not discarded, and never treat negative elapsed time from loading an older save as expiry."
+  - "The spawn ledger keeps the last finite clock it was given, never the highest. A clock read too fast before the shared offset lands would otherwise drop rows that are still alive from the next save."
 dfu: []
 tags:
   - spawned-dungeons

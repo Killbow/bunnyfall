@@ -1,24 +1,4 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// LW12 (2026-10-09, bible/06-Systems/Living-World-II.md "LW12"): THE OUTLAWS - the road's trouble with a face and a
-// home. The climate's tables already roll human bandits (mobileFactions.js FACTIONS.BANDIT); nothing remembered them.
-// Pure, like the trips they fall on (LW0 decision 2): a band, its hideout, its name, its people and its generations
-// are functions of the world's own data (a region's towns, the roads between them), a seed and the clock - every
-// reader's Black Hand camps at the same bend - and what the character did to it is theirs (relations.js `routed`).
-//
-//  - THE BANDS (`bandCount`, `hideoutsOf`): a region of n towns keeps 1 + n / BAND_TOWNS_PER of them, to BANDS_MAX,
-//    each at a HIDEOUT 1-2 px off the middle of the road between two of its towns (the seed's pair among its legs of
-//    BAND_LEG_PX), on dry ground, on no town.
-//  - ITS LIVES (`outlawBandAt`): a band holds its hideout for a generation. The dice rout it - each BAND_ERA_DAYS a patrol's
-//    chance (ROUT_CHANCE: a region with a court's city, its patrols out, the likelier) - and the hideout stands empty
-//    BAND_VACANT_DAYS; then a new band forms there (gen + 1, a new name, new people). A rout by the character's hand
-//    is the character's own: their hideout stands empty as long, then the next (`heir`) forms.
-//  - ITS PEOPLE (`bandPeople`): BAND_SIZE of them, ids `O<region>.<band>~<gen>.<i>` (an heir's `~<gen>h<heir>`), the
-//    thieves' run and the rough end of the fighters' (OUTLAW_CLASSES), at levels by the region's greatest town.
-//  - THE HOLD-UP (`bandTrouble`, trouble.js): a trip's trouble within OUTLAW_REACH_PX of a hideout is the band's in
-//    BAND_SHARE of such troubles; a party under ROB_RATIO of its strength yields - ROBBED, no blood - else it fights.
-//  - THE TAKE (`takeOf`): what the band's chest holds - the parties it robbed of the last TAKE_DAYS, each its share of
-//    a purse and two of its goods.
 import { lwSeed, lwRng, textSeed, rollInt, pickOf } from './seed.js';
 import { NATIVE_PIXEL } from './trips.js';
 import { DAY_MIN } from './dayPlan.js';
@@ -27,60 +7,47 @@ import { getNameBankOfRegion, GENDERS } from '../../characters/nameHelper.js';
 import { MOBILE_TYPES } from '../../characters/mobileTypes.js';
 import { CARAVAN_QUALITY, purseOf } from './caravanDoor.js';
 
-/** A region keeps a band for every BAND_TOWNS_PER of its towns, and one more, to BANDS_MAX. */
 export const BAND_TOWNS_PER = 40;
 export const BANDS_MAX = 4;
-/** A band's leg runs between two towns this far apart (map pixels, the nearer and the farther), each of this size. */
 export const BAND_LEG_PX = Object.freeze([3, 14]);
 export const BAND_TOWN_BLOCKS = 4;
-/** A hideout stands this far off its road (map pixels). */
 export const HIDEOUT_OFF_PX = Object.freeze([1, 2]);
-/** A trip's trouble within this of a hideout (map pixels) may be the band's ... */
 export const OUTLAW_REACH_PX = 2;
-/** ... in this share of such troubles. */
 export const BAND_SHARE = 0.6;
-/** A party under this share of the band's strength yields to it - robbed, no blood (trouble.js ROB_RATIO, its one home). */
 export { ROB_RATIO } from './trouble.js';
-/** The dice's rout: an era's chance (a region with a court's city - its patrols out - the likelier), and the days a
- *  routed band's hideout stands empty before the next forms. */
 export const BAND_ERA_DAYS = 60;
 export const ROUT_CHANCE = Object.freeze({ patrolled: 0.45, wild: 0.15 });
 export const BAND_VACANT_DAYS = 20;
-/** A city this big keeps a court - and patrols (census.js CITY_COURT_BLOCKS' own). */
+// Must match `CITY_COURT_BLOCKS` in census.js.
 export const COURT_BLOCKS = 16;
-/** A band's people: how many, and their classes. */
 export const BAND_SIZE = Object.freeze([4, 8]);
 export const OUTLAW_CLASSES = Object.freeze([MOBILE_TYPES.Thief, MOBILE_TYPES.Rogue, MOBILE_TYPES.Burglar, MOBILE_TYPES.Nightblade, MOBILE_TYPES.Barbarian, MOBILE_TYPES.Archer]);
-/** The chest holds the take of this many days (the rest spent, or fenced), each robbery this share of a counter's purse
- *  (a trip that keeps none: ROB_GOLD) and TAKE_GOODS of its goods, to TAKE_GOODS_MAX. */
 export const TAKE_DAYS = 14;
 export const TAKE_PURSE_SHARE = 0.25;
 export const ROB_GOLD = 40;
 export const TAKE_GOODS = 2;
 export const TAKE_GOODS_MAX = 16;
-/** A band's name: "the <word> <band>", or its leader's "<name>'s <band>". */
 export const BAND_WORDS = Object.freeze(['Black', 'Red', 'Grey', 'Iron', 'Broken', 'Hollow', 'Night', 'Ash', 'Bitter', 'Crooked', 'Silent', 'Hanged']);
 export const BAND_NOUNS = Object.freeze(['Hand', 'Wolves', 'Knives', 'Crows', 'Company', 'Brothers', 'Hounds', 'Blades', 'Ravens', 'Fangs']);
-const HIDE = 0x68696465, BAND = 0x62616e64, ROUT = 0x726f7574;   // 'hide', 'band', 'rout'
+const HIDE = 0x68696465, BAND = 0x62616e64, ROUT = 0x726f7574;
 
 /**
- * @typedef {{ key: string, region: number, i: number, px: number, py: number, x: number, z: number, a: number, b: number,
- *   patrolled: boolean, top: number }} Hideout - `x`/`z` native (the ways' frame), `a`/`b` its leg's towns' map ids,
- *   `top` its region's greatest town's blocks
- * @typedef {{ key: string, hideout: Hideout, gen: number, heir: number, formedT: number, name: string, level: number,
- *   people: { id: string, name: string, cls: number, level: number, gender: number, sex: string }[] }} Band
+ * @typedef {{ key: string, region: number, i: number, px: number, py: number, x: number, z: number, a: number, b: number, patrolled: boolean, top: number }} Hideout
+ * @typedef {{ key: string, hideout: Hideout, gen: number, heir: number, formedT: number, name: string, level: number, people: { id: string, name: string, cls: number, level: number, gender: number, sex: string }[] }} Band
  */
 
-/** How many bands a region of `n` towns keeps. @param {number} n */
+/** @param {number} n */
 export const bandCount = (n) => (n > 1 ? Math.min(BANDS_MAX, 1 + Math.floor(n / BAND_TOWNS_PER)) : 0);
-/** A map pixel's centre, native (the ways' frame: x east, z north). @param {number} px @param {number} py */
+/**
+ * @param {number} px
+ * @param {number} py
+ */
 export const pixelNative = (px, py) => ({ x: px * NATIVE_PIXEL + NATIVE_PIXEL / 2, z: (499 - py) * NATIVE_PIXEL + NATIVE_PIXEL / 2 });
 const cheb = (a, b) => Math.max(Math.abs(a.px - b.px), Math.abs(a.py - b.py));
 
 /**
- * THE HIDEOUTS of a region - its bands' places - or undefined while a road one needs is not planned yet (the network's
- * own: asked again). `world.townsIn(region)` its towns; `routeOf`, `townsNear`, `dryAt` the trips' world's.
- * @param {number} region @param {{ townsIn?: (region: number) => any[], routeOf: (a: any, b: any) => any, townsNear: (px: number, py: number, r: number) => any[], dryAt?: (nx: number, nz: number) => boolean }} world
+ * @param {number} region
+ * @param {{ townsIn?: (region: number) => any[], routeOf: (a: any, b: any) => any, townsNear: (px: number, py: number, r: number) => any[], dryAt?: (nx: number, nz: number) => boolean }} world
  * @returns {Hideout[] | undefined}
  */
 export function hideoutsOf(region, world) {
@@ -108,7 +75,7 @@ export function hideoutsOf(region, world) {
     taken.add(k);
     const [a, b] = legs[k];
     const plan = world.routeOf(a, b);
-    if (plan === undefined) return undefined;   // not planned yet: asked again
+    if (plan === undefined) return undefined;
     const at = plan?.pixels?.length ? hideoutOff(plan.pixels, lwSeed(region >>> 0, i, HIDE, 1), world) : null;
     if (!at) continue;
     out.push({ key: `O${region >>> 0}.${i}`, region: region >>> 0, i, ...at, ...pixelNative(at.px, at.py), a: a.mapId, b: b.mapId, patrolled, top });
@@ -116,7 +83,6 @@ export function hideoutsOf(region, world) {
   return out;
 }
 
-/** A point HIDEOUT_OFF_PX off the middle of a road's pixels, to the seed's side - dry, on no town; null none. */
 function hideoutOff(pixels, seed, world) {
   const mid = Math.floor(pixels.length / 2);
   const off = HIDEOUT_OFF_PX[seed % 2], side = (seed >>> 1) % 2 ? 1 : -1;
@@ -139,7 +105,10 @@ function hideoutOff(pixels, seed, world) {
   return null;
 }
 
-/** The dice's routs of a hideout's bands: the era's rout minute, or null (none that era). @param {Hideout} h @param {number} e */
+/**
+ * @param {Hideout} h
+ * @param {number} e
+ */
 export function routOfEra(h, e) {
   const rng = lwRng(textSeed(h.key), ROUT, e);
   if (rng() >= (h.patrolled ? ROUT_CHANCE.patrolled : ROUT_CHANCE.wild)) return null;
@@ -147,18 +116,16 @@ export function routOfEra(h, e) {
   return e * era + era * (0.1 + 0.8 * rng());
 }
 
-/** The dice's generations counted, kept by hideout (the eras walked once). @type {Map<string, { e: number, gen: number, lastT: number }>} */
+/** @type {Map<string, { e: number, gen: number, lastT: number }>} */
 const GENS = new Map();
 /**
- * The dice's generation at minute `t`: the routs whose vacancy has ended (each the next band formed), the minute the
- * standing one formed, and whether its hideout stands empty now (a rout this vacancy). The eras are walked once and
- * kept (monotone: a later minute walks on from the last).
- * @param {Hideout} h @param {number} t @returns {{ gen: number, formedT: number, vacant: boolean }}
+ * @param {Hideout} h
+ * @param {number} t
+ * @returns {{ gen: number, formedT: number, vacant: boolean }}
  */
 export function genAt(h, t) {
   const era = BAND_ERA_DAYS * DAY_MIN, vac = BAND_VACANT_DAYS * DAY_MIN;
   const k = Math.max(0, Math.floor(t / era));
-  // the eras before the one whose rout may still be in its vacancy (k - 1) are counted once, and kept
   let c = GENS.get(h.key);
   if (!c || c.e > k - 1) c = { e: 0, gen: 0, lastT: -Infinity };
   for (; c.e < k - 1; c.e++) { const r = routOfEra(h, c.e); if (r != null) { c.gen++; c.lastT = r + vac; } }
@@ -175,9 +142,10 @@ export function genAt(h, t) {
 }
 
 /**
- * THE BAND at a hideout at minute `t` for this character - or null while its hideout stands empty (the dice's vacancy,
- * or the character's own: a rout by their hand, `routs` the character's `routed` tales by key `<hideout>@<gen>.<heir>`).
- * @param {Hideout} h @param {number} t @param {Map<string, { t: number }> | null} [routs] @param {(region: number) => number} [bankOf]
+ * @param {Hideout} h
+ * @param {number} t
+ * @param {Map<string, { t: number }> | null} [routs]
+ * @param {(region: number) => number} [bankOf]
  * @returns {Band | null}
  */
 export function outlawBandAt(h, t, routs = null, bankOf = getNameBankOfRegion) {
@@ -186,7 +154,7 @@ export function outlawBandAt(h, t, routs = null, bankOf = getNameBankOfRegion) {
   let heir = 0, formedT = g.formedT;
   const vac = BAND_VACANT_DAYS * DAY_MIN;
   for (let r = routs?.get(`${h.key}@${g.gen}.0`); r; r = routs?.get(`${h.key}@${g.gen}.${heir}`)) {
-    if (r.t > t) break;   // a rout to come is no rout yet (a load past it reads it from its minute)
+    if (r.t > t) break;
     if (t < r.t + vac) return null;
     heir++; formedT = r.t + vac;
   }
@@ -195,16 +163,22 @@ export function outlawBandAt(h, t, routs = null, bankOf = getNameBankOfRegion) {
   return { key, hideout: h, gen: g.gen, heir, formedT, name: outlawBandName(key, people[0]?.name ?? ''), level: Math.max(...people.map((p) => p.level)), people };
 }
 
-/** A band's name off its key (the leader's own one time in three). @param {string} key @param {string} leader */
+/**
+ * @param {string} key
+ * @param {string} leader
+ */
 export function outlawBandName(key, leader) {
-  const rng = lwRng(textSeed(key), BAND, 0x6e616d65);   // 'name'
+  const rng = lwRng(textSeed(key), BAND, 0x6e616d65);
   const noun = pickOf(rng, BAND_NOUNS), word = pickOf(rng, BAND_WORDS);
   const first = String(leader).split(' ')[0];
   return rng() < 1 / 3 && first ? `${first}'s ${noun}` : `the ${word} ${noun}`;
 }
 
-/** A band's people, minted off its key: BAND_SIZE of OUTLAW_CLASSES, the leader first and the strongest, at levels by
- *  its region's greatest town. @param {Hideout} h @param {string} key @param {(region: number) => number} bankOf */
+/**
+ * @param {Hideout} h
+ * @param {string} key
+ * @param {(region: number) => number} bankOf
+ */
 export function bandPeople(h, key, bankOf = getNameBankOfRegion) {
   const rng = lwRng(textSeed(key), BAND);
   const n = rollInt(rng, BAND_SIZE[0], BAND_SIZE[1]);
@@ -221,11 +195,15 @@ export function bandPeople(h, key, bankOf = getNameBankOfRegion) {
 }
 
 /**
- * THE HOLD-UP ON THE DICE: whether a trip's trouble at map pixel (`px`, `py`) is a band's - a hideout within
- * OUTLAW_REACH_PX standing a band, in BAND_SHARE of such troubles (the trip's own draw, never the trouble's stream) - and
- * its foes: the band's people (to `max`), at their levels. Null: the land's own trouble.
- * @param {any} trip @param {number} px @param {number} py @param {number} t @param {Hideout[]} hideouts
- * @param {Map<string, { t: number }> | null} [routs] @param {number} [max]
+ * Draws the band share from the trip seed, not the trouble random stream, so the other trouble rolls stay
+ * independent of it.
+ * @param {any} trip
+ * @param {number} px
+ * @param {number} py
+ * @param {number} t
+ * @param {Hideout[]} hideouts
+ * @param {Map<string, { t: number }> | null} [routs]
+ * @param {number} [max]
  * @returns {{ band: Band, foes: number[], level: number } | null}
  */
 export function bandTrouble(trip, px, py, t, hideouts, routs = null, max = 6) {
@@ -243,10 +221,9 @@ export function bandTrouble(trip, px, py, t, hideouts, routs = null, max = 6) {
 }
 
 /**
- * THE TAKE: the parties a band robbed (`trips` - the troubled trips of its leg's towns, the host's) since it formed and
- * within TAKE_DAYS of `t` - each its share of a purse (a counter's: TAKE_PURSE_SHARE of it; else ROB_GOLD) and
- * TAKE_GOODS of its goods, to TAKE_GOODS_MAX.
- * @param {Band} band @param {any[]} trips @param {number} t
+ * @param {Band} band
+ * @param {any[]} trips
+ * @param {number} t
  * @returns {{ robbed: any[], gold: number, goods: number }}
  */
 export function takeOf(band, trips, t) {

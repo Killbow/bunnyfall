@@ -1,30 +1,5 @@
-// THE QUEST PERSON (Q1 declaration + Q3-ii world binding) - Person.cs.
-// The options scan runs over the WHOLE line (unlike Item/Clock, which
-// scan only past the declaration - a DFU asymmetry kept as-is), and
-// DFU throws when none of named/group/factionType/faction identifies
-// the NPC.
-//
-// Q3-ii ships THE SETUP CHAIN: the identification ladder dispatches
-// SetupIndividualNPC / SetupCareerAllianceNPC (with the Questor arm
-// off the machine's last-clicked NPC) / SetupFactionTypeNPC /
-// SetupFactionAllianceNPC against the vendored Quests-Factions table
-// and the host's PERSISTENT faction store, then AssignRace / Gender /
-// HUDFace / DisplayName / HomeTown run in C#'s order. World facts
-// ride quest.hooks.world (the persistent faction store accessors and
-// the region-faction lookups documented at machine.js); a HEADLESS
-// parse leaves `npcPending` true - a FLAG, the sitePending precedent;
-// the bridge's construction report is what actually speaks (AUDIT-QUEST F1).
-// Random draws ride the quest's injectable roll (THE ENGINE-PRNG RULE,
-// Ledger A), including
-// the DateTime.Now.Millisecond name seed, and the display name's
-// classic srand(nameSeed) draw is DFU's own.
-//
-// QUIRKS KEPT (each cited inline): AssignHUDFace IGNORES the parsed
-// face index and always rolls 0..9; the factionType==-1 "random type"
-// draw assigns the RAW Range(0,4) INDEX as the type (Daedra/God/
-// Group/Subgroup - never the Courts/Province/People/Temple the array
-// beside it promises); a failed lookup error-LOGS and leaves the
-// zero faction record, it does not throw.
+// Port of the Daggerfall Unity quest Person; as there, options are scanned over the whole declaration line.
+// Without a world the Setup and Assign chain does not run, and npcPending stays true.
 
 import { QuestResource } from './questResource.js';
 import { Symbol as QuestSymbol, symbolToSaveData, symbolFromSaveData } from './symbol.js';
@@ -33,27 +8,24 @@ import { factionsTable, placesTable } from './tables.js';
 import { raceFromFactionRace, factionRaceFromRace, ZERO_NPC_DATA } from '../../characters/staticNpc.js';
 import { raceById } from '../../characters/races.js';
 import { Place, SITE_TYPES, townBlockGrid } from './place.js';
-import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack } from '../../world/layoutPins.js';   // WD3 (AUDIT WD3 S3): a questor's building keeps its town's layout
-import { questorCandidateBuildings } from '../../talk/talkTopics.js';   // QUESTOR-MOVED: the town's buildings and their people, as the questor pool reads them
-import { hasGuildService } from '../../guilds/guildServices.js';   // QUEST-AUDIT II HOUSE-HALL: a guild's questor known by its service
+import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack } from '../../world/layoutPins.js';
+import { questorCandidateBuildings } from '../../talk/talkTopics.js';
+import { hasGuildService } from '../../guilds/guildServices.js';
 import { FACTION_TYPES } from '../../formats/factionFile.js';
 import { getNameBankOfRegion, fullName, GENDERS } from '../../characters/nameHelper.js';
 import { srand } from '../../formats/dfRandom.js';
 import { ORDERS } from '../../guilds/guildVariants.js';
-import { getLocalizedLocationName, getLocalizedRegionName } from '../../ui/textManager.js';   // L10N3e: the place names shown
-import { getLocalizedFactionName, GrammarManager } from '../../ui/textManager.js';   // L10N3e: the faction names shown; L10N3g: the NPC's gender, for the grammar
-import { localizedText, TextCollections } from '../../ui/textManager.js';   // L10N3e: the flat's caption, from the flats table
-import { raceDisplayName } from '../../talk/talkSession.js';   // L10N3d: RaceTemplate.Name, in the player's language
+import { getLocalizedLocationName, getLocalizedRegionName } from '../../ui/textManager.js';
+import { getLocalizedFactionName, GrammarManager } from '../../ui/textManager.js';
+import { localizedText, TextCollections } from '../../ui/textManager.js';
+import { raceDisplayName } from '../../talk/talkSession.js';
 
 const DECL = /(Person|person) (?<symbol>[a-zA-Z0-9'_.-]+)/;
 const OPTIONS = /named (?<individualNPCName>[a-zA-Z0-9'_.-]+)|face (?<faceIndex>\d+)|(factionType|factiontype) (?<factionType>[a-zA-Z0-9'_.-]+)|faction (?<factionAlliance>[a-zA-Z0-9'_.-]+)|group (?<careerAlliance>[a-zA-Z0-9'_.-]+)|(?<gender>female|male)|(?<locationScope>local|remote)|(?<atHome>atHome|athome)/g;
 
-const FACE_COUNT = 10;   // Person.cs:35
+const FACE_COUNT = 10;
 
-/** The zero faction record a failed lookup leaves behind: C#'s
- *  default(FactionData) is EVERY int field 0 (FactionFile.cs:640-672)
- *  - race 0 reads as FactionRaces.Nord, so a failed lookup yields a
- *  NORD, not the region race (AUDIT VI: the -1s here were wrong). */
+// A failed lookup leaves every field 0, like the C# default struct, so race 0 reads as Nord.
 const ZERO_FACTION = Object.freeze({
   id: 0, parent: 0, type: 0, name: '', rep: 0, summon: 0, region: 0,
   power: 0, flags: 0, ruler: 0,
@@ -62,43 +34,21 @@ const ZERO_FACTION = Object.freeze({
   minf: 0, maxf: 0, vam: 0, rank: 0,
 });
 
-/** Person.GetFactionData (Person.cs:848-856), the STATIC one - the
- *  quest actions call it too (WhenNpcIsAvailable.cs:58,
- *  WhenReputeWith.cs:57). A missing record is a hard THROW; only
- *  factionID 0 answers the zero record, whose type is 0 and so fails
- *  every `type != Individual` test that follows. */
 export function getFactionDataOrThrow(world, factionID) {
   const record = world?.getFactionData?.(factionID) ?? null;
   if (!record && factionID !== 0) throw new Error(`Could not find faction data for FactionID ${factionID}`);
   return record ?? ZERO_FACTION;
 }
 
-/** AssignDisplayName's test (Person.cs:612-614): an Individual or a
- *  Daedra is named after its faction record - never the zero record a
- *  failed lookup leaves, whose type 0 reads as Daedra. */
 const namedByFaction = (fd) => (fd?.type === FACTION_TYPES.Individual || fd?.type === FACTION_TYPES.Daedra) && fd?.id !== 0;
 
-/** L10N3e: A PERSON'S NAME AS SHOWN. AssignDisplayName names an
- *  Individual or a Daedra `factionData.name` (Person.cs:617), and DFU's
- *  record carries that name in the player's language (GetFactionData,
- *  PersistentFactionData.cs:176). The port keeps `displayName`
- *  canonical - it is saved, and the questor list, the dialog links and
- *  the talk window's same-person test key on it - so the name is looked
- *  up here, where it is shown, by the record's id. A drawn name stands. */
+// displayName stays canonical because saves, the questor list, and dialog links key on it.
 export const shownPersonName = (person) => (namedByFaction(person?.factionData)
   ? getLocalizedFactionName(person.factionData.id, person.displayName) : person?.displayName);
 
-/** QUEST-NAME-ONE (FIELD BUGS 2026-10-20, Harlander: "the name mentioned in the quest text doesn't match the name of
- *  the NPC you talk to to progress it"): THE NAME A QUEST PERSON'S NPC ANSWERS TO - the Person's own, drawn or given
- *  (`ql name`, systems/questlines/qlActions.js QlName), or null for one named after its faction record (an Individual
- *  or a Daedra), whom the NPC's own faction path names. DFU re-draws a quest NPC's name from the Person's seed with the
- *  bank of the region it stands in (StaticNPC.GetDisplayName), which is the Person's name only while nothing renamed
- *  the Person and the two banks agree - the questlines' givers were renamed, so their NPCs answered to a stranger's
- *  name. Read by characters/staticNpc.js staticNpcName, the departure named there. */
+// Daggerfall Unity redraws a quest NPC name from the region bank, which breaks once questlines rename a Person.
 export const personOwnName = (person) => (person?.isPerson === true && !namedByFaction(person.factionData) && person.displayName) || null;
 
-/** KnightlyOrder.Orders in C# Enum.GetValues order - sorted by VALUE
- *  (KnightlyOrder.cs:49-61). */
 const KNIGHTLY_ORDER_IDS = Object.freeze([...Object.values(ORDERS)].sort((a, b) => a - b));
 
 export class Person extends QuestResource {
@@ -114,65 +64,40 @@ export class Person extends QuestResource {
     this.atHome = false;
     this.isIndividualNPC = false;
     this.isIndividualAtHome = false;
-    this.assignedPlaceSymbol = null;   // C# lastAssignedPlaceSymbol - the Place this person stands at
-    this.npcPending = true;   // no world seam -> the Setup*NPC chain PENDS (a flag; AUDIT-QUEST F1)
-    // Q2b lifecycle flags (Person.cs:42,86,143,149).
+    this.assignedPlaceSymbol = null;
+    this.npcPending = true;
     this.isMuted = false;
     this.isDestroyed = false;
     this.isQuestor = false;
     this.displayName = '';
-    // Q3-ii world-bound state (Person.cs:36-56)
-    this.factionData = null;      // the persistent faction record (null while pending)
+    this.factionData = null;
     this.factionTableKey = '';
-    // AUDIT 24 (the seven-slice sweep): `race` is a RACES value, C#'s
-    // own field, and it was never real here - the port kept only
-    // factionRace and getSaveData wrote `race: this.race ?? -1`, so the
-    // envelope's race column has been -1 for every Person ever saved.
-    // Worse, the region FOLD conflated the two enums: AssignRace's
-    // fallback is GetRaceOfCurrentRegion(), a Races, and it was being
-    // stored straight into a FactionRaces field. `factionRace` is now
-    // DERIVED from race through the same GetFactionRaceFromRace the
-    // oath reads, so there is one truth.
-    this.race = -1;               // Races (EntityEnums), -1 = None
-    this.factionRace = -1;        // FactionFile.FactionRaces number, derived from race
+    // Derived from race, because the Races and FactionRaces numbers are not offsets of each other.
+    this.race = -1;
+    this.factionRace = -1;
     this.nameBank = null;
     this.npcGender = GENDERS.Male;
     this.nameSeed = -1;
     this.homePlaceSymbol = null;
     this.assignedToHome = false;
-    // StaticNPC.NPCData of the clicked questor. AUDIT 24 (the
-    // seven-slice sweep): C#'s field is a STRUCT, so it is never null -
-    // an un-setup questor holds the ZERO struct, and topicTree's
-    // GetPersonBuildingKey / quest-topic rebuild and sceneMount's
-    // billboard pick all read it WITHOUT a guard, exactly as C# can.
-    // The port had null here, and `add <sym> as questor` (the other
-    // route to isQuestor, which never calls SetupQuestorNPC) crashed
-    // all three.
+    // Never null, like the C# struct: an unset questor holds zeros, and several readers use it without a guard.
     this.questorData = { ...ZERO_NPC_DATA };
     if (line !== null) this.setResource(line);
   }
 
   get isPerson() { return true; }
 
-  /** Quest.cs / dialog surfaces read the faction id off the record. */
   get factionId() { return this.factionData?.id ?? 0; }
 
-  /** SetAssignedPlaceSymbol / GetAssignedPlaceSymbol (Person.cs). */
   setAssignedPlaceSymbol(placeSymbol) { this.assignedPlaceSymbol = placeSymbol?.clone() ?? null; }
   getAssignedPlaceSymbol() { return this.assignedPlaceSymbol; }
 
-  /** GetHomePlace (Person.cs:452). */
   getHomePlace() {
     return this.homePlaceSymbol ? this.parentQuest.getPlace(this.homePlaceSymbol) : null;
   }
 
   get gender() { return this.npcGender; }
 
-  /** HomeRegionName / HomeRegionIndex / HomeBuildingName
-   *  (Person.cs:112-125 -> :523-569): all derive from the HOME Place -
-   *  BLANK / -1 when the person has none. The index resolves the home
-   *  region NAME back through the map reader, exactly C#'s
-   *  GetRegionIndex walk. TK-ii's topic tree reads these. */
   get homeRegionName() {
     const place = this.getHomePlace();
     return place ? place.siteDetails.regionName : 'BLANK';
@@ -190,81 +115,41 @@ export class Person extends QuestResource {
     return place ? place.siteDetails.buildingName : 'BLANK';
   }
 
-  /** GetDialogPlace (Person.cs): the assigned Place, else home. */
   getDialogPlace() {
     if (this.assignedPlaceSymbol) return this.parentQuest.getPlace(this.assignedPlaceSymbol);
     return this.getHomePlace();
   }
 
-  /** ExpandMacro (Person.cs:295-350): stores this person (and their
-   *  dialog place) as the quest's last-referenced for pronouns/%di.
-   *  _symbol_ display name; __symbol_ building, ___symbol_ town,
-   *  ____symbol_ region - all off the DIALOG place, the literal
-   *  "BLANK" when the person stands nowhere; =symbol_ the flat
-   *  caption through the world's FLATS.CFG seam (C#'s
-   *  IsIndividualNPC flat1 arm is a DEAD STORE - the gender if-else
-   *  overwrites it unconditionally, kept as written); ==symbol_ the
-   *  faction name (a questor answers the QUEST's faction - the
-   *  guild - not their own). */
   expandMacro(macroType) {
     const quest = this.parentQuest;
     quest.lastResourceReferenced = this;
-    // L10N3g: "Send the person's gender to the grammar processor"
-    // (Person.cs:298) - a getter over the quest's LAST referenced
-    // resource (a Person's gender, a Foe's, male for anything else),
-    // read when the finished text is processed (QuestMacroHelper.cs:158)
-    // - so a later name in the same text is the one its tokens agree with
     GrammarManager.grammarProcessor.setNPCGenderGetter(() => (quest.lastResourceReferenced?.gender === GENDERS.Female ? 'female' : 'male'));
     const dialogPlace = this.getDialogPlace();
     if (dialogPlace) quest.lastPlaceReferenced = dialogPlace;
     const world = quest.hooks?.world;
     switch (macroType) {
-      case 1:   // NameMacro1 - display name, as shown (L10N3e: an Individual's by its record's id)
+      case 1:
         return shownPersonName(this);
-      case 2:   // NameMacro2 - building name
+      case 2:
         return dialogPlace ? dialogPlace.siteDetails.buildingName : 'BLANK';
-      // L10N3e: the town and the region AS SHOWN (Person.cs:319, :323) -
-      // by the site's map id and region index, the canonical names the
-      // fallback (the site keeps them as its keys)
-      case 3:   // NameMacro3 - town name
+      case 3:
         return dialogPlace ? getLocalizedLocationName(dialogPlace.siteDetails.mapId, dialogPlace.siteDetails.locationName) : 'BLANK';
-      case 4: {   // NameMacro4 - region name
+      case 4: {
         if (!dialogPlace) return 'BLANK';
         const index = dialogPlace.siteDetails.regionIndex;
         const canonical = (i) => world?.maps?.getRegion?.(i)?.name ?? 'BLANK';
         return Number.isInteger(index) ? getLocalizedRegionName(index, canonical) : canonical(index);
       }
-      case 5: {   // DetailsMacro - the flat caption ("young lady in green")
-        // GetFlatDetailsString (Person.cs:354-383). FactionFile.GetFlatData:
-        // archive = flat >> 7, record = flat & 0x7f.
-        //
-        // C# QUIRK KEPT: the IsIndividualNPC arm ("Individuals are
-        // always flat1 no matter gender") has NO else, so the gender
-        // branch immediately overwrites it and an individual FEMALE
-        // still takes flat2. The comment is a lie about C#'s own dead
-        // assignment; the port writes what actually runs.
-        //
-        // AUDIT 24 (the seven-slice sweep): the FALLBACK was missing.
-        // When FLATS.CFG has no caption for the flat id, DFU answers
-        // the RACE NAME - `GetRaceDictionary()[(int)race].Name` - not
-        // an unexpanded macro. The port returned false and left
-        // "=symbol_" standing in the text.
+      case 5: {
+        // As in Daggerfall Unity, the gender branch overrides the individual flat1 rule.
         const flat = (this.npcGender === GENDERS.Male ? this.factionData?.flat1 : this.factionData?.flat2) ?? 0;
         const archive = flat >> 7, record = flat & 0x7f;
-        // L10N3e: the caption is SHOWN from the flats table by the flat's
-        // id - GetLocalizedText(flatID, TextFlats) (Person.cs:375-380),
-        // FlatsFile.GetFlatID being (archive << 7) + record - FLATS.CFG's
-        // own caption the English; and the race's name as the language
-        // has it (RaceTemplate.Name, :382)
         const caption = world?.flatCaption?.(archive, record);
         if (caption != null) return localizedText(String((archive << 7) + record), caption, TextCollections.TextFlats);
         const race = raceById(this.race);
         return race ? raceDisplayName(race.key) : false;
       }
-      case 6: {   // FactionMacro
-        // L10N3e: both names are GetFactionData's in DFU, in the player's
-        // language (Person.cs:335-336 asks for the guild, :342 reads the
-        // record setup asked for) - looked up here by the record's id
+      case 6: {
         if (this.isQuestor) {
           const guild = world?.getFactionData?.(quest.factionId);
           return guild ? getLocalizedFactionName(quest.factionId, guild.name) : false;
@@ -277,11 +162,7 @@ export class Person extends QuestResource {
     }
   }
 
-  /** Tick (Person.cs:385-404): the auto-home hot-place (AUDIT VI).
-   *  A generated home stands dormant until the PLAYER ENTERS it -
-   *  then the NPC is placed exactly as "place npc at home" would,
-   *  but only while nothing else has placed them. Never re-fires:
-   *  the assignment is permanent for the quest's duration. */
+  // A generated home stays dormant until the player enters it, then places the NPC once if nothing else has.
   tick(caller) {
     super.tick(caller);
     if (this.assignedPlaceSymbol === null && this.homePlaceSymbol !== null && !this.assignedToHome) {
@@ -291,8 +172,6 @@ export class Person extends QuestResource {
     }
   }
 
-  /** PlaceAtHome (Person.cs:414-429): pins this person to their
-   *  generated home Place - never questors or individuals. */
   placeAtHome() {
     const homePlace = this.parentQuest.getPlace(this.homePlaceSymbol);
     if (!homePlace || this.isQuestor || this.isIndividualNPC) return false;
@@ -306,8 +185,6 @@ export class Person extends QuestResource {
     return true;
   }
 
-  /** DestroyNPC (Person.cs:507-511). The Tick law then keeps a
-   *  destroyed NPC hidden while it stands in a scene. */
   destroyNPC() { this.isDestroyed = true; }
 
   setResource(line) {
@@ -325,17 +202,15 @@ export class Person extends QuestResource {
       if (g.careerAlliance != null) this.careerAllianceName = g.careerAlliance;
       if (g.gender != null) this.genderName = g.gender;
       if (g.locationScope != null) this.locationScopeName = g.locationScope;
-      this.atHome = g.atHome != null;   // AUDIT quest-P6: C# assigns UNCONDITIONALLY per option - last one wins, a later option resets it
+      this.atHome = g.atHome != null;
     }
 
-    // DFU's identification ladder: named > group > factionType > faction,
-    // and no match at all throws.
     if (!this.individualNPCName && !this.careerAllianceName && !this.factionTypeName && !this.factionAllianceName) {
       throw new Error(`Person resource could not identify NPC from line ${line}`);
     }
 
     const world = this.parentQuest?.hooks?.world;
-    if (!world) return;   // npcPending stays true - the headless charter
+    if (!world) return;
 
     if (this.individualNPCName) this._setupIndividualNPC(world, this.individualNPCName);
     else if (this.careerAllianceName) this._setupCareerAllianceNPC(world, this.careerAllianceName);
@@ -355,10 +230,6 @@ export class Person extends QuestResource {
   _rolls() { return this.parentQuest?.rolls ?? Math.random; }
   _range(n) { return n > 0 ? Math.floor(this._rolls()() * n) : 0; }
 
-  // ---- the Setup* dispatch (Person.cs:751-870) ----
-
-  /** GetFactionData (Person.cs:848-856): the PERSISTENT store; a miss
-   *  throws unless the id is 0 (the zero record). */
   _getFactionData(world, factionID) {
     return getFactionDataOrThrow(world, factionID);
   }
@@ -415,17 +286,13 @@ export class Person extends QuestResource {
     }
   }
 
-  /** SetupQuestorNPC (Person.cs:829-846): binds to the last NPC the
-   *  player clicked; none clicked logs and answers false so the quest
-   *  still compiles with a virtual NPC. */
   _setupQuestorNPC(world) {
     const clicked = this.parentQuest.hooks?.lastNPCClicked?.() ?? null;
     if (!clicked) {
       console.warn(`[quest] Quest Person _${this.symbol.name}_ is expecting a Questor NPC, but one has not been clicked. Proceeding with a virtual NPC so quest will compile.`);
       return false;
     }
-    // WD3 (AUDIT WD3 S3): the questor stands in a building its key names only in its town's layout - the return to
-    // them (QuestMachine.IsNPCDataEqual, the four fields) finds them only in that layout, which a load keeps
+    // The building key is valid only in the town layout it was met in, so the record keeps that layout stamp.
     this.questorData = stampLayout({ ...clicked }, clicked.buildingKey > 0 ? layoutStampOfMapId(clicked.mapID) : '');
     this.isQuestor = true;
     this.factionData = this._getFactionData(world, clicked.factionID);
@@ -434,25 +301,13 @@ export class Person extends QuestResource {
     return true;
   }
 
-  /**
-   * QUESTOR-MOVED (FIELD BUGS 2026-10-03b, Discord: "cant deliver quest because the NPC to deliver no longer exists in
-   * the same shop"): THE QUESTOR'S HALF OF AUDIT WD3 S5. The return click knows a questor met in a building by four
-   * numbers the building's own block mints (QuestMachine.IsNPCDataEqual: the person record's position hash and name
-   * seed, the building key, the map id). Where the questor's town now stands in another layout than they were met in
-   * (online, a quest taken before the town mods; offline, a pack that could not be loaded; Daggerfall city's arena cell)
-   * those numbers name nobody, `clicked npc` never fires, and the quest can never be handed in. The questor is seated
-   * again in the town as it stands: in the building the journal names (`__qgiver_`, the hall's own name), else the first
-   * named building holding one of the questor's faction and look, else - a guild's questor (QUEST-AUDIT II HOUSE-HALL) -
-   * the first building of any kind holding one of that faction, its look first; on the person there of that faction and look, else of
-   * that faction, else the first. The people and their identities are the questor pool's walk (talkTopics.js
-   * questorCandidateBuildings - SetLayoutData's own law, so the record is the one a click on them mints). No roll: two
-   * party members' copies are mended alike. The Person keeps its own name and seed (the journal's, the quest's words);
-   * the hall follows. Answers whether the questor moved; a town with no such building keeps the record.
-   */
+  // In another town layout the four questor fields name nobody, so the questor is seated again in the town.
+  // There is no roll, so the copies of party members mend alike.
   reseatMovedQuestor(world) {
     const q = this.questorData;
-    if (!this.isQuestor || !(q?.buildingKey > 0) || recordStands({ mapId: q.mapID, buildingKey: q.buildingKey, layout: q.layout })) return false;   // the struct spells it mapID; recordStands reads mapId
-    if (recordHeldBack(q)) return false;   // QUEST-AUDIT II PIN-SLEEP: a town standing apart for this session only - the questor's record sleeps, never rewritten
+    // The struct field is mapID, while recordStands reads mapId.
+    if (!this.isQuestor || !(q?.buildingKey > 0) || recordStands({ mapId: q.mapID, buildingKey: q.buildingKey, layout: q.layout })) return false;
+    if (recordHeldBack(q)) return false;
     const hall = this.homePlaceSymbol ? this.parentQuest.getPlace(this.homePlaceSymbol) : null;
     const location = hall?.siteTown(world) ?? null;
     if (!location) return false;
@@ -460,22 +315,12 @@ export class Person extends QuestResource {
       locationIndex: location.locationIndex ?? 0, mapId: q.mapID,
       nameOpts: { ...(world.buildingNameOpts?.() ?? {}), locationName: location.name, regionName: location.regionName },
       getFaction: (id) => world.getFactionData?.(id) ?? null,
-      raceOfCurrentRegion: () => q.race,   // a factionless person is of the questor's race - the region's they were met in
+      raceOfCurrentRegion: () => q.race,
     });
     const sameLook = (n) => n.factionID === q.factionID && n.billboardArchiveIndex === q.billboardArchiveIndex && n.billboardRecordIndex === q.billboardRecordIndex;
-    // AUDIT QA2: the record's OWN person (QuestMachine.IsNPCDataEqual's four fields) standing on its own key is the
-    // questor, whatever the town's stamp says - a building the mods kept as Daggerfall laid it. Every rung below moved
-    // such a questor: a residence's commoner had its hall unseated (place.js, Scopes.None) and its house shut to it
-    // (624 of 807 sampled); a contact in a town of two halls of its guild went to the other hall; rung 2 took 181 of the
-    // 807 into a named building holding someone of the same look
+    // The person on the record's own building key is the questor, whatever the town layout stamp says.
     const ownself = (n) => n.hash === q.hash && n.nameSeed === q.nameSeed && n.buildingKey === q.buildingKey && n.mapID === q.mapID;
-    // QUEST-AUDIT II HOUSE-HALL: a GUILD's questor - one whose faction is a guild service (guildServices.js NPC_SERVICE:
-    // the Thieves Guild's 804, the Dark Brotherhood's 807, a temple's or an order's quest-giver) - is found by that
-    // service wherever it stands, its own look first. Both rungs above ask a NAMED building, and every Thieves Guild and
-    // Dark Brotherhood hall is a House2: their contacts were never seated again, so a contract taken in one layout of
-    // the town could not be handed in once it stood in the other (the town mods lay ~80% of the halls' people anew).
-    // AUDIT QA2: and only in a hall of the quest's own guild (_ofQuestGuild) - a temple's quest-giver (240) stands in
-    // every god's temple, and an Akatosh priest was seated in Kynareth's, the town's Akatosh temple standing
+    // A guild questor is found by guild service, and only in a hall of the quest's own guild.
     const guild = hasGuildService(q.factionID);
     const halls = guild ? buildings.filter((b) => this._ofQuestGuild(world, b.factionId)) : buildings;
     const to = buildings.find((b) => b.buildingKey === q.buildingKey && b.npcs.some(ownself))
@@ -484,21 +329,16 @@ export class Person extends QuestResource {
       ?? (guild ? halls.find((b) => b.npcs.some(sameLook)) ?? halls.find((b) => b.npcs.some((n) => n.factionID === q.factionID)) : null);
     if (!to) return false;
     const npc = { ...(to.npcs.find(ownself) ?? to.npcs.find(sameLook) ?? to.npcs.find((n) => n.factionID === q.factionID) ?? to.npcs[0]) };
-    delete npc.isChild;   // the pool's verdict, no NPCData field
+    delete npc.isChild;
     this.questorData = stampLayout(npc, layoutStampOfMapId(q.mapID));
     if (hall.siteDetails.siteType === SITE_TYPES.Building) {
-      // QUEST-AUDIT II: seated anew, the hall is no longer an unseated one (place.js _unseat) - its old record would seat
-      // it back alone the day its old layout stood, the questor left in this one
+      // The hall is no longer unseated, or its old record would seat it back when the old layout returns.
       const { unseated: _was, ...site } = hall.siteDetails;
       hall.siteDetails = stampLayout({ ...site, buildingKey: to.buildingKey, buildingName: to.buildingName }, layoutStampOfMapId(site.mapId));
     }
     return true;
   }
 
-  /** AUDIT QA2: is a building of this quest's own guild - its faction the quest's (GetFactionIdForGuild: a holy or
-   *  knightly order's quest takes its hall's faction, every other guild's its guild's), or that faction's parent or child
-   *  in FACTION.TXT (Daggerfall's Akatosh temples are the Order of the Hour, 92, under Akatosh, 26, which the town mods'
-   *  temples carry)? A quest of no faction asks nothing. */
   _ofQuestGuild(world, factionId) {
     const own = this.parentQuest?.factionId ?? 0;
     if (!(own > 0) || factionId === own) return true;
@@ -506,9 +346,6 @@ export class Person extends QuestResource {
     return factionId > 0 && (parentOf(factionId) === own || parentOf(own) === factionId);
   }
 
-  /** GetCareerFactionID (Person.cs:1019-1085): Quests-Factions p2
-   *  (p3 when p2 < 0; 10000 folds to 0), then the classic career ->
-   *  faction mapping. */
   _getCareerFactionID(world, careerAllianceName) {
     const MAGES_GUILD = 40, NOBLES = 242, GENERIC_TEMPLE = 450, MERCHANTS = 510;
     const table = factionsTable();
@@ -528,13 +365,10 @@ export class Person extends QuestResource {
       case 16: return NOBLES;
       case 17: case 18: case 19: case 20:
       default:
-        // "Not sure if Resident1-4 career really maps to regional
-        // people of in classic" - DFU's own note; the default rides it
         return world.currentRegionPeople?.() ?? -1;
     }
   }
 
-  /** GetFactionTypeFactionID (Person.cs:903-1018). */
   _getFactionTypeFactionID(world, factionTypeName) {
     const table = factionsTable();
     if (!table.hasValue(factionTypeName)) {
@@ -543,9 +377,7 @@ export class Person extends QuestResource {
     }
     let factionType = questParseInt(table.getValue('p3', factionTypeName));
     if (factionType === -1) {
-      // C# BUG KEPT (Person.cs:925-928): the array beside this promises
-      // Courts/Province/People/Temple, but the code assigns the RAW
-      // Range(0,4) INDEX as the type - Daedra/God/Group/Subgroup.
+      // As in Daggerfall Unity, the raw 0 to 3 roll becomes the type: Daedra, God, Group, or Subgroup.
       factionType = this._range(4);
     }
     switch (factionType) {
@@ -559,8 +391,6 @@ export class Person extends QuestResource {
       case FACTION_TYPES.WitchesCoven:
         return this._getRandomFactionOfType(world, factionType);
       case FACTION_TYPES.VampireClan:
-        // P0/$CUREVAM quests read the PLAYER's clan (the vampirism
-        // racial effect); everything else the region's.
         if (this.parentQuest.questName.startsWith('P0') || this.parentQuest.questName.startsWith('$CUREVAM')) {
           return world.playerVampireClan?.() ?? -1;
         }
@@ -584,9 +414,6 @@ export class Person extends QuestResource {
     }
   }
 
-  /** GetRandomFactionOfType (Person.cs:1087-1099): the persistent
-   *  store's type filter; Temple excludes the Generic Temple 450;
-   *  zero matches THROW. */
   _getRandomFactionOfType(world, factionType) {
     let factions = world.findFactionsOfType?.(factionType) ?? [];
     if (factionType === FACTION_TYPES.Temple) factions = factions.filter((f) => f.id !== 450);
@@ -594,20 +421,6 @@ export class Person extends QuestResource {
     return factions[this._range(factions.length)].id;
   }
 
-  // ---- the Assign* chain (Person.cs:571-663) ----
-
-  /** AssignRace (Person.cs:571-580), verbatim now. GetRaceFromFactionRace
-   *  (RaceTemplate.cs:109-133) maps ONLY FactionRaces -1..7; the
-   *  oddballs (Skakmat 11, Orc 17, Vampire 18, Fey 19) fall through to
-   *  Races.None, and AssignRace folds None to the region's race - so
-   *  anything outside 0..7 reads regional (AUDIT VI).
-   *
-   *  AUDIT 24 (the seven-slice sweep): the fold used to write
-   *  currentRegionRace() - a Races - into factionRace, a FactionRaces
-   *  field. The two enums are not an offset of each other (Nord is 3
-   *  as a Races and 0 as a FactionRaces), so every regionally-folded
-   *  Person carried a race that named someone else. The port now holds
-   *  C#'s own `race` and derives factionRace from it. */
   _assignRace(world) {
     const raw = this.factionData?.race ?? -1;
     this.race = raceFromFactionRace(raw) ?? (world.currentRegionRace?.() ?? -1);
@@ -616,46 +429,31 @@ export class Person extends QuestResource {
   }
 
   _assignGender(genderName) {
-    if (this.isQuestor) return;   // questors keep the clicked NPC's gender
+    if (this.isQuestor) return;
     if (genderName === 'female') this.npcGender = GENDERS.Female;
     else if (genderName === 'male') this.npcGender = GENDERS.Male;
     else this.npcGender = this._rolls()() < 0.5 ? GENDERS.Male : GENDERS.Female;
   }
 
   _assignHUDFace() {
-    // QUIRK KEPT (Person.cs:589-591): the parsed face index is IGNORED
-    // - the HUD face always rolls Range(0, 10).
+    // As in Daggerfall Unity, the parsed face index is ignored and the face always rolls.
     this.faceIndex = this._range(FACE_COUNT);
   }
 
   _assignDisplayName() {
-    // Witches covens and faction 512 are always female
     if (this.factionData?.type === FACTION_TYPES.WitchesCoven || this.factionData?.id === 512) {
       this.npcGender = GENDERS.Female;
     }
     if (namedByFaction(this.factionData)) {
-      this.displayName = this.factionData.name;   // the CANONICAL name - the key; shownPersonName shows it
+      this.displayName = this.factionData.name;
       return;
     }
-    // nameSeed -1 draws DateTime.Now.Millisecond in C# - a wall-clock
-    // seed; the Ledger A engine-random rule routes it through the
-    // quest's injectable roll (0..999, the same surface).
     if (this.nameSeed === -1) this.nameSeed = this._range(1000);
     srand(this.nameSeed);
     this.displayName = fullName(this.nameBank, this.npcGender);
   }
 
-  /** AssignHomeTown (Person.cs:631-663): questors configure from the
-   *  player's location; individuals have NO generated home; everyone
-   *  else gets a Place declaration built from the faction row's
-   *  building type (or house), scoped local/remote by a 50/50 roll
-   *  when unstated.
-   *  C# DEAD ARM KEPT (AUDIT VI): the condition reads the
-   *  isIndividualAtHome FIELD, which SetResource assigns only AFTER
-   *  AssignHomeTown returns (Person.cs:275 vs :278) - so the
-   *  individual half can never fire during setup and an at-home
-   *  individual falls to the IsIndividualNPC return like any other.
-   *  Reading the live atHome local here would resurrect the arm. */
+  // As in Daggerfall Unity, isIndividualAtHome is set only after this returns, so the individual arm never runs.
   _assignHomeTown(world, scopeString) {
     const HOUSE = 'house';
     const symbolName = `_${this.symbol.name}_home_`;
@@ -695,7 +493,7 @@ export class Person extends QuestResource {
 
     let homePlace;
     try {
-      // AUDIT QA2: the first ask takes no other town (NEAR-SITE, NEAR-REGION) - Person.cs's own fallback, a house, comes first
+      // The first try takes no other town, so the house fallback comes before a nearby town.
       homePlace = new Place(this.parentQuest, `Place ${symbolName} ${scopeString} ${buildingTypeString}`, { nearTowns: false });
     } catch {
       homePlace = new Place(this.parentQuest, `Place ${symbolName} ${scopeString} ${HOUSE}`);
@@ -704,12 +502,6 @@ export class Person extends QuestResource {
     this.parentQuest.addResource(homePlace);
   }
 
-  // ---- the save envelope (Q4-iv; Person.cs:1108-1190) ----
-
-  /** GetSaveData: the C# field set verbatim. The port stores no
-   *  separate `race` (nothing downstream reads it - names ride
-   *  nameBank) and the talk-arc discovery flag pends its arc; both
-   *  serialize at their defaults so the envelope keeps C#'s shape. */
   getSaveData() {
     return {
       race: this.race ?? -1,
@@ -726,17 +518,13 @@ export class Person extends QuestResource {
       assignedToHome: this.assignedToHome,
       factionID: this.factionData?.id ?? 0,
       factionTableKey: this.factionTableKey,
-      questorData: { ...this.questorData },   // the struct always rides, zeros and all
+      questorData: { ...this.questorData },
       discoveredThroughTalkManager: this.discoveredThroughTalkManager ?? false,
       isMuted: this.isMuted,
       isDestroyed: this.isDestroyed,
     };
   }
 
-  /** RestoreSaveData: the faction record re-derives from the LIVE
-   *  store (C# reads PlayerEntity.FactionData); an unknown non-zero
-   *  id throws C#'s deserialize error; id 0 lands the all-zeros
-   *  record (default struct = ZERO_FACTION, the Q3-ii law). */
   restoreSaveData(dataIn) {
     if (dataIn == null) return;
     const world = this.parentQuest.hooks?.world;
@@ -745,7 +533,7 @@ export class Person extends QuestResource {
       throw new Error('Could not deserialize Person resource FactionID to FactionData');
     }
     this.race = dataIn.race;
-    this.factionRace = factionRaceFromRace(this.race);   // derived, as at assign
+    this.factionRace = factionRaceFromRace(this.race);
     this.nameBank = dataIn.nameBank;
     this.npcGender = dataIn.npcGender;
     this.faceIndex = dataIn.faceIndex;
@@ -759,14 +547,13 @@ export class Person extends QuestResource {
     this.assignedToHome = dataIn.assignedToHome;
     this.factionData = record ?? ZERO_FACTION;
     this.factionTableKey = dataIn.factionTableKey;
-    this.questorData = { ...ZERO_NPC_DATA, ...(dataIn.questorData ?? {}) };   // a struct, never null
+    this.questorData = { ...ZERO_NPC_DATA, ...(dataIn.questorData ?? {}) };
     this.discoveredThroughTalkManager = dataIn.discoveredThroughTalkManager;
     this.isMuted = dataIn.isMuted;
     this.isDestroyed = dataIn.isDestroyed;
   }
 }
 
-/** GetIndividualFactionID (Person.cs:875-889): Quests-Factions p3. */
 export function getIndividualFactionID(individualNPCName) {
   const table = factionsTable();
   if (table.hasValue(individualNPCName)) {

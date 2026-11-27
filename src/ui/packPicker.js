@@ -186,7 +186,7 @@ export function packPickerNode(o) {
     grid.replaceChildren(...(shown.length ? shown.map(tile) : [none()]));
     const stop = tilesShown().find((n) => n.getAttribute('aria-pressed') === 'true') ?? tilesShown()[0];
     stop?.setAttribute('tabindex', '0');
-    count.textContent = siftIsAll(sift) ? t('pack.pick.many', '{n, plural, one {# piece} other {# pieces}}', { n: ok.length })
+    count.textContent = siftIsAll(sift) ? t('pack.pick.many', '{n, plural, one {# item} other {# items}}', { n: ok.length })
       : t('pack.pick.some', '{shown, number} of {n, number}', { shown: shown.length, n: ok.length });
     fillOff();
   };
@@ -244,7 +244,7 @@ function siftBar(/** @type {any} */ o, /** @type {any[]} */ items, /** @type {()
     bar.append(s);
   };
   const pages = safe(() => storeFilterOptions(items, sift.cat), []);
-  if (pages.length > 2 || sift.cat !== 'all') menu(pages, 'cat', t('pack.pick.page', 'Kind of piece'));
+  if (pages.length > 2 || sift.cat !== 'all') menu(pages, 'cat', t('pack.pick.page', 'Category'));
   const tiers = lootRarityOn() ? safe(() => storeRarityOptions(items, sift.rarity), []) : [];
   if (tiers.length > 2 || sift.rarity !== 'all') menu(tiers, 'rarity', t('pack.pick.tier', 'Rarity'));
   const metals = safe(() => storeMaterialOptions(items, sift.material), []);

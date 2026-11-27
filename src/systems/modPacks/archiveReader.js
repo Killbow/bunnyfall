@@ -1,14 +1,5 @@
-// BUNNYFALL MODPACK1: A MOD'S DOWNLOAD, OPENED AS IT IS - its .zip or its .7z, the file a player gets from the mod's
-// page, so attaching a mod is one pick and no unpacking.
-//
-// Both readers answer the same shape: `[{ name, size, blob() }]`, the archive's files (folders left out), `name` the
-// path inside the archive with forward slashes, `blob()` the file's bytes as a Blob, made only when asked. A caller
-// picks the few files it wants by name and never pays for the rest.
-//
-// THE ARCHIVE IS NEVER READ WHOLE. A mod is hundreds of megabytes (Weeberfall is about 400), so the zip reader reads
-// its directory and then each wanted entry by range (Blob.slice); a deflated entry inflates as a stream into a Blob.
-// A 7z keeps its files in "folders" (solid blocks): a wanted file's folder is read packed, decoded a window at a time
-// (lzma.js, yielding between steps) and cut into the files it holds; only the wanted ones are kept.
+// Mod archives can be hundreds of megabytes, so neither reader loads one whole. Zip entries are read by range, and
+// a 7z folder is decoded a window at a time and cut into the wanted files.
 
 import { lzmaDecoder, lzma2Decoder } from './lzma.js';
 
@@ -18,7 +9,6 @@ const u64 = (dv, o) => dv.getUint32(o, true) + dv.getUint32(o + 4, true) * 2 ** 
 const bytesOf = async (blob, start, end) => new Uint8Array(await blob.slice(start, end).arrayBuffer());
 const nextFrame = () => new Promise((r) => setTimeout(r, 0));
 
-/** The archive's kind by its first bytes: 'zip', '7z' or null. */
 export async function archiveKind(blob) {
   const h = await bytesOf(blob, 0, 6);
   if (h[0] === 0x50 && h[1] === 0x4B) return 'zip';
@@ -26,15 +16,12 @@ export async function archiveKind(blob) {
   return null;
 }
 
-/** The files of a .zip or a .7z (see the head of the file). Throws with a sentence a player can read. */
 export async function readArchive(blob, { onProgress = null } = {}) {
   const kind = await archiveKind(blob);
   if (kind === 'zip') return readZipArchive(blob);
   if (kind === '7z') return read7zArchive(blob, { onProgress });
   throw new Error('that is not a .zip or a .7z file');
 }
-
-// ---- ZIP ------------------------------------------------------------------------------------------------------------
 
 export async function readZipArchive(blob) {
   const tailLen = Math.min(blob.size, 22 + 65535);
@@ -47,7 +34,6 @@ export async function readZipArchive(blob) {
   let count = u16(tdv, eocd + 10);
   let dirSize = u32(tdv, eocd + 12);
   let dirOff = u32(tdv, eocd + 16);
-  // ZIP64: the locator sits just before the end record when a field overflowed
   if ((count === 0xFFFF || dirOff === 0xFFFFFFFF || dirSize === 0xFFFFFFFF) && eocd >= 20 && u32(tdv, eocd - 20) === 0x07064b50) {
     const z64 = u64(tdv, eocd - 20 + 8);
     const rec = await bytesOf(blob, z64, z64 + 56);
@@ -72,7 +58,6 @@ export async function readZipArchive(blob) {
     const commentLen = u16(dv, off + 32);
     let localOff = u32(dv, off + 42);
     const name = new TextDecoder(flags & 0x800 ? 'utf-8' : 'latin1').decode(dir.subarray(off + 46, off + 46 + nameLen)).replace(/\\/g, '/');
-    // ZIP64 extra field: the overflowed sizes, in order
     let e = off + 46 + nameLen;
     const eEnd = e + extraLen;
     while (e + 4 <= eEnd) {
@@ -105,10 +90,6 @@ export async function readZipArchive(blob) {
   return out;
 }
 
-// ---- 7Z -------------------------------------------------------------------------------------------------------------
-// The format: a 32-byte signature header pointing at the header at the archive's end, which is either plain (kHeader)
-// or itself packed (kEncodedHeader: streams info whose one folder decodes to the plain header).
-
 const K = Object.freeze({
   End: 0x00, Header: 0x01, ArchiveProperties: 0x02, AdditionalStreamsInfo: 0x03, MainStreamsInfo: 0x04, FilesInfo: 0x05,
   PackInfo: 0x06, UnPackInfo: 0x07, SubStreamsInfo: 0x08, Size: 0x09, CRC: 0x0A, Folder: 0x0B, CodersUnPackSize: 0x0C,
@@ -131,7 +112,7 @@ class Bytes {
   }
   u32() { const b = this.buf, p = this.pos; this.pos += 4; return (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) >>> 0; }
   take(n) { const s = this.buf.subarray(this.pos, this.pos + n); this.pos += n; return s; }
-  bits(n) {   // a bit vector, most significant bit first
+  bits(n) {
     const out = new Array(n);
     let mask = 0, b = 0;
     for (let i = 0; i < n; i++) {
@@ -217,7 +198,8 @@ function readStreamsInfo(r) {
       if (hasSizes) t = r.byte();
       while (t !== K.End) {
         if (t === K.CRC) {
-          let unknown = 0;   // a folder of one stream whose CRC the folder already gave carries none here
+          // A folder with one stream whose CRC the folder record already gives has no digest here.
+          let unknown = 0;
           counts.forEach((n, i) => { if (!(n === 1 && info.folderCrc?.[i])) unknown += n; });
           readDigests(r, unknown);
         } else throw new Error('that 7z is damaged (substreams)');
@@ -234,7 +216,6 @@ function readStreamsInfo(r) {
   return info;
 }
 
-/** BCJ x86 (7-Zip's filter for .exe/.dll files), undone over a whole buffer in place - xz-embedded's bcj_x86. */
 export function bcjX86Decode(buf) {
   const allowed = [true, true, true, false, true, false, false, false];
   const bitNum = [0, 1, 2, 2, 3, 3, 3, 3];
@@ -274,8 +255,6 @@ export function bcjX86Decode(buf) {
 }
 const BCJ_X86 = '03030103';
 
-/** Decode one folder: its packed bytes in, `sink(bytes)` fed a window at a time. A folder of the main coder and BCJ
- *  (an .exe or .dll's) is decoded whole and the filter undone over it - such files are small. */
 async function decodeFolder(blob, folder, packStart, packSize, sink, onStep = null) {
   const coders = folder.coders;
   const bcj = coders.length === 2 && coders.some((c) => c.id === BCJ_X86);
@@ -351,9 +330,8 @@ export async function read7zArchive(blob, { onProgress = null } = {}) {
     if (t === K.FilesInfo) { files = readFilesInfo(r); continue; }
     throw new Error('that 7z is damaged (header)');
   }
-  // map each file with data onto its folder and place in it
   const out = [];
-  const byFolder = new Map();   // folder index -> [{ entry, offset, size }]
+  const byFolder = new Map();
   let fi = 0, sub = 0;
   for (const f of files) {
     if (f.dir) continue;
@@ -370,10 +348,9 @@ export async function read7zArchive(blob, { onProgress = null } = {}) {
     out.push(entry);
     sub++;
   }
-  // a folder is decoded once, the first time one of its files is asked for, keeping the files asked for so far
   const starts = streams ? folderPackStarts(streams) : [];
   const wanted = new Set();
-  const decoded = new Map();   // folder -> Promise<Map(entry -> Blob)>
+  const decoded = new Map();
   const decode = (folder) => {
     if (!decoded.has(folder)) {
       decoded.set(folder, (async () => {
@@ -400,13 +377,14 @@ export async function read7zArchive(blob, { onProgress = null } = {}) {
     e.blob = async () => {
       if (!wanted.has(e)) {
         wanted.add(e);
-        if (decoded.has(e.folder)) decoded.delete(e.folder);   // asked late: decoded again with it in
+        if (decoded.has(e.folder)) decoded.delete(e.folder);
       }
       const got = (await decode(e.folder)).get(e);
       if (!got) { decoded.delete(e.folder); return (await decode(e.folder)).get(e); }
       return got;
     };
-    // let a caller declare every file it wants before any decode, so a folder is decoded once
+    // Call `want` for every needed file before the first `blob()`; a file asked for after its folder decoded forces
+    // a second decode.
     e.want = () => wanted.add(e);
   }
   return out.map(({ name, size, blob: b, want }) => ({ name, size, blob: b, want }));

@@ -1,52 +1,15 @@
 // @ts-check
-// CSA-C (2026-09-27): A PREFAB'S COLLIDERS, AND THE RAY THAT MEETS THEM -
-// Physics.Raycast over the BoxColliders and MeshColliders of an instanced
-// prefab (world/prefabNode.js), as Unity answers it. Come Sail Away's
-// placement ray and its `identifyboat` both ask Physics.Raycast what they
-// meet, and a boat already standing is among the answers: its hull, its
-// masts, its doors and flag cubes (MeshColliders and BoxColliders), and the
-// trigger boxes of its activations (112400-112406) and of the bed.
-//
-// The rules kept:
-// - ONLY an active object's enabled collider is in the scene
-//   (activeInHierarchy, and the component's m_Enabled): the variants the
-//   boat did not choose, and the built-in Plane the prefabs carry switched
-//   off, answer nothing.
-// - A TRIGGER answers only when the query takes triggers:
-//   QueryTriggerInteraction.UseGlobal reads Physics.queriesHitTriggers,
-//   Unity's default true; Ignore passes them over.
-// - A BoxCollider is its m_Center and m_Size in its object's own frame,
-//   carried by the object's whole transform (a turned, scaled box is still
-//   a box in its own frame).
-// - A MeshCollider is its mesh's triangles, met from either face - the
-//   port's standing reading of DFU's MeshColliders (player/collider.js,
-//   systems/automap/automapPick.js: "both faces") - and a CONVEX one is the convex
-//   hull of its mesh's vertices (convexHullPlanes; PhysX's hull cooking
-//   caps a hull at 255 polygons, which no hull these meshes make reaches,
-//   and a flat set of points cooks no hull at all - it answers nothing).
-// - A ray whose origin is inside a box or a convex hull does not hit it
-//   (Physics.Raycast: "Raycasts will not detect Colliders for which the
-//   Raycast origin is inside the Collider"). A triangle mesh has no inside.
-// - The nearest hit within maxDistance wins; its distance runs along the
-//   ray's unit direction and its point is origin + direction x distance.
-//
-// Each collider is tested in its object's own frame: the ray's origin and
-// direction taken back through the object's matrix, the direction left
-// unnormalised, so a hit's parameter there IS the world distance (the map
-// is affine: origin + t x direction lands on local origin + t x local
-// direction).
+// A prefab's colliders and the ray that meets them, after Unity's Physics.Raycast.
 
 import { prefabShapeStamp } from './prefabNode.js';
 import { multiply } from './mat4.js';
 
-/** The inverse of an affine column-major 4x4, or null when it is singular. */
 export function invertAffine(m) {
   const a00 = m[0], a10 = m[1], a20 = m[2], a01 = m[4], a11 = m[5], a21 = m[6], a02 = m[8], a12 = m[9], a22 = m[10];
   const c00 = a11 * a22 - a12 * a21, c01 = a12 * a20 - a10 * a22, c02 = a10 * a21 - a11 * a20;
   const det = a00 * c00 + a01 * c01 + a02 * c02;
   if (!det) return null;
   const k = 1 / det;
-  // the inverse of the 3x3 block, row by row
   const i00 = c00 * k, i01 = (a02 * a21 - a01 * a22) * k, i02 = (a01 * a12 - a02 * a11) * k;
   const i10 = c01 * k, i11 = (a00 * a22 - a02 * a20) * k, i12 = (a02 * a10 - a00 * a12) * k;
   const i20 = c02 * k, i21 = (a01 * a20 - a00 * a21) * k, i22 = (a00 * a11 - a01 * a10) * k;
@@ -71,13 +34,6 @@ const xformDir = (m, d) => [
 ];
 
 /**
- * AUDIT NAV1 (the frame's cost, #12): A TREE'S COLLIDERS, INDEXED BY ITS SHAPE. Every BoxCollider and MeshCollider
- * under `root`, on or off, in the walk's order (depth first, child order; a node's own components in theirs), and the
- * nodes of their chains - every node from the root down to a collider's - each after its parent (`parent[i]`, -1 the
- * root's). Built once per tree shape (prefabNode.js prefabShapeStamp - BOAT-STAMP: the stamp of `root`'s own tree, so
- * another boat built is no reason to index hers again): a galley is 598 nodes to walk and 14 colliders to find, and
- * every ray and every sync walked them all. What is on is read live off the index (`refresh`, `live`); where each node
- * stands is its own matrix, kept while it reads the same (PrefabNode.worldMatrix).
  * @param {any} root
  */
 const _indexes = new WeakMap();
@@ -103,25 +59,18 @@ function colliderIndex(root) {
   };
   const entries = found.map(({ node, collider }) => ({ i: indexOf(node), collider }));
   const n = nodes.length;
-  // which chain nodes are active in the hierarchy (`refresh`), and each one's world inverse beside the world matrix it
-  // was taken of (the node keeps its world matrix while it reads the same - prefabNode.js worldMatrix)
   const ix = { stamp, nodes, parent, entries, on: new Uint8Array(n), inv: new Array(n).fill(null), invOf: new Array(n).fill(null) };
   _indexes.set(root, ix);
   return ix;
 }
-/** A call's first read of the index: which chain nodes are active in the hierarchy (`on`) - each its own activeSelf
- *  and its parent's. */
 function refresh(ix) {
   for (let i = 0; i < ix.nodes.length; i++) ix.on[i] = ix.nodes[i].activeSelf && (ix.parent[i] < 0 || ix.on[ix.parent[i]]) ? 1 : 0;
   return ix;
 }
-/** The index's live entries (refresh first): an active object's switched-on collider, in the walk's order. */
 function live(ix) {
   return ix.entries.filter((e) => ix.on[e.i] && e.collider.m_Enabled !== false);
 }
-/** Node `i`'s world matrix - its own, kept (PrefabNode.worldMatrix): read, never written. */
 const worldOf = (ix, i) => ix.nodes[i].worldMatrix();
-/** The inverse of node `i`'s world matrix, kept while the node's world matrix is the one it was taken of. */
 function inverseOf(ix, i) {
   const w = worldOf(ix, i);
   if (ix.invOf[i] !== w) { ix.inv[i] = invertAffine(w); ix.invOf[i] = w; }
@@ -129,9 +78,7 @@ function inverseOf(ix, i) {
 }
 
 /**
- * Every collider in the scene under `root`: an active object's BoxCollider or MeshCollider that is switched on,
- * depth first in child order.
- * @param {any} root - a PrefabNode
+ * @param {any} root
  * @returns {{ node:any, collider:any }[]}
  */
 export function collidersOf(root) {
@@ -141,9 +88,7 @@ export function collidersOf(root) {
 }
 
 /**
- * AUDIT NAV1 (#12): collidersOf with each object's world matrix beside it (`world`, the node's own kept one - read
- * it, never write it) - the sync that stands a boat's colliders in the world's asks all of them.
- * @param {any} root - a PrefabNode
+ * @param {any} root
  * @returns {{ node:any, collider:any, world:ArrayLike<number> }[]}
  */
 export function colliderPoses(root) {
@@ -153,10 +98,10 @@ export function colliderPoses(root) {
 }
 
 /**
- * The slab test from OUTSIDE a box: the entry distance, or null for a miss, a box behind the ray, or an origin
- * inside it.
- * @param {number[]} o @param {number[]} d - need not be unit
- * @param {number[]} min @param {number[]} max
+ * @param {number[]} o
+ * @param {number[]} d
+ * @param {number[]} min
+ * @param {number[]} max
  */
 export function rayBoxEntry(o, d, min, max) {
   let tMin = -Infinity, tMax = Infinity;
@@ -174,7 +119,6 @@ export function rayBoxEntry(o, d, min, max) {
   return tMin >= 0 ? tMin : null;
 }
 
-/** Moller-Trumbore, either face: the ray's parameter at the triangle, or null. */
 function rayTriangle(o, d, p, i0, i1, i2) {
   const ax = p[i0 * 3], ay = p[i0 * 3 + 1], az = p[i0 * 3 + 2];
   const e1x = p[i1 * 3] - ax, e1y = p[i1 * 3 + 1] - ay, e1z = p[i1 * 3 + 2] - az;
@@ -193,7 +137,7 @@ function rayTriangle(o, d, p, i0, i1, i2) {
   return t >= 0 ? t : null;
 }
 
-/** A triangle mesh's nearest hit (either face), or null. @param {{ positions: ArrayLike<number>, indices: ArrayLike<number> }} g */
+/** @param {{ positions: ArrayLike<number>, indices: ArrayLike<number> }} g */
 export function rayMeshEntry(o, d, g) {
   let best = null;
   const p = g.positions, ix = g.indices;
@@ -204,16 +148,11 @@ export function rayMeshEntry(o, d, g) {
   return best;
 }
 
-/** AUDIT NAV1 (the frame's cost, #12): A MESH'S TRIANGLES FILED BY WHERE THEY STAND - a grid over its own x and z,
- *  MESH_GRID_CELLS to a side at most and no finer than MESH_GRID_MIN_CELL, each triangle in every cell its x-z box
- *  overlaps (one wider than MESH_GRID_WIDE cells in the short list every ray asks), built once per mesh. A deck's ray
- *  walked all 1,814 of a galley hull's triangles; it walks the cells it crosses. */
 const MESH_GRID_CELLS = 32;
-/** A mesh of more triangles than this is walked through its grid; fewer, each is asked (the grid costs more than they). */
 const MESH_GRID_FROM = 64;
 const MESH_GRID_MIN_CELL = 0.5;
 const MESH_GRID_WIDE = 16;
-const _meshGrids = new WeakMap();   // a mesh's indices -> its grid
+const _meshGrids = new WeakMap();
 function meshGrid(g) {
   let gr = _meshGrids.get(g.indices);
   if (gr) return gr;
@@ -235,11 +174,9 @@ function meshGrid(g) {
   return gr;
 }
 /**
- * rayMeshEntry within `limit`, through the mesh's grid: the cells the ray crosses in order along it, each triangle
- * asked once, the walk stopped once it is past the nearest hit found - no triangle can be met nearer from a later cell,
- * as a triangle met at a point is filed in that point's cell. The same nearest parameter, to the bit, whenever it is
- * within `limit` (a triangle's own test, the same as rayMeshEntry's); null for none within it.
- * @param {ArrayLike<number>} o @param {ArrayLike<number>} d - need not be unit @param {{ positions: ArrayLike<number>, indices: ArrayLike<number> }} g
+ * @param {ArrayLike<number>} o
+ * @param {ArrayLike<number>} d
+ * @param {{ positions: ArrayLike<number>, indices: ArrayLike<number> }} g
  */
 export function rayMeshEntryWithin(o, d, g, limit) {
   const gr = meshGrid(g);
@@ -253,7 +190,6 @@ export function rayMeshEntryWithin(o, d, g, limit) {
     if (t != null && t <= limit && (best == null || t < best)) best = t;
   };
   for (const k of gr.wide) ask(k);
-  // the segment's stretch over the grid's own x-z box (an origin inside it included)
   const x0 = gr.min[0], z0 = gr.min[2], x1 = x0 + gr.nx * gr.cell, z1 = z0 + gr.nz * gr.cell;
   let tIn = 0, tOut = limit;
   for (let a = 0; a <= 2; a += 2) {
@@ -280,10 +216,7 @@ export function rayMeshEntryWithin(o, d, g, limit) {
 }
 
 /**
- * The convex hull of a point set as its faces' planes (outward normal n, n . x = d), incremental: a first
- * tetrahedron, then each point outside the hull so far replaces the faces it sees with a fan from their horizon.
- * Null for fewer than four points or a flat set (no volume - PhysX cooks no hull from it).
- * @param {ArrayLike<number>} positions - xyz triples
+ * @param {ArrayLike<number>} positions
  * @returns {{ n:number[], d:number }[]|null}
  */
 export function convexHullPlanes(positions) {
@@ -296,7 +229,6 @@ export function convexHullPlanes(positions) {
   let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < count; i++) { const q = P(i); for (let a = 0; a < 3; a++) { if (q[a] < lo[a]) lo[a] = q[a]; if (q[a] > hi[a]) hi[a] = q[a]; } }
   const eps = 1e-9 * Math.max(1, hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]);
-  // the first tetrahedron: the lowest x, the farthest from it, the farthest from their line, the farthest from their plane
   let i0 = 0;
   for (let i = 1; i < count; i++) if (positions[i * 3] < positions[i0 * 3]) i0 = i;
   let i1 = -1, best = eps;
@@ -343,12 +275,11 @@ export function convexHullPlanes(positions) {
   return faces.filter((f) => !f.dead).map((f) => ({ n: f.n, d: f.d }));
 }
 
-/** The entry into a convex hull, or null for a miss, a hull behind the ray, or an origin inside it. */
 export function rayConvexEntry(o, d, planes) {
   let tEnter = -Infinity, tExit = Infinity;
   for (const pl of planes) {
     const denom = pl.n[0] * d[0] + pl.n[1] * d[1] + pl.n[2] * d[2];
-    const s = pl.n[0] * o[0] + pl.n[1] * o[1] + pl.n[2] * o[2] - pl.d;   // above zero: outside this face
+    const s = pl.n[0] * o[0] + pl.n[1] * o[1] + pl.n[2] * o[2] - pl.d;
     if (denom === 0) { if (s > 0) return null; continue; }
     const t = -s / denom;
     if (denom < 0) { if (t > tEnter) tEnter = t; } else if (t < tExit) tExit = t;
@@ -357,21 +288,18 @@ export function rayConvexEntry(o, d, planes) {
   return tEnter >= 0 ? tEnter : null;
 }
 
-const _hulls = new WeakMap();   // mesh geometry -> its hull's planes (null: none)
-/** A mesh geometry's hull, built once. */
+const _hulls = new WeakMap();
 export function hullOf(g) {
   if (!_hulls.has(g)) _hulls.set(g, convexHullPlanes(g.positions));
   return _hulls.get(g);
 }
 
 /**
- * Physics.Raycast over one prefab tree's colliders: the nearest hit, or null.
- * @param {any} root - a PrefabNode
+ * @param {any} root
  * @param {number[]} origin
- * @param {number[]} dir - unit
+ * @param {number[]} dir
  * @param {number} maxDistance
  * @param {{ triggers?: boolean, geometry: (collider:any, node:any) => ({ positions: ArrayLike<number>, indices: ArrayLike<number> }|null) }} opts
- *   `triggers` false is QueryTriggerInteraction.Ignore; `geometry` answers a MeshCollider's mesh in its object's frame
  * @returns {{ distance:number, point:number[], node:any, collider:any }|null}
  */
 export function raycastColliders(root, origin, dir, maxDistance, { triggers = true, geometry }) {
@@ -387,12 +315,6 @@ export function raycastColliders(root, origin, dir, maxDistance, { triggers = tr
     taken.push({ e, node, g });
   }
   if (!taken.length) return null;
-  // AUDIT NAV1 (the frame's cost, #12): BOUNDS FIRST, EXACTLY. Every world ray walked every collider of every boat in
-  // reach - its matrix up the tree, its inverse, every triangle - to miss her: 64-478 us a hull, a boarding's foes a
-  // ray each a frame beside two or three of them. A collider's every point lies within its chain's reach of her root
-  // (`chainReach`, true at any turn of any node), so a ray that passes further off the root than that meets nothing
-  // of it and is never walked; one that comes near is taken into the collider's frame and asked of its box before its
-  // triangles. Only colliders the ray could meet are walked, and they are walked as ever: the same hit, to the bit.
   const rootWorld = worldOf(ix, 0);
   const off = segmentPointDistance(origin, dir, maxDistance, rootWorld[12], rootWorld[13], rootWorld[14]);
   const rootStretch = ix.nodes[0].parent ? frobenius3(rootWorld) : maxAbs3(ix.nodes[0].localScale);
@@ -420,13 +342,7 @@ export function raycastColliders(root, origin, dir, maxDistance, { triggers = tr
   return { ...best, point: [origin[0] + dir[0] * best.distance, origin[1] + dir[1] * best.distance, origin[2] + dir[2] * best.distance] };
 }
 
-/** The slack every bound here is grown by (m): the float arithmetic of a matrix and a quaternion near unit, never a
- *  reason to walk what a ray passes by. */
 const REACH_SLACK = 1e-3;
-/** How far along its chain a collider's points can stand from the tree's root, in the root's own frame: from the
- *  collider's own reach about its object (`r`) up to the root, each link its local position's length plus its largest
- *  scale times what hangs below - true at every turn of every node on the way (a turn keeps a length), so the swell,
- *  a boom's trim and a sinking's list never carry a collider past it. */
 function chainReach(ix, e, r) {
   let b = r;
   for (let k = e.i; ix.parent[k] >= 0; k = ix.parent[k]) {
@@ -436,15 +352,12 @@ function chainReach(ix, e, r) {
   return b;
 }
 const maxAbs3 = (s) => Math.max(Math.abs(s[0]), Math.abs(s[1]), Math.abs(s[2]));
-/** The 3x3 block's Frobenius norm - no less than its largest stretch, for a root whose own parent may shear it. */
 const frobenius3 = (m) => Math.hypot(m[0], m[1], m[2], m[4], m[5], m[6], m[8], m[9], m[10]);
-/** A BoxCollider's reach about its object: its centre's distance and its half-diagonal. */
 function boxRadius(c) {
   const ce = c.m_Center ?? { x: 0, y: 0, z: 0 }, s = c.m_Size ?? { x: 1, y: 1, z: 1 };
   return Math.hypot(ce.x, ce.y, ce.z) + Math.hypot(s.x, s.y, s.z) / 2;
 }
-const _meshBounds = new WeakMap();   // a mesh's positions -> { radius, min, max }
-/** A mesh's reach about its object's origin and its own box, read once per mesh. */
+const _meshBounds = new WeakMap();
 function meshBounds(g) {
   let b = _meshBounds.get(g.positions);
   if (b) return b;
@@ -464,13 +377,11 @@ function meshBounds(g) {
   _meshBounds.set(g.positions, b);
   return b;
 }
-/** The distance from a point to the ray's segment [origin, origin + dir x reach] (`dir` unit). */
 function segmentPointDistance(o, d, reach, x, y, z) {
   const vx = x - o[0], vy = y - o[1], vz = z - o[2];
   const t = Math.max(0, Math.min(reach, vx * d[0] + vy * d[1] + vz * d[2]));
   return Math.hypot(vx - d[0] * t, vy - d[1] * t, vz - d[2] * t);
 }
-/** Does the segment `o + d x [0, limit]` (d need not be unit) touch the box at all - an origin inside it touches. */
 function segmentMeetsBox(o, d, min, max, limit) {
   let t0 = 0, t1 = limit;
   for (let a = 0; a < 3; a++) {
@@ -484,7 +395,6 @@ function segmentMeetsBox(o, d, min, max, limit) {
   return true;
 }
 
-/** Unity's built-in meshes a collider may name, as triangles (the Plane's 10 x 10 grid is one plane: two triangles meet it alike). */
 export const BUILTIN_COLLIDER_MESHES = Object.freeze({
   Plane: Object.freeze({ positions: Object.freeze([-5, 0, -5, 5, 0, -5, 5, 0, 5, -5, 0, 5]), indices: Object.freeze([0, 2, 1, 0, 3, 2]) }),
   Cube: Object.freeze({
@@ -493,7 +403,6 @@ export const BUILTIN_COLLIDER_MESHES = Object.freeze({
   }),
 });
 
-/** A BoxCollider's six faces as triangles in its object's frame: its centre and size (Unity's `m_Center`, `m_Size`). */
 export function boxColliderTriangles(c) {
   const ce = c.m_Center ?? { x: 0, y: 0, z: 0 }, sz = c.m_Size ?? { x: 1, y: 1, z: 1 };
   const hx = Math.abs(sz.x) / 2, hy = Math.abs(sz.y) / 2, hz = Math.abs(sz.z) / 2;

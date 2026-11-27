@@ -32,7 +32,7 @@ export const isCommandLine = (text) => String(text ?? '').trimStart().startsWith
 
 export const voiceMeText = () => t('net.chat.voiceMe', 'Me');
 export const voiceRedText = () => t('net.chat.voiceRed', 'Red');
-export const voiceAskText = () => t('net.chat.voiceAsk', 'This shows you to players. Turn Hide off? Press Me again to say yes.');
+export const voiceAskText = () => t('net.chat.voiceAsk', 'Turning Hide off will make you visible to players. Press Me again to confirm.');
 export const voiceShownText = () => t('net.chat.voiceShown', 'Hide is off. Players see you once your game reconnects.');
 export const voiceOpenPanelText = () => t('net.chat.voiceOpenPanel', 'Open the Staff Panel to show yourself.');
 export const voiceHiddenText = () => t('net.chat.voiceHidden', 'Not sent: you are hidden, so players would not see it. Pick Red, or press Me to show yourself.');

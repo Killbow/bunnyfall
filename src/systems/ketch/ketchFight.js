@@ -1,27 +1,4 @@
 // @ts-check
-// BOSS-TRAITS (bible/05-Combat/Boss-Traits.md section 3; AUDIT WORLD-EVENTS L5-16) - FLAGGED: the Tonal Warden carries no boss traits; its health and blows are the ship's room's, and this deck host has no striker's half yet.
-// KETCH (2026-10-24; bible/11-Multiplayer/Sky-Ketch.md sections 5-8): THE SHIP'S FIGHTS ON THIS SCREEN - the constructs and
-// the Tonal Warden as the room says them (net/ketch/ketchLink.js's fold), every blow on the floor it lands on, every blow
-// judged on MY OWN FEET (co-op's law - the gate's court and the Spire's halls alike: net/eliteGates/egShape.js
-// egBlowVerdict), and my blows out to the room (`hit` - the relay's caps decide what lands):
-//
-//   THE BODIES - each construct Daggerfall's own sprite or Daggerfall Enemy Expansion's, at its size (KT_LOOKS): the
-//     Dwarven Sphere and the Sentry the Expansion's Centurion Sphere (the Sentry larger, verdigris-washed), the Spider
-//     Daggerfall's giant spider washed in brass, the Hammer Warden the Expansion's Iron Golem in brass, the Watch-Captain
-//     its Steam Centurion; THE TONAL WARDEN Daggerfall's Iron Atronach grown to KT_WARDEN_LOOK's presence and dyed
-//     Dwarven the Daggerfall way (KETCH-LOOK KL2: ktWardenDye - until its own sheets) - each rising (a sphere dropping from the rigging), walking, winding up (its glint - TELL2), striking,
-//     flinching, falling; heard by its own clips (world/gate/gateBoss.js hostCue); offered its Morrowind body where its
-//     mobile has one (MWNPC10 - the Centurions'). Bodies my blows meet through the dungeon host's gate seams (routed here
-//     on a ship - scenes/ketch/ketchDeckHost.js): the constructs as the gate's host, the Warden as its boss, the forks as
-//     its crystals, each on a stand-in (world/gate/gateBoss.js).
-//   THE BLOWS - each FULL shape stamp drawn by the telegraph pass (render/gate/gateTelegraph.js) on its own floor (the
-//     waist, the gun deck, the hold, the bridge - KT_TELEGRAPH_FLOORS), in its element's colour, its fill the wind-up; the
-//     gun deck's hammers and steam and the hold's arc-coils drawn the same off the shared clock (net/ketch/ketchDeck.js
-//     hazardsBetween - the relay judges the same). Each judged once on my feet at its landing on its storey: an element's
-//     through my saving throw, a jumped one (the Tonal Wave) only while I stand on the ground; the whole bridge's (the
-//     Discord, the Keel-Song while its forks stand, the turn west) however late (the link's owed list).
-//
-// Not a DFU member. Ledger A (KETCH).
 import { HIT_KINDS } from '../../net/gateBrain.js';
 import { strikeDamage, savedShare } from '../../net/gateStrike.js';
 import { bossStandIn, crystalStandIn, hostStandIn, bossFrame, hostCue, gateHitFlash, BOSS_CUES } from '../../world/gateBoss.js';
@@ -29,7 +6,7 @@ import { wordShare } from '../../combat/healthShare.js';
 import { setBatchHitFlash, setBatchGlint } from '../../combat/hitFlash.js';
 import { GateTelegraphRenderer, telegraphPrograms, TELEGRAPH_STYLE, TELEGRAPH_EDGE_DAGON, TELEGRAPH_EDGE, TELEGRAPH_POOL } from '../../render/gateTelegraph.js';
 import { compiledPass } from '../../render/glProgram.js';
-import { SdHaloRenderer, SD_HALO_PROGRAMS, SD_HALO_GAIN } from '../../render/sdHalo.js';   // KETCH-LOOK KL3: the classic set's bloom
+import { SdHaloRenderer, SD_HALO_PROGRAMS, SD_HALO_GAIN } from '../../render/sdHalo.js';
 import { fillStamp } from '../eliteGates/egFight.js';
 import { egBlowVerdict } from '../../net/eliteGates/egShape.js';
 import { ENEMY_BASICS } from '../../characters/enemyBasics.js';
@@ -44,7 +21,6 @@ import { ktBodyAt, ktBlowDone } from '../../net/ketch/ketchLink.js';
 import { ketchKindName } from './ketchWords.js';
 import { changeDyeBitmap, DYE_COLORS, DYE_TARGETS } from '../../characters/dyes.js';
 
-/** THE CONSTRUCTS' LOOKS by kind: a mobile (its sprite, its clips - characters/enemy/enemyBasics.js), its size, its wash. */
 export const KT_LOOKS = Object.freeze({
   sphere: Object.freeze({ mobile: 289, scale: 0.85, tint: null, drop: true }),
   sentry: Object.freeze({ mobile: 289, scale: 1.15, tint: Object.freeze([0.74, 0.96, 0.86]), drop: false }),
@@ -52,55 +28,36 @@ export const KT_LOOKS = Object.freeze({
   warden: Object.freeze({ mobile: 270, scale: 1.35, tint: Object.freeze([1.0, 0.84, 0.52]), drop: false }),
   captain: Object.freeze({ mobile: 290, scale: 1.4, tint: null, drop: false }),
 });
-/** THE TONAL WARDEN'S LOOK: Daggerfall's Iron Atronach at its presence, its metal Dwarven (`dye` - its frames' own indices
- *  dyed at upload, in place of the multiply wash the plan retires: KETCH-LOOK KL2). */
 export const KT_WARDEN_LOOK = Object.freeze({ mobile: 36, scale: 2.6, tint: null, dye: (bmp) => ktWardenDye(bmp), get name() { return ketchKindName('tonal'); } });
-/** THE INTERIM WARDEN'S DARKS (KETCH-LOOK KL2, Sky-Ketch-Look.md section 10, until its baked sheets land - KL15): the Ketch's
- *  table over the Iron Atronach's near-black greys (0xD8-0xDB), each to the Dwarven ramp's darks - its shadows olive, not
- *  iron. The darkest four (0xDC-0xDF, its outline) keep their own: they are her steel's too (world/ketch/ketchLook.js
- *  KT_PAL.steel). */
+// Indices 0xDC-0xDF stay unmapped because `KT_PAL.steel` in world/ketch/ketchLook.js uses them for the ship's
+// steel.
 export const KT_WARDEN_DARKS = Object.freeze({ 216: 158, 217: 159, 218: 159, 219: 95 });
-/**
- * THE IRON ATRONACH DYED DWARVEN, the Daggerfall way: DFU's ChangeDye with the Dwarven table over its 0x70 metal band
- * (characters/dyes.js changeDyeBitmap - every Dwarven blade and cuirass in the Iliac Bay is the same band), then
- * KT_WARDEN_DARKS over its darkest greys - an indexed frame in, a fresh one out, the player's own TEXTURE.291 never kept.
- * @param {{ width: number, height: number, data: Uint8Array }} bitmap
- */
+/** @param {{ width: number, height: number, data: Uint8Array }} bitmap */
 export function ktWardenDye(bitmap) {
   const dyed = changeDyeBitmap(bitmap, DYE_COLORS.Dwarven, DYE_TARGETS.WeaponsAndArmor);
   const data = dyed === bitmap ? new Uint8Array(bitmap.data) : dyed.data;
   for (let i = 0; i < data.length; i++) { const m = KT_WARDEN_DARKS[data[i]]; if (m !== undefined) data[i] = m; }
   return { ...bitmap, data };
 }
-/** How long a body's fall plays, how far a sphere drops from the rigging as it rises (m), how long a blow of mine flinches. */
 export const KT_FALL_MS = 1100;
 export const KT_DROP_M = 5;
 export const KT_FLINCH_MS = 350;
-/** A landing seen later than this is neither heard nor judged (the gate's STRIKE_LATE_MS) - the whole bridge's aside. */
+// Mirrors `STRIKE_LATE_MS` in net/gateStrike.js; change both together.
 export const KT_LATE_MS = 400;
-/** A body stands on a blow's storey within this of its floor's height (the relay's KT_STOREY_BAND). */
+// Mirrors the relay's `KT_STOREY_BAND` in net/ketch/ketchJudge.js; change both together.
 export const KT_STOREY_M = 2.5;
-/** THE FLOORS the telegraphs lie on: each its height (deck y), its court's centre (deck x, z) and reach. */
 export const KT_TELEGRAPH_FLOORS = Object.freeze({
   waist: Object.freeze({ y: 0, r: 36, court: Object.freeze([0, 32]) }),
   gallery: Object.freeze({ y: KT_GALLERY.y, r: 46, court: Object.freeze([0, 90]) }),
   hold: Object.freeze({ y: KT_HOLD.y, r: 48, court: Object.freeze([0, 92]) }),
   bridge: Object.freeze({ y: KT_BRIDGE.y, r: KT_BRIDGE.r + 2, court: Object.freeze([KT_BRIDGE.x, KT_BRIDGE.z]) }),
 });
-/** The floor a blow at deck height `y` and along-keel `z` lies on. */
 export const ktFloorOf = (y, z) => (y < KT_GALLERY.y - 3 ? 'hold' : y < -3 ? 'gallery' : z > 150 ? 'bridge' : 'waist');
-/** The colours of a blow by its element (the Spire's). */
 const COLOR_OF = Object.freeze({ fire: [1.0, 0.45, 0.1], frost: [0.62, 0.78, 0.82], shock: [0.6, 0.7, 1.0], poison: [0.55, 0.85, 0.3], null: [1.0, 0.3, 0.2] });
 const STYLE_OF = Object.freeze({ fire: TELEGRAPH_STYLE.fire, frost: TELEGRAPH_STYLE.frost, shock: TELEGRAPH_STYLE.shock, poison: TELEGRAPH_STYLE.poison });
-/** A blow's shape lingers this long after its span (ms), fading. */
 const LINGER_MS = 300;
 const NONE = Object.freeze([]);
 
-/**
- * WHAT A CONSTRUCT IS DOING at `now`, as its mobile's animation (characters/mobile/mobileUnit.js stateAnims): falling, rising
- * (a sphere dropping from the rigging, the rest climbing out of the deck), asleep, winding up, striking, flinching, walking,
- * idle. `lift` how far over (or, negative, under) its floor it stands. Pure.
- */
 export function ktBodyAct(B, now, mobile, blow, look = null) {
   const tab = (state) => stateAnims(state, mobile, !!ENEMY_BASICS[mobile]?.hasIdle, false, false, true, false, false);
   if (!(B.h > 0)) {
@@ -118,38 +75,26 @@ export function ktBodyAct(B, now, mobile, blow, look = null) {
   return { act: 'idle', anims: T, frame: Math.floor((now / 1000) * (T[0]?.fps ?? 4)), loop: true, lift: 0 };
 }
 
-/**
- * @param {{
- *   renderer?: any, gl?: any, getTexture?: ((archive: number) => Promise<any>)|null, uploadRecordFrame?: ((archive: number, record: number, frame: number) => void)|null,
- *   audio?: any, link: any, now: () => number, cam?: () => number[]|null, feet?: () => number[]|null, grounded?: () => boolean,
- *   player?: () => any, save?: (e: any, el: string) => number, strike?: (dmg: number, how: any) => void, say?: (text: string) => void,
- *   sendHit?: (hit: { o: number, d: number, r: number, q: number }) => boolean, onStruck?: () => void,
- * }} deps
- *   `link` the ship's (net/ketch/ketchLink.js); `now` the relay's clock; `feet` my feet (the dungeon's frame, null off the ship);
- *   `strike` the dungeon context's door a blow on me lands through; `save` my saving throw against an element; `sendHit` a
- *   blow of mine out to the room; `onStruck` any blow or hazard met me (the client lets my cell go).
- */
+/** @param {{ renderer?: any, gl?: any, getTexture?: ((archive: number) => Promise<any>)|null, uploadRecordFrame?: ((archive: number, record: number, frame: number) => void)|null, audio?: any, link: any, now: () => number, cam?: () => number[]|null, feet?: () => number[]|null, grounded?: () => boolean, player?: () => any, save?: (e: any, el: string) => number, strike?: (dmg: number, how: any) => void, say?: (text: string) => void, sendHit?: (hit: { o: number, d: number, r: number, q: number }) => boolean, onStruck?: () => void, }} deps */
 export function createKetchFight({ renderer = null, gl = null, getTexture = null, uploadRecordFrame = null, audio = null, link, now, cam = () => null, feet = () => null, grounded = () => true, player = () => null, save = () => 100, strike = () => {}, say = () => {}, sendHit = () => false, onStruck = () => {} }) {
   const O = deckToDungeon(0, 0, 0);
   const bodies = new Map(), textures = new Map();
   const judged = new Set(), heard = new Set();
   const _batches = [], _targets = [], _forkTargets = [], _lights = [], _shapes = [], _slots = [];
   let warden = null, wardenStandIn = null, forkStandIn = null, blowSeq = 0;
-  /** AUDIT SHIP 4: ONE SWING ONE SEQUENCE (gateCourt.js blowQ) - the bodies a blow meets in a frame share it; a body met again is a new one */
+  // Hits in one frame share a sequence number `q` so the relay counts one swing; meeting the same body again starts
+  // a new sequence.
   const blowMet = new Set();
   const blowQ = (who) => { if (!blowMet.size || blowMet.has(who)) { blowSeq++; blowMet.clear(); } blowMet.add(who); return blowSeq; };
-  /** the hazards in view this frame (their landings near), and those landed and not yet judged */
   const hazards = new Map();
   const teleDoor = gl ? compiledPass(gl, telegraphPrograms(false), () => new GateTelegraphRenderer(gl), (e) => console.warn('[kt] the telegraph would not build', e?.message ?? e)) : null;
   let tele = null;
-  // KETCH-LOOK KL3: the deck's halos on the classic set (scenes/ketch/ketchDeckHost.js ketchHalosInto - its lamps and lit
-  // things, handed each frame), drawn with the telegraphs; the pass built a few frames late, once its program is done
   const haloDoor = gl ? compiledPass(gl, SD_HALO_PROGRAMS, () => new SdHaloRenderer(gl), (e) => console.warn('[kt] the halos would not build', e?.message ?? e)) : null;
   let halo = null, _halos = /** @type {ArrayLike<any>} */ (Object.freeze([]));
 
   function play(cue, p) {
     if (!cue || !audio || !p) return;
-    try { if (cue.id != null) audio.play3dId?.(cue.id, p, cue.volume, { maxDistance: cue.reach, distanceModel: 'linear', pitch: cue.pitch }); else audio.play3d?.(cue.clip, p, cue.volume, { maxDistance: cue.reach, distanceModel: 'linear', pitch: cue.pitch }); } catch { /* a sound is never the fight */ }
+    try { if (cue.id != null) audio.play3dId?.(cue.id, p, cue.volume, { maxDistance: cue.reach, distanceModel: 'linear', pitch: cue.pitch }); else audio.play3d?.(cue.clip, p, cue.volume, { maxDistance: cue.reach, distanceModel: 'linear', pitch: cue.pitch }); } catch { }
   }
   function texture(mobile) {
     const archive = ENEMY_BASICS[mobile]?.maleTexture;
@@ -165,14 +110,12 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     return null;
   }
   function destroyBatch(b) { if (b?.batch) { renderer?.destroyBillboardBatch?.(b.batch); b.batch = null; } }
-  /** One body drawn: the frame its act shows my eye, at its feet (the dungeon's frame) and its look's size, washed. */
   function draw(b, look, act, at, yaw, t, hurtAt, roomAt, glint) {
     b.act = act.act;
     const T = texture(look.mobile);
     if (!T || !renderer?.createBillboardBatch || act.act === 'gone') { b.shown = false; return; }
     const eye = cam() ?? at;
     const fr = bossFrame(act, yaw, at, eye, (rec) => T.tex.getFrameCount?.(rec) ?? 1);
-    // a dyed look's frame under a key of its own (KETCH-LOOK KL2): its indices dyed, then through the player's palette
     const rkey = look.dye ? `${fr.record}#${fr.frame}~kt` : `${fr.record}#${fr.frame}`;
     if (!renderer.textures?.has?.(`${T.archive}_${rkey}`)) {
       if (look.dye && T.tex.getDFBitmap && T.tex.getColor32) renderer.uploadTexture?.(T.archive, rkey, T.tex.getColor32(look.dye(T.tex.getDFBitmap(fr.record, fr.frame)), 0));
@@ -191,9 +134,7 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     b.batch.origin[0] = at[0]; b.batch.origin[1] = at[1]; b.batch.origin[2] = at[2];
     b.feet = at;
   }
-  /** My feet in the deck's frame, or null. */
   const myDeck = () => { const f = feet(); return f ? dungeonToDeck(f[0], f[1], f[2]) : null; };
-  /** A blow on me landed - its share of my health and its base, through my saving throw against its element. */
   function land(bl) {
     const e = player();
     if (!e || !(e.health > 0) || !(bl.p > 0 || bl.b > 0)) return;
@@ -201,7 +142,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     if (dmg > 0) strike(dmg, { fire: bl.el === 'fire', el: bl.el, name: bl.nm });
     onStruck();
   }
-  /** Blow `bl` judged on my feet at `t` (its storey's) - landed once; answers whether it is done with. */
   function judge(key, bl, t, me) {
     if (judged.has(key)) return true;
     if (!me || t < bl.at) return false;
@@ -212,7 +152,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
     if (v === 'hit' && !(bl.jp && !grounded())) land(bl);
     return true;
   }
-  /** A blow's shape on its floor (the telegraph pass's slot), its wind-up its fill. */
   function shapeOf(bl, t, s, aimed) {
     const sh = (_slots[_shapes.length] ??= { kind: 0, origin: [0, 0], yaw: 0, r: 0, halfArc: 0, body: 0, end: [0, 0], halfW: 0, r0: 0, r1: 0, points: [], n: 0, t: 0, flash: 0, alpha: 0, color: COLOR_OF.null, edge: TELEGRAPH_EDGE_DAGON, court: 0, style: 0, since: 0, span: 1, after: -1, runS: 0, pool: TELEGRAPH_POOL.blow, floor: 'waist' });
     if (!fillStamp(sh, s)) return null;
@@ -230,13 +169,11 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
   const visible = (bl, t) => t >= bl.at - bl.wu && t <= bl.at + Math.max(1, bl.sp ?? 0) + LINGER_MS;
 
   return {
-    /** One frame of the ship's fights: every body heard, judged and drawn; every blow drawn and judged on my feet. */
     frame() {
-      blowMet.clear();   // AUDIT SHIP 4: a frame ends my blow
+      blowMet.clear();
       const s = link.state(), t = now(), me = myDeck(), e = player(), alive = !!e && e.health > 0;
       _batches.length = 0; _targets.length = 0; _forkTargets.length = 0; _lights.length = 0; _shapes.length = 0;
       if (!s || s.n < 0) { for (const b of bodies.values()) destroyBatch(b); bodies.clear(); if (warden) { destroyBatch(warden); warden = null; } return; }
-      // ── THE CONSTRUCTS ──
       const live = new Set();
       for (const B of s.bodies) {
         const K = KT_KIND_BY_K[B.k], look = K ? KT_LOOKS[K.key] : null;
@@ -248,7 +185,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
         const blow = s.blows.find((q) => q.o === B.id && !ktBlowDone(q, t)) ?? null;
         const act = ktBodyAct({ ...B, hurtAt: b.hurtAt }, t, look.mobile, blow, look);
         const at = deckToDungeon(x, yF + act.lift, z);
-        // its sounds, while they are news
         if (!b.rose && t < B.up + 600) { b.rose = true; play(hostCue('rise', look.mobile), at); }
         if (B.h < b.hp) { b.roomAt = t; if (t - b.heardHurt >= 500) { b.heardHurt = t; play(hostCue('hurt', look.mobile), at); } }
         b.hp = B.h;
@@ -268,7 +204,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
         }
       }
       for (const [id, b] of bodies) if (!live.has(id)) { destroyBatch(b); bodies.delete(id); }
-      // ── THE TONAL WARDEN ──
       const ws = s.ws;
       if (ws && !(ws.fell && t - ws.fell.at > KT_FALL_MS * 2.5)) {
         warden ??= { id: KW_ID, batch: null, shown: false, hp: ws.h, hurtAt: -Infinity, roomAt: -Infinity, heardHurt: -Infinity, wound: NaN };
@@ -285,30 +220,25 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
         const yaw = blow && t < blow.at + 600 && blow.s?.[0]?.[0] !== 'a' ? Math.atan2((blow.s[0][1] ?? x) - x, (blow.s[0][2] ?? z) - z) : W.yw;
         draw(warden, KT_WARDEN_LOOK, act, at, yaw, t, warden.hurtAt, warden.roomAt, glint);
         if (warden.shown && warden.batch) _batches.push(warden.batch);
-        // its glow: gold, pale while warded, blue while stunned
         const c = ws.su > t ? [0.6, 0.7, 1.0] : ws.ward ? [1.0, 0.9, 0.6] : [1.0, 0.75, 0.35], k = 1.4 + 0.3 * Math.sin(t / 300);
         _lights.push({ x: at[0], y: at[1] + KW_BODY.h * 0.55, z: at[2], range: 14, color: [c[0] * k, c[1] * k, c[2] * k], carried: true });
       } else if (warden) { destroyBatch(warden); warden = null; }
-      // ── THE BLOWS: the constructs', the Warden's, the hazards' - drawn, and judged on my feet ──
       const zone = me ? deckZoneAt(me[0], me[1], me[2]) : null;
       const blows = [...s.blows, ...(ws?.bl ?? [])];
       for (const bl of blows) {
         const whole = bl.s?.some((q) => q[0] === 'a');
         if (visible(bl, t) && !whole) for (const st of bl.s ?? []) shapeOf(bl, t, st, false);
-        if (whole) continue;   // the whole bridge's are the owed list's
+        if (whole) continue;
         const key = `${bl.o === KW_ID ? `w${ws?.fi ?? 0}` : 'c'}:${bl.i}`;
         if (alive && !judged.has(key) && t - bl.at <= KT_LATE_MS + Math.max(1, bl.sp ?? 0)) judge(key, bl, t, me);
         else if (t - bl.at > KT_LATE_MS + Math.max(1, bl.sp ?? 0)) judged.add(key);
       }
-      // the whole bridge's, owed however late - on the bridge (the relay's own floor for them), the song only while its
-      // forks stood at its landing
       for (const bl of link.owed()) {
         if (t < bl.at) continue;
         link.paid(bl.i);
         if (bl.a === KW_BLOWS.song.a && link.songBroken?.(bl.i)) continue;
         if (alive && me && onBridge(me[0], me[2], 1.5) && Math.abs(me[1] - KT_BRIDGE.y) <= 4) land(bl);
       }
-      // the gun deck's hammers and steam, the hold's arc-coils: the landings near, drawn from their wind-up, judged once
       const sec = t / 1000, gallery = zone === 'gallery' || zone === 'landing', hold = zone === 'hold';
       if (gallery || hold) for (const hz of hazardsBetween(sec - 2, sec + 1.6, { gallery, hold })) { const key = `${hz.k}:${hz.i}:${hz.at}`; if (!hazards.has(key)) hazards.set(key, { ...hz, hz: true }); }
       for (const [key, hz] of hazards) {
@@ -317,7 +247,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
         if (alive) judge(`h:${key}`, hz, t, me);
       }
       if (judged.size > 4096) { const keep = [...judged].slice(-1024); judged.clear(); for (const k of keep) judged.add(k); }
-      // ── THE FORKS as bodies my blows meet ──
       const fk = ws?.fk;
       if (fk && t < fk.at - KW_FORKS_CLOSE_MS) {
         forkStandIn ??= crystalStandIn({ mobile: KT_WARDEN_LOOK.mobile }, null, () => null);
@@ -325,20 +254,15 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       }
       void heard;
     },
-    /** The bodies for the frame's billboard pass. */
     batches: () => _batches,
-    /** The fight's lights (the Warden's glow). */
     lights: () => _lights,
-    /** The constructs as bodies my blows meet (the gate's host seam's shape). */
     hostTargets: () => _targets,
-    /** A blow of mine met construct `i`: it flinches here, the number goes out (the relay's caps decide). */
     hostHit({ i, d, r } = /** @type {any} */ ({})) {
       const b = bodies.get(i), dmg = Math.round(d);
       if (!b || !(dmg >= 1) || !Object.values(HIT_KINDS).includes(r)) return false;
       b.hurtAt = now();
       return !!sendHit({ o: i, d: dmg, r, q: blowQ(i) });
     },
-    /** THE TONAL WARDEN as a body my blows meet, or null (no fight, fallen) - the gate's boss seam's shape. */
     bossTarget() {
       const s = link.state(), ws = s?.ws, t = now();
       if (!ws || ws.fell || ws.lost || !link.joined()) return null;
@@ -346,7 +270,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       const [x, z] = ktBodyAt(ws.wd, t);
       return { feet: deckToDungeon(x, KT_BRIDGE.y, z), yaw: ws.wd.yw, height: KW_BODY.h, radius: KW_BODY.r, warded: !!ws.ward || t < ws.op || t < (ws.ou ?? 0), entity: wardenStandIn, mobile: KT_WARDEN_LOOK.mobile };
     },
-    /** A blow of mine met the Warden: out to the room - the ward turns it (nothing sent). */
     bossHit({ d, r } = /** @type {any} */ ({})) {
       const ws = link.state()?.ws, t = now(), dmg = Math.round(d);
       if (!ws || ws.fell || ws.lost || !link.joined() || !(dmg >= 1) || !Object.values(HIT_KINDS).includes(r)) return false;
@@ -354,15 +277,12 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       if (warden) warden.hurtAt = t;
       return !!sendHit({ o: KW_ID, d: dmg, r, q: blowQ(KW_ID) });
     },
-    /** The song's forks as bodies my blows meet (the gate's crystal seam's shape). */
     forkTargets: () => _forkTargets,
-    /** A blow of mine met fork `c`: out to the room. */
     forkHit({ c, d, r } = /** @type {any} */ ({})) {
       const fk = link.state()?.ws?.fk, dmg = Math.round(d);
       if (!fk || !Number.isInteger(c) || !(fk.c[c]?.[2] > 0) || !(dmg >= 1) || !link.joined()) return false;
       return !!sendHit({ o: KW_FORK_ID0 + c, d: dmg, r, q: blowQ(KW_FORK_ID0 + c) });
     },
-    /** MWNPC10: each shown construct offered its Morrowind creature on `lane`, with the billboard it is drawn by. */
     offerBodies(lane) {
       for (const b of bodies.values()) {
         if (!b.shown || !b.batch) continue;
@@ -372,7 +292,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
         lane.offer(rosterActor(b, { id: `kt:${b.id}`, look, feet: b.batch.origin, yaw: b.yaw ?? 0, moving: b.act === 'walk', scale: L.scale, swingKey: b.wound, hitKey: Math.max(b.hurtAt ?? -Infinity, b.roomAt ?? -Infinity), dead: b.act === 'fall' ? 1 + (b.id % 3) : 0 }), b.batch, null, b.batch.hitFlash || 0);
       }
     },
-    /** THE TELEGRAPHS: every shape this frame on its own floor, after the flats (the court's law). Answers whether it drew. */
     drawPass(proj, view, eye, seconds, fog) {
       let drew = false;
       if (_halos.length && (halo ??= haloDoor?.() ?? null)?.draw(proj, view, _halos, fog, SD_HALO_GAIN.classic)) drew = true;
@@ -386,16 +305,12 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       }
       return drew;
     },
-    /** KETCH-LOOK KL3: the halos the frame draws (`{ at, size, color }` each - the deck's list, read at the draw, never
-     *  kept past it; empty on the lane, whose bloom is its own). */
     halos(list) { _halos = list ?? Object.freeze([]); },
-    /** THE WARDEN'S BAR as the HUD reads it, or null. */
     bar() {
       const ws = link.state()?.ws, t = now();
       if (!ws || ws.fell) return null;
       return { name: KT_WARDEN_LOOK.name, h: ws.h, m: ws.m, ph: ws.ph, ward: !!ws.ward, rs: ws.rs, stun: ws.su > t ? Math.ceil((ws.su - t) / 1000) : 0, ends: ws.ends, op: ws.op, fk: ws.fk ? ws.fk.c.filter((q) => q[2] > 0).length : 0, song: ws.fk ? Math.max(0, Math.ceil((ws.fk.at - t) / 1000)) : 0 };
     },
-    /** Off the ship: every body put away, every verdict forgotten. */
     leave() {
       for (const b of bodies.values()) destroyBatch(b);
       bodies.clear(); hazards.clear(); judged.clear(); heard.clear();
@@ -404,7 +319,6 @@ export function createKetchFight({ renderer = null, gl = null, getTexture = null
       _batches.length = 0; _targets.length = 0; _forkTargets.length = 0; _lights.length = 0; _shapes.length = 0;
       _halos = Object.freeze([]);
     },
-    /** What the set holds (tests, stats). */
     state: () => ({ bodies: [...bodies.keys()], shown: _batches.length, targets: _targets.length, shapes: _shapes.length, hazards: hazards.size }),
   };
 }

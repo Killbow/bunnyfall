@@ -1,13 +1,5 @@
 // @ts-check
 
-// Validates items named by a POI trade, key item, or condition against the game's item law.
-// poiLawV2.js checks a stack's shape: a template number, a group name, a material, and a count. This file
-// asks the game's catalogs whether that stack could exist, in the terms the server uses when it mints a reward
-// (server-account/src/staffGive.js mintGift). The server still mints the piece and runs the item law over it at
-// settlement; this check lets the editor and the approval step refuse what settlement would refuse. It also checks the
-// values of the fields the shape law knows only by key (a stack's `recipe`, an encounter's `pacifiable`).
-// Everything imported here lives under src/, so the account service, the editor, and an offline game can all load it.
-
 import { lawTemplate, templateGroups } from '../items/itemLaw.js';
 import { isStackable, GLASS_BOTTLE_TEMPLATE } from '../items/inventory.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
@@ -17,12 +9,12 @@ import { potionKeyOf } from './poiSettle.js';
 
 /** @typedef {import('./poiLaw.js').PoiProblem} PoiProblem */
 
-/** The material numbers a weapon or a piece of armour may be made of, as the item maker takes them. */
 const WEAPON_MATS = new Set(Object.values(WEAPON_MATERIALS).filter((v) => v >= 0));
 const ARMOR_MATS = new Set(Object.entries(ARMOR_MATERIAL).filter(([k, v]) => v >= 0 && k !== 'Chain2').map(([, v]) => v));
 /**
- * Whether one stack names an item that could exist, as problems at `at`.
- * @param {any} s @param {string} at @param {PoiProblem[]} out
+ * @param {any} s
+ * @param {string} at
+ * @param {PoiProblem[]} out
  */
 export function stackProblems(s, at, out) {
   const say = (/** @type {string} */ path, /** @type {string} */ code, /** @type {any} */ args = {}) => out.push({ path, code, ...args });
@@ -34,14 +26,12 @@ export function stackProblems(s, at, out) {
   if (mats && s.material !== undefined && !mats.has(s.material)) say(`${at}.material`, 'item-material');
   if (!mats && s.material !== undefined) say(`${at}.material`, 'item-material');
   if (s.count > 1 && !isStackable({ group, templateIndex: s.template })) say(`${at}.count`, 'item-stack');
-  // a recipe names one of the game's potions, and only a potion (a Glass Bottle) carries one
   if (s.recipe !== undefined && (potionKeyOf(s.recipe) === null || group !== 'UselessItems1' || s.template !== GLASS_BOTTLE_TEMPLATE)) say(`${at}.recipe`, 'item-recipe');
 }
 
 /**
- * Every item stack a v2 document names, against the game's catalogues: trade requirements and rewards, interactive key
- * items, the stacks in conditions and the items events give or take. Run it after poiDocProblems finds nothing, so the shapes can be trusted.
- * @param {any} doc @returns {PoiProblem[]}
+ * @param {any} doc
+ * @returns {PoiProblem[]}
  */
 export function poiTradeProblems(doc) {
   /** @type {PoiProblem[]} */
@@ -69,9 +59,8 @@ export function poiTradeProblems(doc) {
 }
 
 /**
- * Validates encounter fields whose values the shape law leaves to this file (`pacifiable`, when given, must be a
- * boolean). Run this after poiDocProblems finds no shape problems.
- * @param {any} doc @returns {PoiProblem[]}
+ * @param {any} doc
+ * @returns {PoiProblem[]}
  */
 export function poiEncounterProblems(doc) {
   /** @type {PoiProblem[]} */
@@ -83,10 +72,8 @@ export function poiEncounterProblems(doc) {
 }
 
 /**
- * Every recipe, and every event whose branch the service settles (items, gold, or a kept variable moved), whose
- * condition reads a variable the service does not keep (`instance` or `event` scope): online the service refuses to
- * judge such a condition, so the recipe or the event could never run. Run it after poiDocProblems finds nothing.
- * @param {any} doc @returns {PoiProblem[]}
+ * @param {any} doc
+ * @returns {PoiProblem[]}
  */
 export function poiSettleProblems(doc) {
   /** @type {PoiProblem[]} */
@@ -103,8 +90,8 @@ export function poiSettleProblems(doc) {
 }
 
 /**
- * The problems a save, a submission, and an approval are refused for, before the assets are looked at: `own` (the shape
- * law's, poiDocProblems), else what settlement would refuse. The service and the in-game editor say the same list.
- * @param {any} doc @param {PoiProblem[]} own @returns {PoiProblem[]}
+ * @param {any} doc
+ * @param {PoiProblem[]} own
+ * @returns {PoiProblem[]}
  */
 export const poiPayProblems = (doc, own) => (own.length ? own : [...poiTradeProblems(doc), ...poiSettleProblems(doc), ...poiEncounterProblems(doc)]);

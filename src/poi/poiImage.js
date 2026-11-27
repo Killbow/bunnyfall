@@ -1,19 +1,9 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// POI-1 (2026-10-14) - A POI'S TEXTURE, KNOWN BY ITS OWN HEADER.
-//
-// A texture is stored as the image the editor imported (a glTF's PNG, JPEG or WebP - poi/gltfImport.js), by its sha256,
-// and decoded by the browser that draws it (createImageBitmap). The account service never decodes pixels; it reads the
-// header the format itself writes and refuses what is not one of the three, or is larger than a texture may be - so a
-// stored texture is always an image the game can open, of a size it can hold.
-// ═══════════════════════════════════════════════════════════════════
 
 export const POI_IMAGE_LIMITS = Object.freeze({ side: 4096, bytes: 16 * 1024 * 1024 });
 export const POI_IMAGE_TYPES = Object.freeze({ png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' });
 
 /**
- * The image these bytes hold - `{ format, w, h, type }` - or `{ error }`. PNG by its signature and IHDR; JPEG by its SOI
- * and the first start-of-frame marker; WebP by its RIFF container's VP8, VP8L or VP8X chunk. Never throws.
  * @param {ArrayBuffer | Uint8Array} input
  * @returns {{ format: 'png' | 'jpeg' | 'webp', w: number, h: number, type: string } | { error: string }}
  */
@@ -27,7 +17,6 @@ export function poiImageMetaOf(input) {
   if (b.byteLength >= 33 && at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) && at(12, [0x49, 0x48, 0x44, 0x52])) {
     got = { format: 'png', w: dv.getUint32(16), h: dv.getUint32(20) };
   } else if (b.byteLength >= 4 && b[0] === 0xff && b[1] === 0xd8) {
-    // walk the markers to the first SOFn (C0-CF, but C4 DHT, C8 JPG and CC DAC are not frames)
     let i = 2;
     while (i + 9 < b.byteLength) {
       if (b[i] !== 0xff) return { error: 'jpeg' };
@@ -37,7 +26,7 @@ export function poiImageMetaOf(input) {
       const len = dv.getUint16(i + 2);
       if (len < 2) return { error: 'jpeg' };
       if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) { got = { format: 'jpeg', w: dv.getUint16(i + 7), h: dv.getUint16(i + 5) }; break; }
-      if (m === 0xda || m === 0xd9) return { error: 'jpeg' };   // scan data or the end before any frame
+      if (m === 0xda || m === 0xd9) return { error: 'jpeg' };
       i += 2 + len;
     }
     if (!got) return { error: 'jpeg' };

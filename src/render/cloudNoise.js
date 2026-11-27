@@ -1,31 +1,9 @@
 // @ts-check
-// VC2 (2026-09-07): THE CLOUD NOISE, GENERATED ON THE GPU.
-//
-// Volumetric clouds (bible/07-Rendering/Volumetric-Clouds-Arc.md) are
-// a density field read off two tiling 3D noise volumes, the shape the
-// Nubis/Schneider recipe made standard: a SHAPE volume (128^3, RGBA -
-// R a Perlin-Worley, G/B/A three Worley octaves at rising frequency,
-// which the march remaps into the base shape and erodes with) and a
-// DETAIL volume (32^3, RGB - three Worley octaves) that carves the
-// edges. Both are TILEABLE on every axis (the lattice is taken modulo
-// its period in the hash, so texel 0 and texel N meet) - a cloud that
-// drifts for an hour never finds an edge.
-//
-// Filling 128^3 texels on the CPU is eight megabytes of JavaScript
-// loops at boot; the GPU does it in 128 draws of a full-screen
-// triangle, one per layer (render/renderTarget.js). That is a DRAW
-// path, run once when the sky is built, never on an upload path.
-//
-// No uniforms live in the shared GLSL block: the AUDIT 47 sweep reads
-// each template's own declarations, and a block that declares none
-// cannot hide one. The lab's slice viewer (`?noise=`) is the eyeball
-// tool and the probe's door (tools/cloudNoiseProbe.mjs).
 
 export const SHAPE_SIZE = 128;
 export const DETAIL_SIZE = 32;
 
-/** Tileable value hash, gradient (Perlin) noise and inverted Worley
- *  noise on [0,1)^3, every lattice taken modulo its period. */
+// Every lattice is taken modulo its period, so the volumes tile on every axis.
 export const NOISE_GLSL = `
 vec3 hash33(vec3 p) {
   p = fract(p * vec3(443.897, 441.423, 437.195));
@@ -76,7 +54,6 @@ layout(location=0) in vec2 aPos;
 out vec2 vUV;
 void main() { vUV = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
-/** One layer of the shape volume: p in [0,1)^3 at the texel's centre. */
 export const SHAPE_FS = `#version 300 es
 precision highp float;
 uniform float uZ;      // this layer's centre, (z + 0.5) / size
@@ -91,7 +68,6 @@ void main() {
   outColor = vec4(pw, worleyFbm(p, 8.0), worleyFbm(p, 16.0), worleyFbm(p, 32.0));
 }`;
 
-/** One layer of the detail volume: three Worley octaves. */
 export const DETAIL_FS = `#version 300 es
 precision highp float;
 uniform float uZ;
@@ -103,8 +79,6 @@ void main() {
   outColor = vec4(worleyFbm(p, 4.0), worleyFbm(p, 8.0), worleyFbm(p, 16.0), 1.0);
 }`;
 
-/** The lab's slice viewer: a z-slice of a volume, one channel or the
- *  RGB, tiled `uTiles` times across the frame so a seam would show. */
 export const SLICE_FS = `#version 300 es
 precision highp float;
 precision highp sampler3D;
@@ -121,12 +95,9 @@ void main() {
 }`;
 
 import { createVolume, withVolumeLayer, finishVolume } from './renderTarget.js';
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
+import { buildProgram } from './glProgram.js';
 
 export class CloudNoise {
-  /** Builds both volumes at once - a DRAW path. `viewport` is the
-   *  caller's [x, y, w, h] to restore; the caller marks the pass
-   *  (EV6) as it marks the sky's. */
   constructor(gl, viewport) {
     this.gl = gl;
     this.vao = gl.createVertexArray();
@@ -167,8 +138,6 @@ export class CloudNoise {
     gl.depthMask(true); gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE);
   }
 
-  /** The lab's viewer: draw a slice over the current viewport. A DRAW
-   *  path like the sky's - the host marks it. */
   drawSlice(which, z, channel, tiles = 1) {
     const gl = this.gl, u = this.lu;
     const volume = which === 'detail' ? this.detail : this.shape;

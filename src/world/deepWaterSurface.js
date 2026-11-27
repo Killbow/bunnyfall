@@ -1,29 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════
-// DW-B: WaterSurfaceManager.BuildSurfaceMesh (Iliac Puddle No More 1.2.2,
-// jet082) - the sea's own surface over one streamed pixel: flat, at the
-// sea's height plus SurfaceRenderYOffset, drawn twice by the host (the
-// top from above, the underside from below - DW-C's programs).
-//
-// WHICH CELLS. 128 x 128, a terrain tile each:
-//   - a tile the cap CLIPPED (its corners on the sea), or ANY water tile
-//     of the pixel's MapData (the mod's own tile read - see
-//     deepWaterClassification.js on its transposition; where it differs
-//     it adds a quad under raised ground, which the depth test hides);
-//   - else, a cell whose heights dip to the beach line (visually wet),
-//     when the bake calls it shore, or one of four quarter-points is
-//     water by the pixel's own heights or by the bake;
-//   - grown along the pixel's edges toward a neighbour with water (the
-//     first visually wet cell within 32 of the edge, flooded 4-connected
-//     through visually wet cells);
-//   - feathered four cells out (8-connected) through visually wet or
-//     baked-shore cells.
-// Then either one quad for a fully submerged pure-ocean pixel, or the
-// cells merged into rectangles (a row's run, grown down while every row
-// matches). The Animated Water bridge's uniform vertex grid is not taken:
-// the port's water look (render/waterSurface.js, the enhanced lane's
-// WATER1, the animated water this host has) moves no vertices.
-// ═══════════════════════════════════════════════════════════════════
-
 import {
   mapDataHasWater, mapDataFullySubmerged, cellContainsWaterTile, isCellVisuallyWet,
   isLocalPointWater, isLocalPointPureWaterTile,
@@ -38,18 +12,15 @@ const clampInt = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 export const SURFACE_GRID_RESOLUTION = 128;
 const SHORELINE_SEED_SCAN_CELLS = 32;
 const SHORELINE_SURFACE_FEATHER_CELLS = 4;
-/** SurfaceRenderYOffset: the surface's height over the sea's own. */
 export const SURFACE_RENDER_Y_OFFSET = 0.03;
 const TILE_WORLD_SIZE = 819.2;
 
-/** ShouldHaveSurface: the pixel has water, or the bake gives it or a cardinal neighbour sea. */
 export function shouldHaveSurface(mapPixelX, mapPixelY, mapData, bake) {
   if (mapDataHasWater(mapData)) return true;
   if (!bake || !bake.loaded) return false;
   return bake.mapPixelOrCardinalNeighborHasWaterCells(mapPixelX, mapPixelY);
 }
 
-/** IsFullWaterTile. */
 function isFullWaterTile(mapPixelX, mapPixelY, mapData, bake, hasOwnWater) {
   if (!hasOwnWater) return false;
   if (!bake || !bake.loaded) return true;
@@ -58,15 +29,14 @@ function isFullWaterTile(mapPixelX, mapPixelY, mapData, bake, hasOwnWater) {
 }
 
 /**
- * BuildSurfaceMesh.
  * @param {object} p
  * @param {number} p.mapPixelX
  * @param {number} p.mapPixelY
- * @param {object} p.mapData - {samples, tilemap}
- * @param {Uint8Array} p.tilemapBytes - the pixel's converted tilemap (DFU's TileMap .a), unpatched
- * @param {?object} p.tile - the pixel's DeepWaterTileData
+ * @param {object} p.mapData
+ * @param {Uint8Array} p.tilemapBytes
+ * @param {?object} p.tile
  * @param {?object} p.bake
- * @returns {?{positions: Float32Array, uvs: Float32Array, indices: Uint32Array, cells: ?Uint8Array}} pixel-local, y 0 (the host lifts it)
+ * @returns {?{positions: Float32Array, uvs: Float32Array, indices: Uint32Array, cells: ?Uint8Array}}
  */
 export function buildSurfaceMesh({ mapPixelX, mapPixelY, mapData, tilemapBytes, tile, bake }) {
   const num = SURFACE_GRID_RESOLUTION;
@@ -109,7 +79,6 @@ function finish(positions, uvs, indices, cells) {
   return { positions: Float32Array.from(positions), uvs: Float32Array.from(uvs), indices: Uint32Array.from(indices), cells };
 }
 
-/** AppendSurfaceQuad: two triangles, Unity's winding (0, 2, 1), (0, 3, 2). */
 function appendSurfaceQuad(fracX0, fracX1, fracZ0, fracZ1, sizeX, sizeZ, positions, uvs, indices) {
   const num = fracX0 * sizeX, num2 = fracX1 * sizeX, num3 = fracZ0 * sizeZ, num4 = fracZ1 * sizeZ;
   const count = positions.length / 3;
@@ -118,7 +87,6 @@ function appendSurfaceQuad(fracX0, fracX1, fracZ0, fracZ1, sizeX, sizeZ, positio
   indices.push(count, count + 2, count + 1, count, count + 3, count + 2);
 }
 
-/** IsSurfaceCellWater. */
 function isSurfaceCellWater(ctx, cellX, cellZ, resolution) {
   const { mapData } = ctx;
   if (cellContainsPromotedClippedWaterTile(ctx, cellX, cellZ, resolution) || cellContainsWaterTile(mapData, cellX, cellZ, resolution)) return true;
@@ -137,7 +105,7 @@ function isBakedSurfaceWater(ctx, fracX, fracZ) {
   return !!ctx.bake && ctx.bake.loaded && ctx.bake.isWaterAt(ctx.mapPixelX, ctx.mapPixelY, fracX, fracZ);
 }
 
-/** CellContainsPromotedClippedWaterTile: over the TileMap - z * dim + x, not transposed. */
+// Reads the converted TileMap in z * 128 + x order, without the transposed tile reads the mod applies to MapData.
 function cellContainsPromotedClippedWaterTile(ctx, cellX, cellZ, resolution) {
   const tm = ctx.tilemapBytes;
   if (!tm || resolution <= 0) return false;
@@ -150,7 +118,6 @@ function cellContainsPromotedClippedWaterTile(ctx, cellX, cellZ, resolution) {
   return false;
 }
 
-/** IsSurfaceSampleWater. */
 function isSurfaceSampleWater(ctx, fracX, fracZ) {
   const { mapData, tile } = ctx;
   if (isLocalPointWater(mapData, fracX, fracZ)) return true;
@@ -159,7 +126,6 @@ function isSurfaceSampleWater(ctx, fracX, fracZ) {
   return false;
 }
 
-/** IsBakedShoreSurfaceCell: the centre or any quarter-point of the cell is sea in the bake. */
 function isBakedShoreSurfaceCell(ctx, cellX, cellZ, resolution) {
   if (!ctx.bake || !ctx.bake.loaded || resolution <= 0) return false;
   const num = cellX / resolution, num2 = (cellX + 1) / resolution, num3 = cellZ / resolution, num4 = (cellZ + 1) / resolution;
@@ -172,7 +138,6 @@ function isBakedShoreSurfaceCell(ctx, cellX, cellZ, resolution) {
   return true;
 }
 
-/** AddNeighborWaterConnectedShoreline. */
 function addNeighborWaterConnectedShoreline(ctx, cells, n) {
   const { bake, tile, mapData, mapPixelX, mapPixelY } = ctx;
   if (!bake || !bake.loaded) return;
@@ -200,7 +165,6 @@ function addNeighborWaterConnectedShoreline(ctx, cells, n) {
       if (isCellVisuallyWet(mapData, x, z, n)) { enqueueShoreCell(x, z); break; }
     }
   };
-  // West, east, then the pixel's z = 0 row for mapPixelY - 1 and z = n - 1 for mapPixelY + 1 - the C#'s pairing.
   if (flag) for (let i = 0; i < n; i++) enqueueFirstSubmergedShoreCell(0, 1, i, 0);
   if (flag2) for (let j = 0; j < n; j++) enqueueFirstSubmergedShoreCell(n - 1, -1, j, 0);
   if (flag3) for (let k = 0; k < n; k++) enqueueFirstSubmergedShoreCell(k, 0, 0, 1);
@@ -216,7 +180,6 @@ function addNeighborWaterConnectedShoreline(ctx, cells, n) {
   }
 }
 
-/** AddLocalShorelineFeather: four cells out, 8-connected, through visually wet or baked-shore cells. */
 function addLocalShorelineFeather(ctx, cells, n) {
   const depth = new Int32Array(n * n);
   const queue = [];

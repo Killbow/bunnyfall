@@ -1,6 +1,4 @@
 // @ts-check
-// Starts compiling the world programs in the background, from the menu and again when the boot begins.
-// Does nothing on the classic skin or without parallel compile.
 import { EL_LANE, enhancedLightingOn } from './enhancedLighting.js';
 import { airOn } from './airPass.js';
 import { VolumetricClouds } from './volumetricClouds.js';
@@ -27,6 +25,5 @@ export function startBootPrograms(renderer, params) {
   const sky = skyChoice(params);
   const skyPass = sky.dynamicOn ? DynamicSkiesRenderer : sky.enhancedLane ? EnhancedSkyRenderer : null;
   const pairs = [...(sky.clouds ? VolumetricClouds.bootPrograms() : []), ...(skyPass?.bootPrograms() ?? []), ...(ringDisabled(search) ? [] : FarRingRenderer.bootPrograms(lane))];
-  // The boot builds the terrain clip only with Deep Waters on, and the terrain snow only on the enhanced sky.
   renderer.startWorldPrograms(lane, pairs, { clip: modSetting('iliac-puddle-no-more', 'Enabled') === true, snow: sky.enhancedLane, air: airOn(search) });
 }

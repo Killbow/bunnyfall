@@ -13,6 +13,7 @@ files:
   - "src/world/worldSaveLoad.js"
   - "src/world/streamWorld.js"
   - "src/net/onlineWorld.js"
+  - "src/world/wodLocationObjects.js"
 routes: []
 tables: []
 replacesBible:
@@ -32,6 +33,7 @@ traps:
   - "Marker ticks are suppressed while `_wodInside` is true (dungeon/interior arrival) until the player is outside."
   - "A new spring sets `_wodSprungChanged`, forcing a full enemies frame; do not wait for the next periodic full frame."
   - "Site tags must match `WOD_SITE_RE` (pixel:objectID, `hold`, `reach.*`, `rite.*`, `star.*`)."
+  - "A `357.6` quest marker pushes one extra quest spawner after a container's own loot spawner in Unity, but it never runs, so `classifyObject` keeps one spawner for it."
 dfu: []
 tags:
   - "world-of-daggerfall"

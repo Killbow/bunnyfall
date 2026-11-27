@@ -76,7 +76,7 @@ export function createPoiNpcUi(c) {
     async function loadArchive() {
       const token = ++drawn;
       cells.clear(); grid.replaceChildren(); tex = null;
-      status.textContent = t('poi.npc.loading', 'Loading the sprites...');
+      status.textContent = t('poi.npc.loading', 'Loading sprites...');
       let f = null;
       try { f = await c.getTexture?.(archive); } catch { f = null; }
       if (token !== drawn || !mine()) return;
@@ -119,7 +119,7 @@ export function createPoiNpcUi(c) {
     const picInfo = el('div', 'dfpoi-sub');
     const picImg = el('img');
     picImg.style.cssText = 'max-width:96px;max-height:96px;image-rendering:pixelated;background:#0003;border-radius:4px;display:none';
-    const choose = btn(t('poi.npc.choosePic', 'Or use a picture...'), () => {
+    const choose = btn(t('poi.npc.choosePic', 'Upload picture...'), () => {
       const input = el('input');
       input.type = 'file'; input.accept = '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp';
       input.addEventListener('change', async () => {
@@ -142,7 +142,7 @@ export function createPoiNpcUi(c) {
     });
 
     let busy = false;
-    const go = btn(was ? t('poi.npc.keep', 'Keep the changes') : t('poi.npc.place', 'Place them'), async () => {
+    const go = btn(was ? t('poi.npc.keep', 'Apply changes') : t('poi.npc.place', 'Place them'), async () => {
       if (busy) return;
       if (!look) { c.say(t('poi.npc.needLook', 'Pick a sprite or a picture first.'), 'bad'); return; }
       const said = lines.value.split('\n').map((l) => l.trim().slice(0, POI_LIMITS.npcLine)).filter(Boolean).slice(0, POI_LIMITS.npcLines);
@@ -162,18 +162,18 @@ export function createPoiNpcUi(c) {
         c.edit.edit(sel.id, 'person', (x) => { const n = x.npcs?.[index]; if (n) { n.name = who.name; n.h = who.h; n.look = who.look; n.lines = who.lines; } });
       } else {
         c.editor.placeNpc(who, who.name);
-        c.say(t('poi.npc.placeHint', 'Click where they stand. Esc to stop.'));
+        c.say(t('poi.npc.placeHint', 'Click in the world to place them. Press Esc to cancel.'));
       }
     });
     const cancel = btn(t('poi.editor.cancel', 'Cancel'), () => c.closeDialog());
     const acts = el('div', 'dfpoi-row'); acts.append(go, cancel);
 
-    box.append(el('div', 'dfpoi-h', was ? t('poi.npc.titleEdit', 'A person') : t('poi.npc.title', 'A new person')),
+    box.append(el('div', 'dfpoi-h', was ? t('poi.npc.titleEdit', 'Edit person') : t('poi.npc.title', 'New person')),
       field(t('poi.npc.name', 'Name'), nameIn),
       el('div', 'dfpoi-row', t('poi.npc.lines', 'What they say (one line each)')), lines,
       field(t('poi.npc.height', 'Height (m)'), hIn),
       el('div', 'dfpoi-h', t('poi.npc.look', 'Look')),
-      field(t('poi.npc.archive', 'Daggerfall sprites, archive'), archSel, otherIn),
+      field(t('poi.npc.archive', 'Daggerfall sprite archive'), archSel, otherIn),
       status, grid, chosen, choose, picImg, picInfo, acts);
     c.setDialog(box);
     c.root.append(box);
@@ -186,7 +186,7 @@ export function createPoiNpcUi(c) {
     const out = [el('div', 'dfpoi-h', t('poi.npc.people', 'People'))];
     const drawn = JSON.stringify(d.npcs ?? []);
     const same = () => JSON.stringify(c.edit.docOf(d.id)?.npcs ?? []) === drawn;
-    out.push(btn(t('poi.npc.add', 'Add a person...'), () => openPerson()));
+    out.push(btn(t('poi.npc.add', 'Add person...'), () => openPerson()));
     const marks = marksOf(d);
     (d.npcs ?? []).forEach((n, i) => {
       out.push(el('div', 'dfpoi-sub', `${n.name} (${n.lines.length === 1 ? t('poi.npc.oneLine', '1 line') : t('poi.npc.nLines', '{n} lines', { n: n.lines.length })})`));
@@ -195,7 +195,7 @@ export function createPoiNpcUi(c) {
       const row = el('div', 'dfpoi-row');
       const remove = btn(t('poi.npc.remove', 'Remove'), () => { if (same()) change('remove person', (doc) => { doc.npcs.splice(i, 1); if (!doc.npcs.length) delete doc.npcs; }); });
       // a locked person (by their own lock or a group's) is neither moved nor removed here
-      if (marks.get(`npc:${n.key}`)?.frozen) { for (const inp of offset.querySelectorAll?.('input') ?? []) inp.disabled = true; remove.disabled = true; remove.title = t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'); }
+      if (marks.get(`npc:${n.key}`)?.frozen) { for (const inp of offset.querySelectorAll?.('input') ?? []) inp.disabled = true; remove.disabled = true; remove.title = t('poi.scene.deleteLocked', 'Locked items cannot be deleted. Unlock them first.'); }
       row.append(btn(t('poi.npc.edit', 'Change...'), () => openPerson({ index: i })), remove);
       out.push(row);
     });

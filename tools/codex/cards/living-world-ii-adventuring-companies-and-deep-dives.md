@@ -25,6 +25,7 @@ invariants:
   - "Dungeon dive routes target only random enemy markers (`STOP_FOE` = `RANDOM_RECORD`) and random treasure markers (`STOP_TREASURE`), never quest markers or boss spawns."
   - "`clearedOf` suppresses reached enemy and treasure markers for `DIVE_CLEAR_MIN` (`DAY_MIN`, 24 game hours) before normal dungeon spawns resume."
   - "The `world.js` clearance check returns null in online sessions and inside the Ocean Holes abyss (`ohAbyss.shouldUpgradeLoot()`), so abyss instances never inherit dive clearance from their template dungeon."
+  - "A pilgrim goes to a holy day on `holyDraw` alone; `TRIP_CHANCE` decides only the cycles with no holy-day trip."
 traps:
   - "Evaluate diver proximity despawns (`DEEP_NEAR_M` = `15` m, `DEEP_KEEP_M` = `70` m) against the current diver position along the route rather than the upcoming stop, or divers disappear prematurely."
   - "Place fallen diver remains at their exact route segment coordinate spaced `DEEP_APART_M` (`1.5` m) apart, never at a fallback room center."

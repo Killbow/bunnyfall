@@ -111,7 +111,7 @@ export const cardPanelChromeCss = (/** @type {string} */ root) => CHROME_CSS.rep
  * @param {any} fold @param {boolean} collapsed
  */
 export function foldWords(fold, collapsed) {
-  const words = collapsed ? t('cards.table.fold.show', 'Expand the panel') : t('cards.table.fold.hide', 'Collapse the panel');
+  const words = collapsed ? t('cards.table.fold.show', 'Expand panel') : t('cards.table.fold.hide', 'Collapse panel');
   fold.title = words;
   fold.setAttribute?.('aria-label', words);
 }

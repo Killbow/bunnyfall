@@ -1,17 +1,6 @@
 // @ts-check
-// GALLEON (2026-10-01): THE MESH BENCH - what world/ships/galleonModel.js and world/ships/galleonRig.js build the new galleon's
-// parts on. Pure: points, faces and numbers in; the CSA geometry shape out (systems/comeSailAway/comeSailAwayModels.js
-// decodeMeshGeometry's: positions, normals, uvs, 32-bit indices, sub-meshes by texture, a box), with each sub-mesh's
-// texture as a renderer slot (`{ archive, record }`).
-//
-// THE WINDING IS THE PORT'S, AND IT IS NEVER GUESSED. Unity's front face is clockwise in its left-handed frame, which
-// the renderer keeps (frontFace(CW) under its mirrored projection) - so a front face's cross(b - a, c - a) points OUT
-// of it (world/skinnedBake.js recalculateNormals says the same of the sails). Every face here is laid with the normal
-// it should face, and its corners are turned to agree with that normal before they are written: a part built from
-// either side comes out facing the way it was asked to.
-//
-// Flat-shaded unless a face is given its corners' own normals: Mac's ship is low-polygon and faceted, and so is
-// Daggerfall's world. Not a DFU member. Ledger A (GALLEON).
+// A front face winds so cross(b - a, c - a) points out of it, because the renderer draws gl.frontFace(CW) through a
+// mirrored projection. Each face takes the normal it should face, and its corners are reordered to agree.
 import { GALLEON_ARCHIVE } from './galleonArt.js';
 
 /** @typedef {[number, number, number]} V3 */
@@ -24,8 +13,6 @@ export const len = (a) => Math.hypot(a[0], a[1], a[2]);
 export const norm = (a) => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
 export const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
-/** Newell's normal of a polygon (unnormalised: its length is twice the area) - the direction its corners' own
- *  cross(b - a, c - a) takes, which for the port's winding points out of the face. */
 export function newell(pts) {
   const n = [0, 0, 0];
   for (let i = 0; i < pts.length; i++) {
@@ -35,16 +22,12 @@ export function newell(pts) {
   return n;
 }
 
-/** Two unit vectors spanning the plane square to `n` (any pair - a projection's axes). */
 export function basisOf(n) {
   const a = Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
   const u = norm(cross(a, n));
   return [u, cross(n, u)];
 }
 
-/**
- * A mesh being built: triangles grouped by the texture record they wear.
- */
 export class MeshBench {
   constructor(archive = GALLEON_ARCHIVE) {
     this.archive = archive;
@@ -57,15 +40,11 @@ export class MeshBench {
     if (!g) { g = { p: [], n: [], uv: [] }; this.groups.set(rec, g); }
     return g;
   }
-  /**
-   * One triangle facing `facing` (a direction it should face; its corners are swapped if they wind the other way),
-   * with each corner's uv, and a normal - its own flat one unless `normals` gives the corners theirs.
-   */
   tri(rec, a, b, c, ua, ub, uc, facing = null, normals = null) {
     let n = cross(sub(b, a), sub(c, a));
     if (facing && dot(n, facing) < 0) { [b, c] = [c, b]; [ub, uc] = [uc, ub]; if (normals) normals = [normals[0], normals[2], normals[1]]; n = scl(n, -1); }
     const l = len(n);
-    if (!(l > 1e-12)) return;   // no area, no face
+    if (!(l > 1e-12)) return;
     const fn = scl(n, 1 / l);
     const g = this.group(rec);
     const corners = [[a, ua], [b, ub], [c, uc]];
@@ -76,19 +55,11 @@ export class MeshBench {
       g.uv.push(uv[0], uv[1]);
     });
   }
-  /** A convex polygon facing `facing`, fanned from its first corner. */
   poly(rec, pts, uvs, facing) {
     for (let i = 1; i + 1 < pts.length; i++) this.tri(rec, pts[0], pts[i], pts[i + 1], uvs[0], uvs[i], uvs[i + 1], facing);
   }
-  /** A quad a-b-c-d (in order round it) facing `facing`. */
   quad(rec, a, b, c, d, uvs, facing) { this.poly(rec, [a, b, c, d], uvs, facing); }
-  // AUDIT GN2-BK6: `merge` (another bench through a matrix) gone - nothing called it, and it turned normals by the
-  // matrix's linear part (not its inverse transpose) and kept a mirror's winding
   get triangleCount() { let n = 0; for (const g of this.groups.values()) n += g.p.length / 9; return n; }
-  /**
-   * The CSA geometry: positions, normals, uvs and indices, a sub-mesh per texture in record order, the slots that
-   * name each sub-mesh's texture, and the box (Mesh.bounds - center and extent). Null when it holds nothing.
-   */
   finish() {
     const recs = [...this.groups.keys()].filter((r) => this.groups.get(r).p.length).sort((a, b) => a - b);
     if (!recs.length) return null;
@@ -116,11 +87,8 @@ export class MeshBench {
   }
 }
 
-/** A collider's triangles (positions and indices, the CSA geometry's two fields a collider reads) out of a geometry -
- *  every triangle, its corners welded where they coincide (to 0.1 mm), so triangles that meet share their corners.
- *  AUDIT GN-NITS: welding closes nothing - a drawing open somewhere is a collider open there (her hull's: her planking
- *  along the gun deck's line, her rail's and parapet's feet, her castle doorway's sill, and her stair wells where their
- *  ramps are left out of it); this said the collider's mesh came out closed. */
+// Welds corners that match to 0.1 mm so meeting triangles share them. Welding closes no gaps, so an open drawing
+// gives an open collider.
 export function colliderOf(geometry) {
   if (!geometry) return null;
   const key = new Map(), pos = [], idx = [];
@@ -136,23 +104,15 @@ export function colliderOf(geometry) {
   return { vertexCount: positions.length / 3, positions, normals: new Float32Array(positions.length), uvs: new Float32Array((positions.length / 3) * 2), indices, subMeshes: [{ startIndex: 0, primitiveCount: indices.length / 3 }], blendIndices: null, bindPoses: null, aabb: geometry.aabb };
 }
 
-// ── the primitives ──────────────────────────────────────────────────────────────────────────────────────────────────
-
-/** Planar uv for a point on a face facing `n`: its two in-plane coordinates over the tile (`tile` [u, v] metres). The
- *  axes are the world's where the face is square to one (so neighbouring faces' grains meet), else the face's own. */
 export function planarUv(p, n, tile) {
   const ax = Math.abs(n[0]), ay = Math.abs(n[1]), az = Math.abs(n[2]);
   let u, v;
-  if (ay >= ax && ay >= az) { u = p[2]; v = p[0]; }                 // a floor or a ceiling: the grain runs fore and aft
-  else if (ax >= az) { u = n[0] >= 0 ? p[2] : -p[2]; v = p[1]; }   // a side
-  else { u = n[2] >= 0 ? -p[0] : p[0]; v = p[1]; }                  // a face to the bow or the stern
+  if (ay >= ax && ay >= az) { u = p[2]; v = p[0]; }
+  else if (ax >= az) { u = n[0] >= 0 ? p[2] : -p[2]; v = p[1]; }
+  else { u = n[2] >= 0 ? -p[0] : p[0]; v = p[1]; }
   return [tile[0] ? u / tile[0] : u, tile[1] ? v / tile[1] : v];
 }
 
-/**
- * A box: centre `c`, half sizes `h` along its own axes `axes` (three unit vectors - the world's by default), its six
- * faces outward, each uv'd planar on its tile (or by `uvFace(faceIndex, corner(0..3)) -> [u, v]`).
- */
 export function box(bench, rec, c, h, { axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]], tile = [1, 1], skip = [], uvFace = null } = {}) {
   const [X, Y, Z] = axes;
   const pt = (sx, sy, sz) => add(add(add(c, scl(X, sx * h[0])), scl(Y, sy * h[1])), scl(Z, sz * h[2]));
@@ -169,11 +129,6 @@ export function box(bench, rec, c, h, { axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
   });
 }
 
-/**
- * A tapered prism from `p0` (radius r0) to `p1` (radius r1), `sides` faces round it, the ends capped unless asked not
- * to. Its sides wear the texture round (u: once round over `uRound` repeats) and along (v: metres over `tileV`), with
- * normals round it (`smooth`) or flat. `twist` turns the first corner (radians) about the axis.
- */
 export function prism(bench, rec, p0, p1, r0, r1, sides, { capRec = rec, caps = [true, true], smooth = false, uRound = 1, tileV = 1, twist = 0, ref = null } = {}) {
   const axis = sub(p1, p0);
   const L = len(axis);
@@ -201,8 +156,6 @@ export function prism(bench, rec, p0, p1, r0, r1, sides, { capRec = rec, caps = 
   if (caps[1] && r1 > 0) cap(p1, r1, w);
 }
 
-/** A rope along a polyline: a thin prism from each point to the next (four sides - enough at a rope's width), its uv
- *  round it and along it on the rope's tile. */
 export function rope(bench, rec, points, r, { sides = 4, tileV = 0.5 } = {}) {
   let along = 0;
   for (let i = 0; i + 1 < points.length; i++) {
@@ -210,14 +163,12 @@ export function rope(bench, rec, points, r, { sides = 4, tileV = 0.5 } = {}) {
     const L = len(sub(b, a));
     const before = bench.group(rec).uv.length;
     prism(bench, rec, a, b, r, r, sides, { caps: [false, false], smooth: true, tileV });
-    // carry the run's length into v, so a rope's lay runs on round its bends
     const uv = bench.group(rec).uv;
     for (let k = before + 1; k < uv.length; k += 2) uv[k] += along / tileV;
     along += L;
   }
 }
 
-/** A catenary's sag between two points: `n` pieces, the middle `sag` metres under the chord. */
 export function sagging(a, b, sag, n = 6) {
   const out = [];
   for (let i = 0; i <= n; i++) {

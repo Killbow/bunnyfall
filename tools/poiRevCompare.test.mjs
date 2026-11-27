@@ -40,15 +40,15 @@ test('compare: lists all resolvable revisions and defaults to the newest two', (
 test('compare: a rollback resolves to the revision it restored, and a retirement resolves to no POI', () => {
   const h = history();
   assert.deepEqual(compareRevisions(h, 1, 3), [], 'revision 3 rolled back to revision 1');
-  assert.deepEqual(compareRevisions(h, 2, 3).map(diffText), ['Renamed from "Bridge Market East" to "Bridge Market".', 'Part taken away: Well.']);
-  assert.deepEqual(compareRevisions(h, 4, 5).map(diffText), ['Takes it out of the world.']);
+  assert.deepEqual(compareRevisions(h, 2, 3).map(diffText), ['Renamed from "Bridge Market East" to "Bridge Market".', 'Part removed: Well.']);
+  assert.deepEqual(compareRevisions(h, 4, 5).map(diffText), ['Removed from the world.']);
   assert.match(diffText(compareRevisions(h, 5, 1)[0]), /^A new POI: 2 parts, 0 lights\.$/);
 });
 
 test('compare: describes the changes between two chosen revisions', () => {
   const h = history();
   assert.deepEqual(compareRevisions(h, 1, 2).map(diffText), ['Renamed from "Bridge Market" to "Bridge Market East".', 'Part added: Well.']);
-  assert.deepEqual(compareRevisions(h, 2, 4).map(diffText), ['Person Alchemist Nyra changed: trade.', 'Trade taken away: Nyra\'s brew.']);
-  assert.deepEqual(compareRevisions(h, 4, 1).map(diffText), ['Renamed from "Bridge Market East" to "Bridge Market".', 'Part taken away: Well.', 'Person Alchemist Nyra changed: trade.', 'Trade added: Nyra\'s brew.']);
+  assert.deepEqual(compareRevisions(h, 2, 4).map(diffText), ['Person Alchemist Nyra changed: trade.', 'Trade removed: Nyra\'s brew.']);
+  assert.deepEqual(compareRevisions(h, 4, 1).map(diffText), ['Renamed from "Bridge Market East" to "Bridge Market".', 'Part removed: Well.', 'Person Alchemist Nyra changed: trade.', 'Trade added: Nyra\'s brew.']);
   assert.deepEqual(compareRevisions(h, 2, 2), []);
 });

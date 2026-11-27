@@ -1,35 +1,12 @@
 // @ts-check
-// TELL2 (bible/12-Enhanced-AI/Feud-Arc.md section 4.4; Mac, 2026-10-04: "breath more depth into it"): A TELEGRAPH'S
-// LOOK, a LEAF of GLSL importing nothing - the world boss's readable line (render/gate/gateTelegraph.js, WB13a) at a foe's
-// scale, for the foe's pass (render/foeTelegraph.js) to compose. The boss's own pass imports the boss's brain and is never
-// imported whole; this is the part of its look a foe's mark needs:
-//   - THE LINE: two pixels wide wherever it is seen (its width read off the outline's own screen derivative), a dark
-//     KEYLINE just outside it (the blend darkens the floor there - a pale fill no longer vanishes on snow or sand) and a
-//     soft glow past that;
-//   - THE FILL: dim at once, deepening behind its front as the wind-up runs (`t`, the shape's own fill coordinate `s`);
-//   - NOW: the last stretch before the landing brightens the line toward white and the fill with it (`nowK`);
-//   - THE LANDING: white-hot at once, fading (`flash`).
-// Premultiplied colour out, for the pass's blend (ONE, ONE_MINUS_SRC_ALPHA). `fogK` the fog's factor (with the near floor
-// already taken), applied to both.
-// TELL3 (section 5): AN IRON BLOW, never by colour alone - a second line IRON_INSET inside the first, and a diagonal
-// hatch across its fill every IRON_HATCH metres (`telegraphIron`, over the style above).
-// TELL9 (section 11.3): TELEGRAPH CONTRAST, the player's preference - over all of it, a line twice as thick, a WHITE
-// keyline outside that, and a pattern for every guard: a poise mark's fill dotted every CONTRAST_DOTS metres (iron's
-// hatch stands always) (`telegraphContrast`).
-// AUDIT TELL U1: every band is pixels wide, and metres-capped - at a grazing look a pixel spans metres, and the keyline,
-// the glow and the white keyline then reached past the 0.5 m the pass draws beyond an outline and were cut off there in a
-// hard edge (TELEGRAPH_BAND_CAP for the style and iron's, CONTRAST_BAND_CAP for the contrast's, whose outer band ends
-// at 7.5 of them). U2: the contrast keeps a dark band between its line and its white keyline - white on snow or sand
-// is no edge.
+// Telegraph look as GLSL that imports nothing, so the enemy telegraph pass can use it without the boss pass.
+// It returns premultiplied color for the ONE, ONE_MINUS_SRC_ALPHA blend, and fogK scales both color and alpha.
 
-/** TELL3: the iron mark's second rim, metres inside its outline. */
 export const IRON_INSET = 0.25;
-/** TELL3: the iron hatch's spacing along its diagonal, metres. */
 export const IRON_HATCH = 0.35;
-/** TELL9: the contrast dots' spacing on a poise mark's fill, and their radius, metres. */
 export const CONTRAST_DOTS = 0.3;
 export const CONTRAST_DOT_R = 0.06;
-/** AUDIT TELL U1: the most a band's pixel unit may stand for, metres (5 of the style's inside 0.5 m; 7.5 of the contrast's). */
+// Caps the meters one band pixel may cover, so outer bands stay inside the 0.5 m the pass draws past an outline.
 export const TELEGRAPH_BAND_CAP = 0.1;
 export const CONTRAST_BAND_CAP = 0.0625;
 

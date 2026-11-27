@@ -1,24 +1,10 @@
-// THE QUEST MESSAGE (Q1) - Message.cs. A message stores text for
-// popups, journal, letters, rumours. Lines tokenize on load: a <ce>
-// prefix centres the line (whole-line trim), otherwise only the END
-// trims so left indentation survives; <---> starts a new VARIANT
-// (rumour randomness). Each line lands as a Text token followed by a
-// formatting token (JustifyCenter or Nothing - Nothing is DFU's line
-// break here). Macro expansion (%foo/__foo_) rides the macro slice
-// (routed; MacroHelper's quest table is a Ledger C row already).
-//
-// GetTextTokens' random variant is a UnityEngine.Random draw ->
-// injectable uniform roll (THE ENGINE-PRNG RULE, Ledger A).
+// Port of the Daggerfall Unity quest message: a <ce> prefix centers a line, and <---> starts a new variant.
 
 import { expandQuestMessage } from './questMacros.js';
 
 const CENTER_TOKEN = '<ce>';
 const SPLIT_TOKEN = '<--->';
 
-/** TextFile.Formatting members this layer uses, keyed by name (the
- *  port's text layer is row-based, not byte-token based - the NAMES
- *  are the contract here, the classic byte values live in
- *  formats/textRsc.js). */
 export const Formatting = Object.freeze({
   Nothing: 'nothing',
   Text: 'text',
@@ -30,7 +16,7 @@ export class Message {
     this.parentQuest = parentQuest;
     this.id = 0;
     this.variants = [];
-    this.ownLines = null;   // L10N5: the quest's own lines while a translation's are read in their place (localize)
+    this.ownLines = null;
     if (source) this.loadMessage(id, source);
   }
 
@@ -43,18 +29,14 @@ export class Message {
     for (let i = 0; i < source.length; i++) {
       let line = source[i];
 
-      // Handle known justification tokens
       let formatting = Formatting.Nothing;
       if (line.startsWith(CENTER_TOKEN)) {
         formatting = Formatting.JustifyCenter;
         line = line.replaceAll(CENTER_TOKEN, '');
       }
 
-      // Trim end of line only and preserve left format if no
-      // formatting defined; otherwise trim the whole line.
       line = formatting === Formatting.Nothing ? line.replace(/\s+$/, '') : line.trim();
 
-      // Split token starts a new variant
       if (line.includes(SPLIT_TOKEN)) {
         this.variants.push(variant);
         variant = { tokens: [] };
@@ -67,43 +49,15 @@ export class Message {
     this.variants.push(variant);
   }
 
-  /** Tokens for this message; variant -1 picks a random variant
-   *  (uniform roll, injectable). QUIRK KEPT (Message.cs:161): any
-   *  EXPLICIT variant answers variant 0 - DFU's else-arm is `index =
-   *  0`, never `variant`. Use getTextTokensByVariant for real
-   *  selection, as DFU's own callers do. Q4-i: macro expansion runs at
-   *  token read, DFU's default.
-   *
-   *  GUIDE1: the fourth argument is the PORT'S, not C#'s. Message.cs
-   *  passes the literal true (below), and so does every caller that
-   *  leaves it off - which is every DFU caller. Its one reader is the
-   *  quest lens's quiet read (ui/quest/questLens.js), which takes the
-   *  bracket without the reveal: a face that reads the journal on the
-   *  player's behalf must not open talk topics the player never asked
-   *  the journal for. */
+  // As in Daggerfall Unity, any explicit variant returns variant 0; getTextTokensByVariant picks a real one.
+  // revealDialogLinks is false only for a read on the player's behalf, which must not open talk topics.
   getTextTokens(variant = -1, roll = Math.random, expandMacros = true, revealDialogLinks = true) {
     const index = variant === -1 ? Math.floor(roll() * this.variantCount) : 0;
-    const tokens = this.variants[index].tokens.map((t) => ({ ...t }));   // C# Token is a STRUCT - callers get copies (AUDIT quest-P17)
-    // Q4-i: DFU expands macros by default at token read (Message.cs:
-    // 170-183).
-    // AUDIT 24 systems, TWO halves of Message.cs:174-183 the port left
-    // out. (1) The reveal flag is not a parameter at all - C# passes
-    // the LITERAL true, under Nystul's comment "reveal dialog linked
-    // resources here on purpose (quest popups should reveal them)".
-    // The port defaulted it to false and no caller ever passed true,
-    // so a quest popup naming a Place or Person added no talk topic.
-    // (GetTextTokensByVariant is the one that takes the false default
-    // - QuestMacroHelper.cs:91 - and it still does, below.)
-    // (2) The expansion is BRACKETED by
-    // `ParentQuest.CurrentLogMessageId = this.id;` ... `= -1;`, the
-    // only assignment to that field in the whole DFU tree. It is what
-    // makes %qdt inside a log message answer the date THAT step was
-    // written; without it getCurrentLogMessageTime never matched and
-    // every %qdt printed the quest start.
+    const tokens = this.variants[index].tokens.map((t) => ({ ...t }));
+    // Setting currentLogMessageId during expansion lets %qdt in a log message return the date of that step.
     if (expandMacros) {
       const quest = this.parentQuest;
-      // No try/finally: C# has none either, so a throwing expansion
-      // (the %di NRE trio) really does leave the id latched.
+      // There is no try/finally, as in Daggerfall Unity, so a throwing expansion leaves the id set.
       if (quest) quest.currentLogMessageId = this.id;
       expandQuestMessage(quest, tokens, revealDialogLinks);
       if (quest) quest.currentLogMessageId = -1;
@@ -117,15 +71,11 @@ export class Message {
     return tokens;
   }
 
-  /** L10N5: a translation's lines read in place of the message's own (L10N3c's ReplaceMessage), the own kept - as the
-   *  save's lines (getSaveData) and for a language with no translation of it (ownText). DFU saves the replaced lines,
-   *  so a quest begun in French stays French in English; the port saves the quest's own, and each language reads its
-   *  own words again after a load. */
+  // Saves hold the quest's own lines, not the translation, so each language reads its own text again after a load.
   localize(lines) {
     if (!this.ownLines) this.ownLines = this.getSaveData().lines;
     this.loadMessage(this.id, lines);
   }
-  /** L10N5: the message's own lines again, where the language has no translation of it. */
   ownText() {
     if (!this.ownLines) return;
     const own = this.ownLines;
@@ -133,14 +83,8 @@ export class Message {
     this.loadMessage(this.id, own);
   }
 
-  /** GetSaveData (Message.cs:221-280): reconstruct SOURCE lines from
-   *  the (unexpanded) variant tokens - later variants re-prefix the
-   *  split token, centered lines re-prefix <ce>, and an unexpected
-   *  formatting THROWS, verbatim. QUIRK KEPT: a second consecutive
-   *  Text token flushes the line and DROPS ITSELF (C#'s continue) -
-   *  unreachable through loadMessage's strict alternation. */
   getSaveData() {
-    if (this.ownLines) return { id: this.id, lines: [...this.ownLines] };   // L10N5: the quest's own words, never a translation's
+    if (this.ownLines) return { id: this.id, lines: [...this.ownLines] };
     const lines = [];
     for (let variant = 0; variant < this.variants.length; variant++) {
       if (variant > 0) lines.push(SPLIT_TOKEN);
@@ -177,7 +121,6 @@ export class Message {
     return { id: this.id, lines };
   }
 
-  /** RestoreSaveData (Message.cs:282-285). */
   restoreSaveData(data) {
     this.ownLines = null;
     this.loadMessage(data.id, data.lines);

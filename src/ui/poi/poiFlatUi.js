@@ -78,7 +78,7 @@ export function createPoiFlatUi(c) {
   /** @returns {string | null} */
   const full = () => {
     const s = c.editor.placeInto?.() ?? c.edit.selection();
-    return s && !flatRoom(c.edit.docOf(s.id)) ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats }) : null;
+    return s && !flatRoom(c.edit.docOf(s.id)) ? t('poi.flat.full', 'This POI has reached the maximum of {max} flat pictures.', { max: POI_V2_LIMITS.flats }) : null;
   };
 
   /**
@@ -159,8 +159,8 @@ export function createPoiFlatUi(c) {
       if (!it) { itemInfo.textContent = t('poi.flat.noItem', 'No item has that number.'); return; }
       const pair = poiFlatPicture({ kind: itemHangs(it) ? 'mount' : 'paperdoll', item: it });
       const hangs = itemHangs(it);
-      const none = it.t === P.trophyTemplate ? t('poi.flat.trophyNoBeast', 'a trophy needs its beast, which this editor cannot choose yet') : t('poi.flat.noItemPicture', 'it has no world sprite');
-      itemInfo.textContent = `${templateByIndex(itemT)?.name ?? itemT}: ${pair ? (hangs ? t('poi.flat.hangs', 'it hangs flat at its own angle, like mounted weapons and armor') : t('poi.flat.stands', 'it shows as its world sprite and faces the player')) : none}`;
+      const none = it.t === P.trophyTemplate ? t('poi.flat.trophyNoBeast', 'requires a creature type, which this editor cannot select yet') : t('poi.flat.noItemPicture', 'has no world sprite');
+      itemInfo.textContent = `${templateByIndex(itemT)?.name ?? itemT}: ${pair ? (hangs ? t('poi.flat.hangs', 'hangs flat at a fixed angle, like mounted weapons and armor') : t('poi.flat.stands', 'shows as a world sprite and faces the player')) : none}`;
       if (!pair) return;
       const f = await texOf(pair[0]);
       const px = f ? flatPixels(f, pair[1]) : null;
@@ -196,7 +196,7 @@ export function createPoiFlatUi(c) {
       } else {
         const it = itemOfTemplate(itemT);
         const pair = it ? poiFlatPicture({ kind: itemHangs(it) ? 'mount' : 'paperdoll', item: it }) : null;
-        if (it?.t === P.trophyTemplate && !pair) { c.say(t('poi.flat.trophyNeedsBeast', 'A trophy needs its beast, which this editor cannot choose yet.'), 'bad'); return; }
+        if (it?.t === P.trophyTemplate && !pair) { c.say(t('poi.flat.trophyNeedsBeast', 'Trophies require a creature type, which cannot be selected in this editor yet.'), 'bad'); return; }
         if (!it || !pair) { c.say(t('poi.flat.needItem', 'Choose an item that has a picture.'), 'bad'); return; }
         c.closeDialog();
         // stores the resolved `[archive, record]` alongside the item so every client renders the same sprite
@@ -225,8 +225,8 @@ export function createPoiFlatUi(c) {
     const out = [el('div', 'dfpoi-h', t('poi.flat.inspector', 'Flat picture'))];
     out.push(field(t('poi.editor.name', 'Name'), text(row.name ?? '', (v) => change('rename', (r) => { const n = String(v).replace(/\s+/g, ' ').trim().slice(0, 64); if (n) r.name = n; else delete r.name; }), 64)));
     out.push(field(t('poi.editor.key', 'Key'), el('span', '', row.key)));
-    const kindText = row.kind === 'mount' ? t('poi.flat.kindMount', 'Mounted item: hangs flat at its own angle')
-      : row.kind === 'paperdoll' ? t('poi.flat.kindItem', 'Item: shows as its world sprite and faces the player')
+    const kindText = row.kind === 'mount' ? t('poi.flat.kindMount', 'Mounted item: hangs flat at a fixed angle')
+      : row.kind === 'paperdoll' ? t('poi.flat.kindItem', 'Item: shows as a world sprite and faces the player')
         : t('poi.flat.kindBillboard', 'Picture: sits on its base and faces the player');
     out.push(field(t('poi.flat.kind', 'Kind'), el('span', 'dfpoi-grow', kindText)));
     const pair = poiFlatPicture(row);
@@ -245,9 +245,9 @@ export function createPoiFlatUi(c) {
     const sizeIn = numberInput(row.scale ?? 1, (x) => change('size', (r) => { if (!isFigureRow(r)) r.scale = Math.min(P.decorScaleMax, Math.max(P.decorScaleMin, x)); }), { step: 0.05, min: P.decorScaleMin, max: P.decorScaleMax });
     if (isFigureRow(row)) sizeIn.disabled = true;
     placed.push(field(t('poi.editor.scale', 'Scale'), sizeIn));
-    if (frozen) { for (const r of placed) for (const i of r.querySelectorAll?.('input') ?? []) i.disabled = true; out.push(el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked: unlock it in the list to move it.'))); }
+    if (frozen) { for (const r of placed) for (const i of r.querySelectorAll?.('input') ?? []) i.disabled = true; out.push(el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked. Unlock this item in the list to move it.'))); }
     out.push(...placed);
-    if (isFigureRow(row)) out.push(el('div', 'dfpoi-sub', t('poi.flat.figureSize', 'A person\'s picture keeps its own size.')));
+    if (isFigureRow(row)) out.push(el('div', 'dfpoi-sub', t('poi.flat.figureSize', 'Person pictures always use their default size and cannot be scaled.')));
     // its light
     const l = row.light;
     out.push(field(t('poi.flat.lit', 'Gives light'), check(!!l, (v) => change('light', (r) => { if (v) r.light = { ...DEFAULT_LIGHT, color: [...DEFAULT_LIGHT.color] }; else delete r.light; }))));
@@ -432,7 +432,7 @@ export function createPoiFlatUi(c) {
       whyNot: (a) => {
         const it = itemOf(a);
         if (it && poiFlatPicture({ kind, item: it })) return full();
-        return it?.t === P.trophyTemplate ? t('poi.flat.trophyNeedsBeast', 'A trophy needs its beast, which this editor cannot choose yet.') : t('poi.flat.itemNoPicture', 'This item has no world sprite.');
+        return it?.t === P.trophyTemplate ? t('poi.flat.trophyNeedsBeast', 'Trophies require a creature type, which cannot be selected in this editor yet.') : t('poi.flat.itemNoPicture', 'This item has no world sprite.');
       },
       place: (a, ctx) => { const it = itemOf(a); return stand({ kind: 'item', item: it, flat: poiFlatPicture({ kind, item: it }), name: a.name ?? '' }, ctx); },
     });

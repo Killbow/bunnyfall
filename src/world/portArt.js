@@ -1,59 +1,23 @@
 // @ts-check
-// SHIPYARDS (2026-10-11): THE PORT'S OWN ART, MADE AT BOOT - every picture the shipyard and the lighthouse wear
-// (world/shipyardModel.js, world/lighthouseModel.js) is the port's, made here from noise and drawn shapes the moment a
-// host asks, under the pseudo-archive PORT_ARCHIVE (world/merchantYards/merchantYardArt.js's law and its own tools: pixels and numbers,
-// no renderer, no GL). Nothing of Daggerfall's is read.
-//
-// THE YARDS' MATERIALS AT THE YARDS' RECORDS: records 0-7 are the Stable's and the Wagon Yard's timber, boards,
-// shingles, straw, earth, gravel, water and iron, painted by the same painters on the same seeds - so the face kit the
-// port's models share with the yards (world/merchantYards/merchantYardModels.js) dresses a post or a sign's edge alike under either
-// archive. Then the port's own:
-//
-//   stone     - the lighthouse's tower, its parapet and its lantern, and the yards' walls: grey ashlar, its courses
-//               staggered, mortar between.
-//   whitewash - the keeper's cottage: lime over stone, mottled, the courses faint under it.
-//   slate     - the cottage's roof: blue-grey slates in staggered rows.
-//   glass     - the shipyard office lantern's panes: warm lamp-lit glass, brighter at its middle.
-//   window    - a window's leaded panes: little diamonds of old green-grey glass in their lead.
-//   rope      - hemp: the strands laid at a slant.
-//   canvas    - sailcloth: a plain weave, off-white.
-//   tar       - tarred timber and the pitch barrels: black, brown streaks, a dull sheen.
-//   sawdust   - the shipyard's floor: sandy earth, chips and shavings over it.
-//   hull      - the hull on the stocks: fresh oak strakes, their seams caulked dark, treenails in rows.
-//   cobble    - the lighthouse's yard: rounded setts, dark joints.
-//   door      - a plank door, iron-strapped and studded.
-//   notices   - the crew hall's board: bills pinned on a cork board, each lined with a hand's writing.
-//   brass     - the ship's bell: worn brass.
-//   flame     - BEACON-TOWER: the beacon's fire: tongues of flame, white-hot at their roots to red at their tips, on
-//               nothing - a cutout (`PORT_HOW`), and its own light.
-//   embers    - BEACON-TOWER: the brazier's coals: black char cracked with glowing orange - their own light.
-//   the SIGNBOARD - the yards' board (merchantYardArt.js board) with an iron anchor and SHIPS; the crew hall's with a
-//   coil of rope and CREW.
-//
-// Deterministic (its own rng on fixed seeds): every client's port is the same timber and stone. Not a DFU member.
-// Ledger A (SHIPYARDS).
+// Paints the port's pictures from fixed seeds, so every client gets the same art.
 import {
   YARD_ART_KIT, SIGN_EMBLEM, SIGN_ART_H,
   yardWoodArt, yardPlankArt, yardShingleArt, yardHayArt, yardDirtArt, yardGravelArt, yardWaterArt, yardIronArt, YARD_REC, YARD_ART_SIZE,
 } from './merchantYards/merchantYardArt.js';
 import { PORT_PLACES } from '../travel/portPlaces.js';
 
-const { rng, noiseField, image, put, get, mix, IRON_DARK, IRON_LIGHT, board, paintWord } = YARD_ART_KIT;   // the yards' painting tools
+const { rng, noiseField, image, put, get, mix, IRON_DARK, IRON_LIGHT, board, paintWord } = YARD_ART_KIT;
 
-/** The pseudo-archive the port's pictures stand under (the yards' neighbour, world/merchantYards/merchantYardArt.js YARD_ARCHIVE). */
 export const PORT_ARCHIVE = 38231;
-/** Its records: the yards' materials at the yards' own records, then the port's. */
 export const PORT_REC = Object.freeze({
   wood: YARD_REC.wood, plank: YARD_REC.plank, shingle: YARD_REC.shingle, hay: YARD_REC.hay, dirt: YARD_REC.dirt,
   gravel: YARD_REC.gravel, water: YARD_REC.water, iron: YARD_REC.iron,
   stone: 10, whitewash: 11, slate: 13, glass: 14, window: 15, rope: 16, canvas: 17, tar: 18,
   sawdust: 20, hull: 21, cobble: 22, door: 23, notices: 24, brass: 25, signShips: 26, signCrew: 27,
-  flame: 28, embers: 29,   // BEACON-TOWER: the beacon's fire - the tower's red bands (12) and its dome's copper (19) went with the age of steam
+  flame: 28, embers: 29,
 });
 const S = YARD_ART_SIZE;
 
-/** Grey ashlar: courses sixteen texels high, blocks of 20 to 36 across, staggered, mortar between, each block its own
- *  shade and a little pitting. Tileable. */
 export function portStoneArt(seed = 0x5701, { light = [158, 154, 146], dark = [92, 90, 86], mortar = [70, 68, 64] } = {}) {
   const img = image(S), r = rng(seed), n = noiseField(seed + 1, 8);
   for (let row = 0; row < S / 16; row++) {
@@ -66,14 +30,13 @@ export function portStoneArt(seed = 0x5701, { light = [158, 154, 146], dark = [9
       while (k + 1 < cuts.length && cuts[k + 1] <= x0) k++;
       let c = mix(dark, light, shade[k] + 0.3 * (n(x, y) - 0.5));
       if (y === row * 16 + 15 || x0 === cuts[k]) c = mortar;
-      else if (y === row * 16 || x0 === cuts[k] + 1) c = mix(c, [196, 192, 184], 0.25);   // the block's lit edge
+      else if (y === row * 16 || x0 === cuts[k] + 1) c = mix(c, [196, 192, 184], 0.25);
       if (r() < 0.025) c = mix(c, mortar, 0.6);
       put(img, x, y, c);
     }
   }
   return img;
 }
-/** Lime over stone: off-white, mottled, the courses faintly through it, a little grime toward the foot (row 63). */
 export function portWhitewashArt(seed = 0x3417) {
   const img = image(S), n = noiseField(seed, 6), fine = noiseField(seed + 1, 24), under = portStoneArt(seed + 2);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
@@ -82,7 +45,6 @@ export function portWhitewashArt(seed = 0x3417) {
   }
   return img;
 }
-/** Slates in staggered rows eight texels high, each its own width and shade, the row's foot shadowed. Tileable. */
 export function portSlateArt(seed = 0x51a7) {
   const img = image(S), r = rng(seed), n = noiseField(seed + 1, 16);
   for (let row = 0; row < S / 8; row++) {
@@ -101,7 +63,6 @@ export function portSlateArt(seed = 0x51a7) {
   }
   return img;
 }
-/** The lantern's glass, lit: warm white at its middle to amber at its edges. */
 export function portGlassArt() {
   const W = 32, img = image(W);
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
@@ -110,8 +71,6 @@ export function portGlassArt() {
   }
   return img;
 }
-/** A window's leaded panes (BEACON-TOWER: they were one sheet of plate glass, a streak of sky across it - a modern
- *  window): little diamonds of old green-grey glass in their lead, each its own shade, dark behind. Row 0 is its top. */
 export function portWindowArt(seed = 0x1ead) {
   const W = 32, img = image(W), r = rng(seed), shade = Array.from({ length: 64 }, () => r());
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
@@ -121,7 +80,6 @@ export function portWindowArt(seed = 0x1ead) {
   }
   return img;
 }
-/** Hemp rope: strands laid at a slant, each lit along one edge. Tileable. */
 export function portRopeArt() {
   const W = 32, img = image(W);
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
@@ -130,7 +88,6 @@ export function portRopeArt() {
   }
   return img;
 }
-/** Sailcloth: a plain weave, off-white, a faint stain. Tileable. */
 export function portCanvasArt(seed = 0xca57) {
   const W = 32, img = image(W), n = noiseField(seed, 4, W);
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
@@ -139,17 +96,15 @@ export function portCanvasArt(seed = 0xca57) {
   }
   return img;
 }
-/** Tarred timber: black, brown streaks along u, a dull sheen. Tileable. */
 export function portTarArt(seed = 0x7a12) {
   const img = image(S), streak = noiseField(seed, 2, S, S, 16), n = noiseField(seed + 1, 8);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) put(img, x, y, mix([18, 16, 14], [64, 48, 34], 0.15 + 0.5 * streak(x, y) * n(x, y)));
   return img;
 }
-/** The shipyard's floor: sandy earth, chips of oak and curled shavings strewn over it. Tileable. */
 export function portSawdustArt(seed = 0x5a0d) {
   const img = image(S), n = noiseField(seed, 8), r = rng(seed + 1);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) put(img, x, y, mix([118, 98, 70], [166, 142, 104], 0.3 + 0.55 * n(x, y)));
-  for (let k = 0; k < 60; k++) {   // chips: short pale strokes; shavings: little curls
+  for (let k = 0; k < 60; k++) {
     let x = r() * S, y = r() * S;
     const a = r() * Math.PI * 2, len = 2 + Math.floor(r() * 4), curl = r() < 0.4 ? 0.6 : 0;
     const c = r() < 0.5 ? [214, 186, 132] : [188, 154, 100];
@@ -157,8 +112,6 @@ export function portSawdustArt(seed = 0x5a0d) {
   }
   return img;
 }
-/** Fresh oak strakes along u, eight texels high: their seams caulked dark, a treenail every sixteen texels. Row 0 is a
- *  seam. Tileable. */
 export function portHullArt(seed = 0x0a4c) {
   const img = image(S), grain = noiseField(seed, 4, S, S, 16), r = rng(seed + 1);
   const shades = Array.from({ length: S / 8 }, () => 0.7 + 0.3 * r());
@@ -171,7 +124,6 @@ export function portHullArt(seed = 0x0a4c) {
   }
   return img;
 }
-/** Setts: rounded stones in staggered rows, dark joints between. Tileable. */
 export function portCobbleArt(seed = 0xc0bb) {
   const img = image(S), r = rng(seed), n = noiseField(seed + 1, 16);
   for (let row = 0; row < S / 8; row++) {
@@ -187,7 +139,6 @@ export function portCobbleArt(seed = 0xc0bb) {
   }
   return img;
 }
-/** A door: upright boards, two iron straps across with studs along them. Row 0 is its top. */
 export function portDoorArt(seed = 0xd007) {
   const img = yardPlankArt(seed);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) put(img, x, y, mix(get(img, x, y), [40, 26, 16], 0.35));
@@ -197,7 +148,6 @@ export function portDoorArt(seed = 0xd007) {
   }
   return img;
 }
-/** The crew hall's board: cork, and six bills pinned on it - paper, a dark line of writing on each, a pin at its top. */
 export function portNoticesArt(seed = 0x0b11) {
   const W = 64, img = image(W), n = noiseField(seed, 16, W), r = rng(seed + 1);
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) put(img, x, y, mix([122, 86, 52], [158, 118, 74], 0.3 + 0.6 * n(x, y)));
@@ -210,20 +160,15 @@ export function portNoticesArt(seed = 0x0b11) {
   }
   return img;
 }
-/** Worn brass. Tileable. */
 export function portBrassArt(seed = 0xb2a5) {
   const W = 32, img = image(W), n = noiseField(seed, 4, W);
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) put(img, x, y, mix([132, 98, 34], [226, 186, 92], 0.25 + 0.7 * n(x, y)));
   return img;
 }
 
-// ── THE BEACON (BEACON-TOWER) ──────────────────────────────────────────────────────────────────────────────────
-/** The beacon's fire, 32 across and 64 high, row 0 its tips: three tongues of flame swaying up from a bed across the
- *  picture's foot - the middle one the tallest - ragged at their edges; white-hot over the coals, yellow, orange, red at
- *  the tips; NOTHING round them (alpha 0: the mesh shader's cutout). */
 export function portFlameArt(seed = 0xf1a3) {
   const W = 32, H = 64, img = image(W, H), rag = noiseField(seed, 8, W, H, 16);
-  const tongues = [[0.5, 0.97, 0.34, 0], [0.27, 0.66, 0.22, 1.7], [0.74, 0.74, 0.23, 3.1]];   // [middle, height, half-width at the root, sway's phase]
+  const tongues = [[0.5, 0.97, 0.34, 0], [0.27, 0.66, 0.22, 1.7], [0.74, 0.74, 0.23, 3.1]];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const u = (x + 0.5) / W, h = 1 - (y + 0.5) / H;
     let heat = -1;
@@ -243,7 +188,6 @@ export function portFlameArt(seed = 0xf1a3) {
   }
   return img;
 }
-/** The brazier's coals: black char, cracked through with glowing orange and here and there a yellow heart. Tileable. */
 export function portEmbersArt(seed = 0xe3b1) {
   const W = 32, img = image(W), n = noiseField(seed, 4, W), fine = noiseField(seed + 1, 16, W);
   for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
@@ -253,20 +197,17 @@ export function portEmbersArt(seed = 0xe3b1) {
   return img;
 }
 
-// ── THE SIGNBOARDS ───────────────────────────────────────────────────────────────────────────────────────────────
 const PAINT = [232, 214, 166];
-/** The SHIPS board's anchor: a ring at its head, its shank, a stock across under the ring, and two flukes curving up
- *  from its crown - iron lit along its upper left, a painted cream edge so it reads on the dark board. */
 function paintAnchor(img) {
   const cx = SIGN_EMBLEM / 2 + 4, top = 10, bottom = SIGN_ART_H - 14;
   const iron = (x, y) => {
     const dx = x - cx;
-    if (Math.abs(Math.hypot(dx, y - (top + 5)) - 5) < 1.7) return true;                       // the ring
-    if (Math.abs(dx) <= 2 && y >= top + 9 && y <= bottom) return true;                         // the shank
-    if (Math.abs(y - (top + 15)) <= 1.6 && Math.abs(dx) <= 15) return true;                    // the stock
+    if (Math.abs(Math.hypot(dx, y - (top + 5)) - 5) < 1.7) return true;
+    if (Math.abs(dx) <= 2 && y >= top + 9 && y <= bottom) return true;
+    if (Math.abs(y - (top + 15)) <= 1.6 && Math.abs(dx) <= 15) return true;
     const ay = bottom - y, arm = Math.hypot(dx, (y - (bottom - 22)) * 1.05);
-    if (ay >= -2 && ay <= 16 && Math.abs(arm - 22) < 2.2) return true;                          // the crown's arms
-    for (const s of [-1, 1]) if (Math.abs(dx - s * 20) <= 3 - Math.abs(y - (bottom - 13)) / 3 && y >= bottom - 19 && y <= bottom - 8) return true;   // the flukes' palms
+    if (ay >= -2 && ay <= 16 && Math.abs(arm - 22) < 2.2) return true;
+    for (const s of [-1, 1]) if (Math.abs(dx - s * 20) <= 3 - Math.abs(y - (bottom - 13)) / 3 && y >= bottom - 19 && y <= bottom - 8) return true;
     return false;
   };
   for (let y = 0; y < SIGN_ART_H; y++) for (let x = 0; x < SIGN_EMBLEM + 8; x++) {
@@ -277,7 +218,6 @@ function paintAnchor(img) {
     if (iron(x, y)) put(img, x, y, mix(IRON_LIGHT, IRON_DARK, 0.3 + 0.5 * ((x - cx + y - top) / (2 * SIGN_ART_H) + 0.5)));
   }
 }
-/** The CREW board's coil of rope: rings of hemp round a dark middle, a tail hanging from it. */
 function paintCoil(img) {
   const cx = SIGN_EMBLEM / 2 + 4, cy = SIGN_ART_H / 2;
   for (let y = 0; y < SIGN_ART_H; y++) for (let x = 0; x < SIGN_EMBLEM + 8; x++) {
@@ -288,8 +228,6 @@ function paintCoil(img) {
   }
   for (let y = cy + 28; y < SIGN_ART_H - 6; y++) for (let x = cx + 20; x < cx + 25; x++) put(img, x, y, mix([110, 82, 44], [214, 176, 112], ((x + y) % 5) / 5));
 }
-/** A port signboard: the yards' board (merchantYardArt.js board), its emblem and its word (systems/portPlaces.js
- *  PORT_PLACES `sign`): the shipyard's anchor and SHIPS, the crew hall's coil and CREW. Row 0 is the board's top. */
 export function portSignArt(place) {
   const crew = place === 'crewhall';
   const img = board(crew ? 0x51b3 : 0x51b1);
@@ -298,9 +236,9 @@ export function portSignArt(place) {
   return img;
 }
 
-/** Each picture of the port's own and its painter, in record order - painted one at a time (scenes/portHost.js paints a
- *  few a frame: the twenty-six at once were a frame's ~60 ms at the first port stood, AUDIT SHIPYARDS L5-5).
- *  @type {ReadonlyArray<readonly [number, () => any]>} */
+/**
+ * @type {ReadonlyArray<readonly [number, () => any]>}
+ */
 export const PORT_PAINTERS = Object.freeze([
   [PORT_REC.wood, () => yardWoodArt()],
   [PORT_REC.plank, () => yardPlankArt()],
@@ -329,13 +267,8 @@ export const PORT_PAINTERS = Object.freeze([
   [PORT_REC.flame, () => portFlameArt()],
   [PORT_REC.embers, () => portEmbersArt()],
 ]);
-/** BEACON-TOWER: HOW A PICTURE IS UPLOADED where it is not as the rest - the flame a CUTOUT (renderer.uploadTexture's
- *  `cutout`: a texel under half alpha is a hole), and the fire's two their OWN LIGHT (renderer.uploadEmissionTexture,
- *  `white`: the picture is its own emission, as the gate's fires and the realm's lights are - lit at any hour, by
- *  nothing else's light). By record. */
 export const PORT_HOW = Object.freeze({
   [PORT_REC.flame]: Object.freeze({ cutout: true, glows: true }),
   [PORT_REC.embers]: Object.freeze({ cutout: false, glows: true }),
 });
-/** Every picture the port's two wear, by record - what a host uploads under PORT_ARCHIVE before it draws. */
 export const portArt = () => PORT_PAINTERS.map(([rec, paint]) => [rec, paint()]);

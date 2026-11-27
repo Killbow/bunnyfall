@@ -26,6 +26,7 @@ related:
   - "enhanced-lighting-shadow-maps-and-casters"
 invariants:
   - "A shared-quest resync (machine.updateSharedQuest) is followed by ResourceBehaviour relinking: sceneMount isAlreadyInjected matches a standing behavior by quest UID and resource symbol, and cacheTarget re-reads the target."
+  - "A received or resynced shared quest re-arms only `TeleportPc`, `GivePc`, `TrainPc`, `GetItem`, and `RevealLocation` actions that newly turned complete (`REPLAYABLE_ONE_TIME_ACTIONS`), and never `PayMoney` or `GiveItem`."
   - "worldTick.playerWeaponHitEntity is the one OnWeaponHitEntity dispatcher. It runs after the health subtraction for melee, guards and arrows (DISC10-D H1)."
   - "PlayerMotor.holdFrame() clears landedFallDistance on held frames, so a landing reported before a warp is never charged twice (DISC8-G)."
   - "collider.restFloor rests capsule feet at r(1/cos(grade) - 1) over the ground on slopes (DISC16-A)."

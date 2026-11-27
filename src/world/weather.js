@@ -1,49 +1,7 @@
-// Weather: fog, sky variants, and sunlight dimming per weather type.
-// 1:1 with Daggerfall Unity's WeatherManager and DaggerfallSky weather
-// styles (MIT, Daggerfall Workshop). Verbatim:
-//   - WeatherType {Sunny 0, Cloudy, Overcast, Fog, Rain, Thunder, Snow}.
-//   - FogSettings per weather: Sunny/Overcast linear 0..2400 (density 0,
-//     sky excluded); Rainy exp 0.003; Snowy exp 0.005; Heavy exp 0.05
-//     (sky INCLUDED); Interior exp 0.001 and Dungeon exp 0.005 (both sky
-//     included, fog color BLACK - SetFog's interior/dungeon branch).
-//   - SetWeather mapping: Cloudy -> sunny fog (skybox TODO upstream);
-//     Overcast -> overcast fog; Fog -> RAIN sky + heavy fog; Rain ->
-//     rain sky + rainy fog; Thunder -> rain handling (storm); Snow ->
-//     snow sky + snowy fog.
-//   - WeatherStyle sky offsets: Rain1 4 / Rain2 5 / Snow1 6 / Snow2 7,
-//     picked 50/50 (Random.Range > 0.5 - engine PRNG replaced by the
-//     approved umRandom, Port-Ledger A). SkyIndex = SkyBase + offset.
-//   - Sunlight scales: Overcast 0.65, Rain 0.45, Storm 0.25, Snow 0.45,
-//     Winter 0.65 (winter applies first, precipitation overrides -
-//     SetSunlightScale order). Fog weather is IsOvercast-only -> 0.65.
-//   - IsSnowFreeClimate: Desert 224, Desert2 225, Rainforest 227,
-//     Subtropical 229.
-// AUDIT 64 F9: WindowStyle.Fog is DECLARED by DFU
-// (DaggerfallUnityEnums.cs:87-94) and spent by MaterialReader's switch
-// (MaterialReader.cs:927-929, over FogWindowColor 117,117,117 :113 and
-// FogWindowIntensity 0.5f :117), but nothing in the tree ever HANDS it
-// Fog: the only writers of a window style are DaggerfallLocation.cs:143/145
-// and DayNight.cs:120 (both IsCityLightsOn ? Night : Day),
-// DaggerfallInterior.cs:473/517/1270 (Disabled) and
-// DaggerfallBankPurchasePopUp.cs:267 (Day), and WeatherManager.cs mentions
-// no window at all. So weather does NOT choose a window style here either;
-// the table row survives in windowEmission.js for the ?window= dev
-// override, exactly as Custom does.
-// EQUIVALENCES (documented): outdoor fog COLOR is the sky's horizon fill
-// (west pixel 0) - upstream leaves it a literal TODO wishing for exactly
-// this; shadowStrength has no consumer here (no shadow maps).
-
 import { UMRandom } from '../formats/umRandom.js';
 
 export const WEATHER_TYPES = Object.freeze([
   'sunny', 'cloudy', 'overcast', 'fog', 'rain', 'thunder', 'snow',
-  // WEATHER2d (2026-09-14, Mac: "a new sand storm weather event for
-  // desert regions"): the port's own EIGHTH word, APPENDED so DFU's
-  // seven keep their enum values (a save's byte, the classic array's
-  // 0x7f mask and 5<->6 swap, WeatherTable.json's seven columns are all
-  // untouched). It is never rolled: the weather field (systems/
-  // weatherField.js) stands it as cells over the desert tables' land on
-  // a cloudy or thunder day, on the enhanced lane only.
   'sandstorm',
 ]);
 
@@ -55,20 +13,9 @@ export const FOG_SETTINGS = Object.freeze({
   heavy: { mode: 'exp', density: 0.05, start: 0, end: 0, excludeSky: false },
   interior: { mode: 'exp', density: 0.001, start: 0, end: 0, excludeSky: false },
   dungeon: { mode: 'exp', density: 0.005, start: 0, end: 0, excludeSky: false },
-  sandstorm: { mode: 'exp', density: 0.09, start: 0, end: 0, excludeSky: false },   // WEATHER2d: the port's own row - denser than the heavy fog, the sky in it (the wall is fog and cloud both)
+  sandstorm: { mode: 'exp', density: 0.09, start: 0, end: 0, excludeSky: false },
 });
 
-/** EV4: the DISTANCE HAZE follows the streamed horizon. DFU's linear
- *  0..2400 fog is tuned for TerrainDistance 3; a raised Land View
- *  Distance streamed more land and then painted every extra unit of it
- *  fully fogged, so the setting bought nothing to look at. The scale is
- *  end * (terrainDistance / 3) - 2400 stays the TD-3 base VERBATIM, a
- *  lower distance never tightens below DFU's own number (DFU doesn't),
- *  and only the LINEAR rows move: the exp rows are weather (rain, snow,
- *  heavy fog), and weather is atmosphere, not draw distance. The table
- *  above stays byte-identical; this returns the SAME frozen object
- *  whenever the scale is 1, so the default path is untouched down to
- *  identity. */
 export function scaleFogForDistance(fog, terrainDistance) {
   if (fog.mode !== 'linear' || !(terrainDistance > 3)) return fog;
   return { ...fog, end: fog.end * (terrainDistance / 3) };
@@ -80,10 +27,6 @@ export function isSnowFreeClimate(climateIndex) {
   return SNOW_FREE_CLIMATES.has(climateIndex);
 }
 
-/** SetWeather's fog choice per weather type. */
-/** DS1: `table` is WeatherManager's five settings - DFU's own by
- *  default, or the five a mod installed in their place (Dynamic Skies'
- *  ProcessFogSetting replaces them), in the same shape. */
 export function fogForWeather(weather, table = FOG_SETTINGS) {
   switch (weather) {
     case 'overcast': return table.overcast;
@@ -91,26 +34,11 @@ export function fogForWeather(weather, table = FOG_SETTINGS) {
     case 'rain':
     case 'thunder': return table.rainy;
     case 'snow': return table.snowy;
-    case 'sandstorm': return table.sandstorm ?? table.heavy;   // WEATHER2d: the port's row; a mod's five settings (Dynamic Skies) have none, so the heavy fog stands in
-    default: return table.sunny; // sunny, cloudy
+    case 'sandstorm': return table.sandstorm ?? table.heavy;
+    default: return table.sunny;
   }
 }
 
-/**
- * Sky archive offset for the weather (SkyIndex = SkyBase + offset).
- * Rain/fog/thunder pick Rain1/Rain2, snow picks Snow1/Snow2, 50/50.
- *
- * THE RETURN IS THE WeatherStyle, and 0 IS WeatherStyle.Normal
- * (DaggerfallUnityEnums: Normal 0, Rain1 4, Rain2 5, Snow1 6, Snow2 7).
- * Both hosts read it as exactly that: `offset === 0` is what selects
- * DaggerfallSky.cs:354-357's DEFAULT arm, which adds the CALENDAR
- * season to SkyBase, and it is also DaggerfallSky.cs:363-367's
- * `WeatherStyle != Normal -> showNightSky = false`. So the season must
- * NEVER be folded in here - AUDIT 39 (#15) removed the production-dead
- * `season` parameter AUDIT 23 (wts-1) added, which would have returned
- * 1/2/3 in spring/summer/winter and killed the clear night sky. The
- * season lives at the render sites, where those two laws are spelled.
- */
 export function skyOffsetForWeather(weather, rng) {
   if (weather === 'rain' || weather === 'thunder' || weather === 'fog') {
     return rng.nextFloat() > 0.5 ? 4 : 5;
@@ -121,7 +49,6 @@ export function skyOffsetForWeather(weather, rng) {
   return 0;
 }
 
-/** Verbatim SetSunlightScale: winter first, precipitation overrides. */
 export function weatherSunlightScale(weather, isWinter) {
   let scale = 1;
   if (isWinter) scale = 0.65;
@@ -129,37 +56,10 @@ export function weatherSunlightScale(weather, isWinter) {
   else if (weather === 'thunder') scale = 0.25;
   else if (weather === 'snow') scale = 0.45;
   else if (weather === 'overcast' || weather === 'fog') scale = 0.65;
-  else if (weather === 'sandstorm') scale = 0.35;   // WEATHER2d: the port's own - between a rain and a storm
+  else if (weather === 'sandstorm') scale = 0.35;
   return scale;
 }
 
-/** AT1: WeatherManager's FOUR PUBLIC FLAGS for a weather word.
- *
- *  IsRaining, IsStorming, IsSnowing and IsOvercast are what a mod asks
- *  the sky (Ambient Text's WeatherKey is the first here to), and they
- *  are not a fifth enum - they are whatever SetWeather's switch
- *  (WeatherManager.cs:442-473) has left set, over ClearAllWeather's
- *  floor (:141-156). So the table is DERIVED from the calls each case
- *  makes and not invented:
- *
- *    sunny     ClearAllWeather only                  - nothing set
- *    cloudy    SetFog(SunnyFogSettings)              - nothing set. NOT a
- *              bug here: DFU's Cloudy case is a literal `// TODO make
- *              skybox cloudy` and sets no flag, so a mod reading the sky
- *              in cloudy weather is told "clear". Ported as it stands.
- *    overcast  SetOvercast                           - overcast
- *    fog       SetRainOvercast + SetFog(Heavy)       - overcast, and NOT
- *              raining: SetRainOvercast picks a rain SKY and sets
- *              IsOvercast, while IsRaining is StartRaining's alone.
- *    rain      StartRaining -> SetRainOvercast       - raining, overcast
- *    thunder   StartStorming -> StartRaining         - raining, storming, overcast
- *    snow      StartSnowing -> SetSnowOvercast       - snowing, overcast
- *
- *  WEATHER2d's sandstorm is the port's own eighth word and DFU's switch
- *  has no case for it, so there is nothing to port: it is answered here,
- *  once, as OVERCAST - the sky in a sandstorm is not clear, and every
- *  reader of these flags should be told so. It is neither rain nor snow.
- */
 export function weatherFlags(weather) {
   return Object.freeze({
     raining: weather === 'rain' || weather === 'thunder',
@@ -170,20 +70,14 @@ export function weatherFlags(weather) {
   });
 }
 
-/** Precipitation flags for the particles milestone. */
 export function precipitationForWeather(weather) {
   if (weather === 'rain') return 'rain';
   if (weather === 'thunder') return 'storm';
   if (weather === 'snow') return 'snow';
-  if (weather === 'sandstorm') return 'sand';   // WEATHER2d: the wind-borne sand (render/windWisps.js SAND_LOOK), not the rain program
+  if (weather === 'sandstorm') return 'sand';
   return null;
 }
 
-/**
- * Fog factor at a distance: 1 = clear, 0 = fully fogged. Linear is
- * Unity's (end - d) / (end - start); exponential is exp(-density * d);
- * DS1: 'exp2' is Unity's ExponentialSquared, exp(-(density * d)^2).
- */
 export function fogFactor(settings, distance) {
   if (settings.mode === 'linear') {
     if (settings.density === 0 && settings.end <= settings.start) return 1;
@@ -197,39 +91,20 @@ export function fogFactor(settings, distance) {
   return Math.exp(-settings.density * distance);
 }
 
-/**
- * Storm lightning, verbatim AmbientEffectsPlayer.PlayLightningEffects:
- * a strike triggers every random.Next(4, 35) seconds; the clip class
- * sets the flash budget (StormLightningShort 4-8, StormLightningThunder
- * 5-10, StormThunderRoll 20-30 with the thunder delayed 1.7 s - sound
- * lands with the Audio arc, the class is exposed for it); each budget
- * slot rolls Random.value < 0.6 ONCE: a LIT slot spends TWO frames
- * (on at intensity 2, then off - the coroutine's yield inside the
- * branch plus the unconditional off-yield, :368-382), a SKIPPED slot
- * spends ONE (just the off) - NT2 (F186) fixed the port's flat
- * two-frames-per-slot, which ran a storm's flash train up to twice as
- * long. The NEXT 4-35s wait re-arms AT STRIKE time (Update:146-152
- * ticks waitCounter every frame and StartWaiting() fires with
- * PlayEffects), so successive strikes no longer drift later by each
- * run's length. The commented-out SkyColorScale flash is deprecated
- * upstream and skipped. Engine randomness -> umRandom (Port-Ledger A).
- * At night the sun is disabled, so flashes are invisible - verbatim
- * (DFU only touches LightForEffects).
- */
 export class LightningPlayer {
   constructor(seed = 1) {
     this._rng = new UMRandom((seed >>> 0) || 1);
     this._wait = this._nextWait();
     this._slots = 0;
-    this._phase = 0; // 0 waiting, 1 in-sequence
+    this._phase = 0;
     this._slotsDone = 0;
     this._litHalf = false;
     this._on = false;
-    this.lastClipClass = null; // 'short' | 'thunder' | 'roll' for audio
-    this.strikes = 0;          // BOLT: strikes so far - a host sees a new one land (systems/lightning.js localStrike)
+    this.lastClipClass = null;
+    this.strikes = 0;
   }
 
-  _int(min, max) { // random.Next semantics: max exclusive
+  _int(min, max) {
     return min + Math.floor(this._rng.nextFloat() * (max - min));
   }
 
@@ -237,13 +112,10 @@ export class LightningPlayer {
     return this._int(4, 35);
   }
 
-  /** Advance one rendered frame; returns the sun intensity multiplier. */
   tick(dtSeconds) {
-    // waitCounter ticks every Update (:146), flash run or no flash run.
     this._wait -= dtSeconds;
     if (this._phase === 0) {
       if (this._wait > 0) return 1;
-      // Strike: pick the clip class and its flash budget.
       const pick = this._rng.nextFloat();
       let min;
       let max;
@@ -256,16 +128,12 @@ export class LightningPlayer {
       }
       this._slots = this._int(min, max);
       this._phase = 1;
-      this.strikes++;   // BOLT: counted, never drawn from the stream - DFU's schedule is untouched
+      // Strikes are counted and never drawn from the stream, so the DFU schedule is untouched.
+      this.strikes++;
       this._slotsDone = 0;
       this._litHalf = false;
-      // StartWaiting() fires WITH PlayEffects (:150-151): the next wait
-      // is armed at STRIKE, not at the end of the flash run.
       this._wait = this._nextWait();
     }
-    // Coroutine frames: a lit slot's second frame is its off half; a
-    // fresh slot rolls once - lit spends this frame ON, skipped spends
-    // it OFF and completes immediately.
     if (this._litHalf) {
       this._on = false;
       this._litHalf = false;
@@ -279,13 +147,12 @@ export class LightningPlayer {
     }
     if (this._slotsDone >= this._slots) {
       this._phase = 0;
-      this._on = false;   // "Reset values just to be sure" (:384-386)
+      this._on = false;
     }
     return this._on ? 2 : 1;
   }
 }
 
-/** 50/50 rng for the sky variant, seedable for deterministic shots. */
 export function weatherRng(seed = 1) {
   return new UMRandom((seed >>> 0) || 1);
 }

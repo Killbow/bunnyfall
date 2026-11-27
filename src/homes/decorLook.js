@@ -1,25 +1,15 @@
-// What the decoration look may offer for the thing under the crosshair. One call, run at once: a later
-// confirm/discard list can record the same action instead of performing it.
-// A player piece that stores or crafts is still that player's decoration. The building's own furniture may
-// only be taken out. A room's swing door (`intdoor:`) may be taken out, and nothing else. An exit, a chained
-// door or a ladder is the building's structure.
-
 import { t } from '../ui/textManager.js';
 
 const NONE = Object.freeze({ move: false, duplicate: false, remove: false, out: false });
 
-/** Who may use a chest or a station, in the door's order: a press moves it on. */
 export const DECOR_USE_MODES = Object.freeze(['private', 'friends', 'party', 'guild']);
-/** The row's word, the door's shape: "Who may use: Me". */
 export const DECOR_USE_WORDS = Object.freeze({ private: 'Me', friends: 'Friends', party: 'Party', guild: 'Guild' });
 export const decorUseLabel = (mode) => t('decor.look.use', 'Who may use: {who}', { who: DECOR_USE_WORDS[mode] ?? DECOR_USE_WORDS.private });
 export const decorUseNext = (mode) => DECOR_USE_MODES[(Math.max(0, DECOR_USE_MODES.indexOf(mode)) + 1) % DECOR_USE_MODES.length];
-/** A hall chest is the guild's. A press moves the lowest rank that may open it, and every higher rank may too. */
 export const HALL_USE_RANKS = Object.freeze([3, 2, 1, 0]);
 export const HALL_USE_WORDS = Object.freeze({ 3: 'Everyone', 2: 'Members', 1: 'Officers', 0: 'Guildmaster' });
 export const decorHallRankNext = (rank) => HALL_USE_RANKS[(Math.max(0, HALL_USE_RANKS.indexOf(rank)) + 1) % HALL_USE_RANKS.length];
 export const decorHallUseLabel = (rank) => t('decor.look.hall', 'Who may use: {who}', { who: HALL_USE_WORDS[rank] ?? HALL_USE_WORDS[3] });
-/** The handles a press on Friends or Party sends. Party leaves the owner out. */
 export function decorUseCircle(social) {
   const friends = [];
   const party = [];
@@ -29,8 +19,6 @@ export function decorUseCircle(social) {
   return { friends, party };
 }
 
-/** `decor` a placed piece, `container` or `station` one that does that, `door` a placed door, `roomdoor` one of
- *  the building's own swing doors, `base` the building's own furniture, `structural` an exit, a chained door or a ladder. */
 export function decorAimKind(key, piece) {
   if (piece?.roomDoor) return 'roomdoor';
   if (piece) {
@@ -47,11 +35,7 @@ export function decorAimKind(key, piece) {
   return null;
 }
 
-/**
- * Move, duplicate and remove, for one aim. Nothing for the building's own furniture or its structure, nor when
- * the player may not edit this room. A piece that holds anything is not removed. One's own thing is not copied.
- * @param {{ kind?: string, key?: string, piece?: any, holds?: boolean, mayEdit?: boolean } | null} aim
- */
+/** @param {{ kind?: string, key?: string, piece?: any, holds?: boolean, mayEdit?: boolean } | null} aim */
 export function decorLookOffers(aim) {
   if (!aim || aim.mayEdit === false) return { ...NONE };
   const kind = aim.kind ?? decorAimKind(aim.key, aim.piece);
@@ -67,8 +51,6 @@ export function decorLookOffers(aim) {
 const PLAQUE_LABEL = { move: 'Move', duplicate: 'Duplicate', remove: 'Remove', rename: 'Rename', out: t('decor.look.takeOut', 'Take out') };
 
 /**
- * The hover plaque's title and its wheel list, for one aim while decorating. No list, the name the room already
- * had. A chair the room does not name on its own takes the catalogue's name.
  * @param {{ title?: string, subs?: any, actions?: any[] } | null} named
  * @param {{ kind?: string, key?: string, piece?: any, holds?: boolean, mayEdit?: boolean, name?: string } | null} aim
  */
@@ -80,12 +62,11 @@ export function decorPlaque(named, aim) {
   if (offers.remove) actions.push({ id: 'remove', label: PLAQUE_LABEL.remove });
   if (offers.rename) actions.push({ id: 'rename', label: PLAQUE_LABEL.rename });
   if (offers.access) actions.push({ id: 'access', label: aim.use || decorUseLabel('private') });
-  if (offers.out) actions.push({ id: 'out', label: aim?.holds ? t('decor.look.takeOutHolds', 'Take out (its contents to your pack)') : PLAQUE_LABEL.out });   // BUNNYFALL: what it holds goes to the pack
+  if (offers.out) actions.push({ id: 'out', label: aim?.holds ? t('decor.look.takeOutHolds', 'Take out (moves contents to your pack)') : PLAQUE_LABEL.out });
   if (!actions.length) return named ?? null;
   return { ...(named && typeof named === 'object' ? named : {}), title: named?.title || aim?.name || 'Piece', actions };
 }
 
-/** A built-in piece while decorating: its name, and Take out alone. Not decorating, the name the room already had. */
 export function decorBuiltInPlaque(title, entry, editing) {
   const name = title || 'Piece';
   if (!editing || !entry?.baseKey) return title ? { title } : null;
@@ -93,20 +74,11 @@ export function decorBuiltInPlaque(title, entry, editing) {
   return decorPlaque({ title: name }, { key: entry.baseKey, kind: 'base', mayEdit: true, name, holds });
 }
 
-/** RPT1026-WORLD DECOR-VERBS: the keys the decorator writes its verbs on while it browses - a placed piece (indoors or in
- *  a yard), the room's own furniture and cupboards, a swing door and a placed one. */
 const DECOR_VERB_KEYS = Object.freeze(['decor:', 'base:', 'container:', 'shelf:', 'chair:', 'bed:', 'door:', 'act:decor:']);
 export const decorVerbKey = (key) => typeof key === 'string' && DECOR_VERB_KEYS.some((k) => key.startsWith(k));
 
-/**
- * RPT1026-WORLD DECOR-VERBS (a private report, 2026-10-25: since the decorator's new menus, nothing in the caravan could
- * be moved): WHERE NO PLAQUE IS DRAWN, THE PRESS STILL HAS ITS VERB. Since the overhaul a placed piece is moved by a
- * press on it, the plaque's lit row - and the plaque is drawn on the enhanced skin alone, never on a touch screen nor on
- * the classic skin with quick loot off (ui/worldPlaque.js), so there the hover folded no row and a press on a piece
- * opened its chest or did nothing: no Move but the catalogue's In this room. There the decorator's frame is folded all
- * the same, with its first verb alone - the row the plaque lights first, so a press does what it does on the plaque, and
- * no wheel steps a list nobody sees. Anything else folds nothing.
- */
+// The plaque is not drawn on touch screens or on the classic skin without quick loot. There a press uses only the
+// first verb of the frame, the row the plaque lights first.
 export function decorPressFrame(frame) {
   if (frame?.kind !== 'actions' || !decorVerbKey(frame.key) || !frame.rows?.length || frame.startUnlit) return null;
   return { ...frame, rows: frame.rows.slice(0, 1) };

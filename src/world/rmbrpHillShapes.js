@@ -1,26 +1,7 @@
-// FIELD BUGS 2026-10-05 HILL-SHAPES (Discord: "Houses in Ipsham are floating" - "Whole crib is f up"; "this particular
-// structure is frequently flying", a gazebo on a stepped stone base): THE RMB RESOURCE PACK'S HILLS, MEASURED.
-//
-// Beautiful Villages stands classic houses, temples, docks and a gazebo (74088) on the pack's hills at the heights the
-// author read off the pack's own meshes, and DFU stands them there (RMBLayout.AddModels / AddMiscBlockModels read no
-// terrain) on the pack's hill. The port draws its own hill (world/townStandIns.js, the pieces the mods borrow), and it
-// was the catalogue's mound - 3, 6 or 10 m in radius and 0.6-3.5 m high, where the pack's are 5-47 m in reach and
-// 1.4-16 m high - so what the author stood on a hill's top hung over a smaller mound: Ipsham's TEMPASH3 houses 4.1-4.2 m
-// in the air (hill 52758, its plateau 3.9 m up and 25-34 m out), TVRNAS03's gazebo 2-2.6 m (hill 52025), and
-// TREES-SEATED (FIELD BUGS 2026-10-03b) said the mounds themselves, not fixed.
-//
-// Each hill is a POLAR PROFILE measured off the pack's published mesh by tools/rmbrpHills.mjs --shapes (as Unity imports
-// it, x mirrored, at the prefab's scale; nothing of the pack is carried): `c` the raised footprint's centre, `top` the
-// height there, and along SHAPE_BEARINGS bearings (bearing k at k x 22.5 degrees from +x towards +z) the hill's `reach`
-// and SHAPE_RINGS heights out along it (`rings[k][j]` at (j + 1) / SHAPE_RINGS of the reach; the last, the rim, the
-// mesh's base). Metres, in the model's own frame. Each is the median of the pack's surface in its cell, so the stand-in
-// is the hill's shape and size and not its sculpt: 0.03-0.32 m from the pack's surface at the median over each hill, and
-// of every classic model both packs stand on a hill, none hangs a metre over the stand-in where the pack holds it (more
-// than a metre, up to 7.3 m, under five blocks' models before - 513 of the packs' grid cells).
+// Measured shapes of the RMB resource pack's hills, so stand-in mounds seat models at the pack's heights.
 export const SHAPE_BEARINGS = 16;
 export const SHAPE_RINGS = 10;
 
-/** id -> { c: [x, z], top, reach: [SHAPE_BEARINGS], rings: [SHAPE_BEARINGS][SHAPE_RINGS] } (the tool's own print). */
 export const RMBRP_HILL_SHAPES = Object.freeze({
   52012: { c: [0.27, -0.11], top: 2.79, reach: [10.53, 11.55, 12.29, 11.29, 10.09, 11.05, 11.93, 11.71, 10.79, 11.65, 11.29, 10.84, 10.42, 10.87, 10.52, 10.94],
     rings: [[2.69, 2.58, 2.45, 2.19, 1.74, 1.3, 0.73, 0.3, -0.06, -0.28],

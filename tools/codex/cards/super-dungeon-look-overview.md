@@ -14,6 +14,7 @@ files:
   - src/render/auraRing.js
   - src/render/gateTelegraph.js
   - src/tools/abyssLab.js
+  - src/world/sdRiftModel.js
 routes: []
 tables: []
 replacesBible:
@@ -35,6 +36,7 @@ invariants:
 traps:
   - "`src/world/sdLook.js` mirrors light constants from their owning modules (`SD_LAMP_COLOR`, `SD_FX_COLOR`, `SD_GLOW_COLORS`, and `SD_BEAM_CORE`); always edit the owning module because tests assert equality."
   - "`SD_HOUR_GRADE` applies only on the Shattered Hour lane renderer via `setSceneGrade`, while the Hollow retains default `AIR_ADAPT_KEY` (`0.18`) and `AIR_ADAPT_MAX` (`1.8`)."
+  - "The renderer uploads a picture's first row at v 0 with no flip, so `cell` runs v down the atlas rows with `t`. Running v up from the last row draws every cell mirrored across the atlas."
 dfu: []
 tags:
   - super-dungeons

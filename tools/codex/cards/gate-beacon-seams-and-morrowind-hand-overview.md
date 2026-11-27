@@ -39,6 +39,7 @@ invariants:
 traps:
   - "Vampire stat penalties (`vampireStatMod` in `src/afflictions/vampirism.js`) apply `-20` only in direct sunlight (`playerInSunlight`), not by clock hour alone."
   - "Gate site selection must never read modded location records or clients diverge on gate placement."
+  - "A `SEAM_RULES` change moves collider and nav-mesh positions; bump `NAV_BAKE_VERSION` in `src/ai/navClient.js` with it."
 dfu: []
 tags:
   - "oblivion-gate"

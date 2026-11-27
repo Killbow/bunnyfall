@@ -51,7 +51,7 @@ export const WARDROBE_SOURCES = Object.freeze([
   wordPair('world', () => t('coll.src.world', 'Around the Bay')),
   wordPair('account', () => t('coll.src.account', 'Your Account')),
   wordPair('patrons', () => t('coll.src.patrons', 'Patrons')),
-  wordPair('staff', () => t('coll.src.staff', 'The Game’s Staff')),
+  wordPair('staff', () => t('coll.src.staff', 'Game Staff')),
   wordPair('bestowed', () => t('coll.src.bestowed', 'Bestowed by Name')),
 ]);
 const SOURCE_IDS = WARDROBE_SOURCES.map(([id]) => id);
@@ -94,14 +94,14 @@ export const AVAIL_LINE = Object.freeze({
   open: () => t('coll.availLine.open', 'You can earn it now.'),
   chance: () => t('coll.availLine.chance', 'You can earn it now, by chance. It may take a lot of tries.'),
   ranked: () => t('coll.availLine.ranked', 'Held only while you stay on top.'),   // AUDIT COLLECTIONS-II (lane 1): a #1 short of a board's floor holds nothing, so it passes to no one
-  seasonal: (/** @type {string} */ date) => t('coll.availLine.seasonal', 'Only during the Witches’ Festival, which is on until {date}.', { date }),
-  offseason: () => t('coll.availLine.offseason', 'Only during the Witches’ Festival, which is not on now.'),
-  patron: () => t('coll.availLine.patron', 'Held while your pledge stands.'),
+  seasonal: (/** @type {string} */ date) => t('coll.availLine.seasonal', 'Available only during the Witches\' Festival, which runs until {date}.', { date }),
+  offseason: () => t('coll.availLine.offseason', 'Available only during the Witches\' Festival, which is not currently active.'),
+  patron: () => t('coll.availLine.patron', 'Yours while your pledge remains active.'),
   dormant: () => t('coll.availLine.dormant', 'Not open to players yet.'),
   auto: () => t('coll.availLine.auto', 'Every new account gets this automatically. It can’t be earned later.'),
-  staff: () => t('coll.availLine.staff', 'Held by the game’s staff alone.'),
+  staff: () => t('coll.availLine.staff', 'Reserved for game staff.'),
   bestowed: () => t('coll.availLine.bestowed', 'It cannot be earned.'),
-  closed: () => t('coll.availLine.closed', 'Closed to newcomers: only someone who played before it closed can still bring it to an account.'),
+  closed: () => t('coll.availLine.closed', 'Closed to new players. Only players from before the cutoff can still claim it on their account.'),
   retired: () => t('coll.availLine.retired', 'It can no longer be obtained. Those who hold it keep it.'),
 });
 
@@ -122,19 +122,19 @@ export const TABLE_CHAMPION_FLOOR = Object.freeze({ iliacchampion: Object.freeze
 const bestowed = () => t('coll.how.bestowed', 'Made for one player and granted to them by name.');
 const patron = (/** @type {string} */ tier) => () => t('coll.how.patron', 'Support Bunnyfall on Patreon at the {tier} tier, then link Patreon from your profile. It can also be granted by name.', { tier: TITLE_TEXT[/** @type {keyof typeof TITLE_TEXT} */ (tier)] });
 /** Apostle: a Patreon tier's title no pledge maps yet (server-account/wrangler.toml PATREON_TIERS), held by name alone. */
-const apostle = () => t('coll.how.apostle', 'A Patreon reward with no tier to pledge yet. For now it’s granted by name.');
+const apostle = () => t('coll.how.apostle', 'A Patreon reward without an active pledge tier yet. For now, it is granted by name.');
 const developer = () => t('coll.how.developer', 'The game’s developers.');
 const dungeonMaster = () => t('coll.how.dungeonmaster', 'The game’s Dungeon Master, who may speak to chat in orange with /dm.');
-const broker = (/** @type {string} */ id) => () => t('coll.how.broker', 'Buy it from the Sigil Broker for {price} Deadlands Embers. You earn Embers by closing Dagon’s Breaches, killing Sea Serpents and taking Elite Breach Redoubts.', { price: insigniaById(id)?.price ?? 0 });   // AUDIT COLLECTIONS-II (lane 1): every ember the purse counts (accounts.js EMBERS_EARNED_SQL)
+const broker = (/** @type {string} */ id) => () => t('coll.how.broker', 'Buy it from the Sigil Broker for {price} Deadlands Embers. You earn Embers by closing Dagon\'s Breaches, killing Sea Serpents, and taking Elite Breach Redoubts.', { price: insigniaById(id)?.price ?? 0 });   // AUDIT COLLECTIONS-II (lane 1): every ember the purse counts (accounts.js EMBERS_EARNED_SQL)
 const wyrd = (/** @type {string} */ id) => () => t('coll.how.wyrdSister', 'Buy it from a Wyrd Sister for {price} Soul Cakes during the Witches’ Festival.', { price: wareById(id)?.price ?? 0 });
-const remnant = (/** @type {keyof typeof REMNANT_ODDS} */ k) => () => t('coll.how.remnant', 'A chance of one in {n} each time you help break the Brass Remnant in an Abyss Dungeon.', { n: REMNANT_ODDS[k] });
-const serpent = (/** @type {keyof typeof SERPENT_ODDS} */ k) => () => t('coll.how.serpent', 'A chance of one in {n} each time a Sea Serpent you fought is slain, if your own fire dealt a real share of your ship’s.', { n: SERPENT_ODDS[k] });   // AUDIT COLLECTIONS-II (lane 1): rolled a player, on a dealing claim alone (serpents.js)
+const remnant = (/** @type {keyof typeof REMNANT_ODDS} */ k) => () => t('coll.how.remnant', 'A one in {n} chance each time you help break the Brass Remnant in an Abyss Dungeon.', { n: REMNANT_ODDS[k] });
+const serpent = (/** @type {keyof typeof SERPENT_ODDS} */ k) => () => t('coll.how.serpent', 'A one in {n} chance each time a Sea Serpent you fought is slain. Your own fire must deal a real share of the damage from your ship.', { n: SERPENT_ODDS[k] });   // AUDIT COLLECTIONS-II (lane 1): rolled a player, on a dealing claim alone (serpents.js)
 /** BUNNYFALL (2026-11-26, caverns): a ware of the Cartographers' Society, bought with Survey Seals (net/mine/societyLaw.js). */
-const society = (/** @type {string} */ id) => () => t('coll.how.society', 'Buy it from the Cartographers’ Society for {price} Survey Seals, earned by its ore contracts.', { price: SOCIETY_WARES.find((w) => w.id === id)?.seals ?? 0 });
+const society = (/** @type {string} */ id) => () => t('coll.how.society', 'Buy it from the Cartographers’ Society for {price} Survey Seals, earned by completing its ore contracts.', { price: SOCIETY_WARES.find((w) => w.id === id)?.seals ?? 0 });
 const redoubt = (/** @type {keyof typeof REDOUBT_OF} */ k) => () => t('coll.how.redoubt', 'Take Redoubt {n} or a deeper one in the Elite Breach (a Rehearsal does not count).', { n: REDOUBT_OF[k] });
 const hoursFirst = () => t('coll.how.hoursfirst', 'Granted by name to the first company to break an Abyss Dungeon.');
 const spireFirst = () => t('coll.how.spirefirst', 'Granted by name to the first company to take Redoubt 10.');
-const arenaTop = () => t('coll.how.arenachampion', 'Stand first on the Arena’s ranked board this season, with at least {bouts} rated bouts against {foes} different opponents.', { bouts: ARENA_CHAMPION_MIN_BOUTS, foes: ARENA_CHAMPION_MIN_FOES });
+const arenaTop = () => t('coll.how.arenachampion', 'Hold first place on the Arena ranked leaderboard this season, with at least {bouts} rated bouts against {foes} different opponents.', { bouts: ARENA_CHAMPION_MIN_BOUTS, foes: ARENA_CHAMPION_MIN_FOES });
 /** AUDIT COLLECTIONS-II (lane 4): the crown's own row names its kingdom (the glyph's word, in the player's language) - a
  *  kingdom's English name inside a translated sentence was the one word the player's language could not have. */
 const crown = () => t('coll.how.crown', 'Belong to a company that holds this kingdom’s crown seat.');
@@ -145,9 +145,9 @@ const PER_CHARACTER = Object.freeze({ scope: 'character' });
 /** HUNTERS-MARK, MARKS-OF-MASTERY: a title's count off the law both ends read (net/huntLaw.js) - the account's board
  *  clears, the serpents it helped slay - and a profession's Master. */
 const countOf = (/** @type {ReadonlyArray<ReadonlyArray<string | number>>} */ list, /** @type {string} */ id) => Number(list.find(([k]) => k === id)?.[1] ?? 0);
-const hunt = (/** @type {string} */ id) => () => t('coll.how.hunt', 'Clear {n} bounties from the towns’ bounty boards. Every character of your account counts.', { n: countOf(HUNT_TITLES, id) });
+const hunt = (/** @type {string} */ id) => () => t('coll.how.hunt', 'Clear {n} bounties from town bounty boards. Progress is shared across all characters on your account.', { n: countOf(HUNT_TITLES, id) });
 const sea = (/** @type {string} */ id) => () => t('coll.how.sea', 'Help slay {n} Sea Serpents. One serpent a day counts.', { n: countOf(SEA_TITLES, id) });
-const master = (/** @type {string} */ prof) => () => t('coll.how.mastery', 'Reach Master in {profession} on a living character of your account.', { profession: professionName(prof) });
+const master = (/** @type {string} */ prof) => () => t('coll.how.mastery', 'Reach Master in {profession} on any living character on your account.', { profession: professionName(prof) });
 
 /** THE QUESTLINE THAT PAYS A TITLE (net/questlineClaims.js QL_SERVICE_LINES), its line's own words (qlLines.js): its
  *  name, and who begins it from what level - or the line it follows. */
@@ -160,8 +160,8 @@ const questline = (/** @type {string} */ title) => () => {
   if (!l) return '';
   const after = l.opens.after ? QL_LINES.find((x) => x.id === l.opens.after) : null;
   return after
-    ? t('coll.how.questlineAfter', 'Finish the questline {line}, open once {after} is done. Offered by {giver}.', { line: l.title(), giver: l.giver(), after: after.title() })
-    : t('coll.how.questline', 'Finish the questline {line}, open from level {level}. Offered by {giver}.', { line: l.title(), giver: l.giver(), level: l.opens.level ?? 1 });   // AUDIT COLLECTIONS-II (lane 4): the giver last - a giver is a name and its office, and an office left open ran into the words after it
+    ? t('coll.how.questlineAfter', 'Finish the questline {line}, available after completing {after}. Offered by {giver}.', { line: l.title(), giver: l.giver(), after: after.title() })
+    : t('coll.how.questline', 'Finish the questline {line}, available from level {level}. Offered by {giver}.', { line: l.title(), giver: l.giver(), level: l.opens.level ?? 1 });   // AUDIT COLLECTIONS-II (lane 4): the giver last - a giver is a name and its office, and an office left open ran into the words after it
 };
 
 /** @typedef {{ src: string, avail: string, how: () => string, look?: () => string, note?: () => string, with?: ReadonlyArray<string>, via?: string, scope?: string }} WardrobeEntry */
@@ -176,7 +176,7 @@ const MASTERS = Object.freeze(Object.fromEntries(Object.entries(MASTERY_TITLES).
 /** @type {Readonly<Record<string, Readonly<Record<string, WardrobeEntry>>>>} */
 export const WARDROBE = Object.freeze({
   title: Object.freeze({
-    founder: E('account', 'closed', () => t('coll.how.founder', 'Every registered account that first played by noon UTC on 25 September 2026, or that’s granted it by name. A guest from before then earns it by registering, and a character from before then brought onto your account counts too.')),   // AUDIT COLLECTIONS-II (lane 1): server-account/src/titles.js FOUNDER_UNTIL, firstPlayed, FOUNDER_HANDLES; founderLink.js
+    founder: E('account', 'closed', () => t('coll.how.founder', 'Awarded to accounts that played by noon UTC on 25 September 2026, or granted by name. A guest from before then earns it by registering, and so does an account that adds a character from before then.')),   // AUDIT COLLECTIONS-II (lane 1): server-account/src/titles.js FOUNDER_UNTIL, firstPlayed, FOUNDER_HANDLES; founderLink.js
     developer: E('staff', 'staff', developer, { with: ['aura:seraphwings', 'glyph:dev'] }),
     dungeonmaster: E('staff', 'staff', dungeonMaster, { with: ['glyph:dm'] }),
     disciple: E('patrons', 'patron', patron('disciple'), { with: ['glyph:disciple'] }),
@@ -186,15 +186,15 @@ export const WARDROBE = Object.freeze({
     penitent: E('bestowed', 'bestowed', bestowed, { with: ['glyph:penitent'] }),
     gatebreaker: E('broker', 'open', broker('title:gatebreaker')),
     cromwarksurvivor: E('broker', 'open', () => t('coll.how.cromwarksurvivor', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Dusk Tokens. Dusk Tokens drop from the monsters of the Wrothgarian Mountains.', { price: insigniaById('title:cromwarksurvivor')?.price ?? 0 })),
-    heartwarden: E('broker', 'open', () => t('coll.how.heartwarden', 'Stand ten minutes on the purple haze’s counter in the Heart, then buy it from Nyx for {price} Dusk Tokens.', { price: insigniaById('title:heartwarden')?.price ?? 0 })),
+    heartwarden: E('broker', 'open', () => t('coll.how.heartwarden', 'Be in the Heart when the purple haze counter reaches ten minutes, then buy it from Nyx for {price} Dusk Tokens.', { price: insigniaById('title:heartwarden')?.price ?? 0 })),
     herald: E('patrons', 'patron', patron('herald'), { with: ['glyph:herald'] }),
     // AUDIT COLLECTIONS-II (lane 1): a seat's title is worn on the guildmaster's character (the token's mint); Crowned and
     // Keeper from Season 1 on (townSeatLaw.js seasonTitles: Season 0, the beta, crowns no one); the Tourney when proclaimed
     warden: E('seats', 'open', () => t('coll.how.warden', 'Lead a company that holds a town’s palace seat. Your captain character wears it as “Warden of” the town.')),
     protector: E('seats', 'open', () => t('coll.how.protector', 'Lead a company that holds a kingdom’s crown seat. Your captain character wears it as “Protector of” the kingdom.')),
-    crowned: E('seats', 'open', () => t('coll.how.crowned', 'Lead a company that holds a crown seat when a Season ends, from Season 1 on (Season 0, the beta, crowns no one). Kept for good, with the Season’s number.')),
-    keeper: E('seats', 'open', () => t('coll.how.keeper', 'Lead a company that holds a seat for a whole Season, from Season 1 on. Kept for good as “Keeper of” the town.')),
-    champion: E('seats', 'open', () => t('coll.how.champion', 'Win a kingdom’s Royal Tourney, the week-long duel ladder held at its castle when its crown calls one. You keep it for good as “Champion of” that kingdom.')),
+    crowned: E('seats', 'open', () => t('coll.how.crowned', 'Lead a company holding a crown seat at the end of Season 1 or later (Season 0 does not award crowns). Unlocked permanently with the Season number.')),
+    keeper: E('seats', 'open', () => t('coll.how.keeper', 'Lead a company that holds a town seat for an entire Season, from Season 1 onward. Unlocked permanently as “Keeper of” that town.')),
+    champion: E('seats', 'open', () => t('coll.how.champion', 'Win a kingdom\'s Royal Tourney, the week-long duel ladder held at its castle when the crown calls one. You earn it permanently as “Champion of” that kingdom.')),
     grandchampion: E('ranked', 'open', () => t('coll.how.grandchampion', 'Beat the champion of the Arena’s tenth and highest tier.')),
     arenachampion: E('ranked', 'ranked', arenaTop, { with: ['glyph:laurel'] }),
     aegis: E('bestowed', 'bestowed', bestowed, { with: ['aura:oblivionward', 'glyph:aegis'] }),
@@ -202,22 +202,22 @@ export const WARDROBE = Object.freeze({
     crystalfist: E('bestowed', 'bestowed', bestowed, { with: ['aura:resonance', 'glyph:crystalfist'] }),
     hourbreaker: E('abyss', 'chance', remnant('hourbreaker')),
     hoursfirst: E('abyss', 'retired', hoursFirst, { with: ['aura:firsthour'] }),
-    iliacchampion: E('ranked', 'ranked', () => t('coll.how.iliacchampion', 'Stand first on Iliac Hand’s ranked board this season, with at least {games} ranked games against {foes} different opponents.', TABLE_CHAMPION_FLOOR.iliacchampion)),
+    iliacchampion: E('ranked', 'ranked', () => t('coll.how.iliacchampion', 'Hold first place on the Iliac Hand ranked leaderboard this season, with at least {games} ranked games against {foes} different opponents.', TABLE_CHAMPION_FLOOR.iliacchampion)),
     // CHAP4c's titles: minted only while the service's CHAPTER_TITLES is on (server-account/wrangler.toml - off; the pin
     // reads the switch, so turning it on fails until these say so)
     chaptermaster: E('chapters', 'dormant', () => t('coll.how.chaptermaster', 'Hold the Master’s seat of a guild chapter.')),
     chapterofficer: E('chapters', 'dormant', () => t('coll.how.chapterofficer', 'Sit on a guild chapter’s council.')),
     formermaster: E('chapters', 'dormant', () => t('coll.how.formermaster', 'Lose a chapter’s Master seat. Held for the rest of that Season.')),
-    highmaster: E('chapters', 'dormant', () => t('coll.how.highmaster', 'Shown in place of Chapter Master while your chapter stands Ascendant.'), { via: 'chaptermaster' }),
-    seasonmaster: E('chapters', 'dormant', () => t('coll.how.seasonmaster', 'Hold a chapter’s Master seat for a whole Season. Kept for good.')),
+    highmaster: E('chapters', 'dormant', () => t('coll.how.highmaster', 'Replaces the Chapter Master title while your chapter is Ascendant.'), { via: 'chaptermaster' }),
+    seasonmaster: E('chapters', 'dormant', () => t('coll.how.seasonmaster', 'Hold a chapter’s Master seat for a full Season. You keep it permanently.')),
     ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a shopkeeper who is a lamp.')),
-    grandmaster: E('ranked', 'ranked', () => t('coll.how.grandmaster', 'Stand first on The King’s Gambit’s ranked board this season, with at least {games} ranked games against {foes} different opponents.', TABLE_CHAMPION_FLOOR.grandmaster)),
+    grandmaster: E('ranked', 'ranked', () => t('coll.how.grandmaster', 'Hold first place on the ranked leaderboard for The King\'s Gambit this season, with at least {games} ranked games against {foes} different opponents.', TABLE_CHAMPION_FLOOR.grandmaster)),
     coilbreaker: E('serpent', 'chance', serpent('coilbreaker')),
     barmaster: E('world', 'open', () => t('coll.how.barmaster', 'Buy from the Bards’ Guild for 100 Favor Tokens.')),
     legendarybartender: E('world', 'open', () => t('coll.how.legendarybartender', 'Buy from the Bards’ Guild for 500 Favor Tokens.'), { with: ['aura:beaconlight'] }),
     // FARM EXPANSION (docs/FARM-EXPANSION.md 10.2): earned by farm work on a Company farm, at most 400 a day
-    furrowhand: E('world', 'open', () => t('coll.how.furrowhand', 'Do 3,000 farm work on a Company farm: tending beds, harvesting, and carrying sacks to the wagon. At most 400 counts a day.')),
-    harvestwarden: E('world', 'open', () => t('coll.how.harvestwarden', 'Do 15,000 farm work on a Company farm. At most 400 counts a day.')),
+    furrowhand: E('world', 'open', () => t('coll.how.furrowhand', 'Complete 3,000 farm work on a Company farm by tending beds, harvesting, and carrying sacks to the wagon. Up to 400 counts per day.')),
+    harvestwarden: E('world', 'open', () => t('coll.how.harvestwarden', 'Complete 15,000 farm work on a Company farm. Up to 400 counts per day.')),
     sheafsovereign: E('world', 'open', () => t('coll.how.sheafsovereign', 'Do 45,000 farm work on a Company farm. At most 400 counts a day.'), { with: ['aura:firstlight'] }),
     spirewalker: E('spire', 'open', redoubt('spirewalker')),
     beaconlighter: E('spire', 'open', redoubt('beaconlighter')),
@@ -261,21 +261,21 @@ export const WARDROBE = Object.freeze({
   }),
   aura: Object.freeze({
     dagonfire: E('broker', 'open', broker('aura:dagonfire'), { look: () => t('coll.look.dagonfire', 'A ring of Oblivion’s fire burning on the ground at your feet.') }),
-    oblivionward: E('bestowed', 'bestowed', bestowed, { with: ['title:aegis', 'glyph:aegis'], look: () => t('coll.look.oblivionward', 'A ring of violet runes turning about your feet.') }),
-    radiance: E('bestowed', 'bestowed', bestowed, { with: ['title:primarch', 'glyph:primarch'], look: () => t('coll.look.radiance', 'A column of golden light about you.') }),
+    oblivionward: E('bestowed', 'bestowed', bestowed, { with: ['title:aegis', 'glyph:aegis'], look: () => t('coll.look.oblivionward', 'A ring of violet runes turning around your feet.') }),
+    radiance: E('bestowed', 'bestowed', bestowed, { with: ['title:primarch', 'glyph:primarch'], look: () => t('coll.look.radiance', 'A column of golden light around you.') }),
     shadowcloak: E('bestowed', 'bestowed', bestowed, { with: ['title:shadowfang', 'glyph:shadowfang'], look: () => t('coll.look.shadowcloak', 'A hooded cloak of shadow and crimson light.') }),
     seraphwings: E('staff', 'staff', developer, { with: ['title:developer', 'glyph:dev'], look: () => t('coll.look.seraphwings', 'A halo of golden light over your head.') }),
-    resonance: E('bestowed', 'bestowed', bestowed, { with: ['title:crystalfist', 'glyph:crystalfist'], look: () => t('coll.look.resonance', 'Tiny purple crystals rising and falling about your feet.') }),
+    resonance: E('bestowed', 'bestowed', bestowed, { with: ['title:crystalfist', 'glyph:crystalfist'], look: () => t('coll.look.resonance', 'Tiny purple crystals rising and falling around your feet.') }),
     turninghour: E('abyss', 'chance', remnant('turninghour'), { look: () => t('coll.look.turninghour', 'A turning wheel of brass gears and gold light.') }),
     firsthour: E('abyss', 'retired', hoursFirst, { with: ['title:hoursfirst'], look: () => t('coll.look.firsthour', 'The Turning Hour’s wheel in the light of the first dawn.') }),
-    maelstrom: E('serpent', 'chance', serpent('maelstrom'), { look: () => t('coll.look.maelstrom', 'A whirlpool of tide and foam about your feet.') }),
+    maelstrom: E('serpent', 'chance', serpent('maelstrom'), { look: () => t('coll.look.maelstrom', 'A whirlpool of tide and foam around your feet.') }),
     beaconlight: E('world', 'open', () => t('coll.how.heartsfire', 'Included with Legendary Bartender, bought from the Bards’ Guild for 500 Favor Tokens.'), { with: ['title:legendarybartender'], look: () => t('coll.look.beaconlight', 'Gold-white motes rising like a beacon’s sparks.') }),
-    burningstair: E('society', 'open', society('aura:burningstair'), { look: () => t('coll.look.burningstair', 'Embers falling about you as if down a burning stair.') }),   // BUNNYFALL (caverns): the Breach's way is off; the Society's is open
-    firstlight: E('world', 'open', () => t('coll.how.firstlightFarm', 'Comes with Sovereign of the Sheaf: 45,000 farm work on a Company farm. (Once First of the Spire’s, while the Elite Breach was open.)'), { with: ['title:sheafsovereign'], look: () => t('coll.look.firstlight', 'A dawn-white ring of light.') }),
-    lilacwarren: E('bestowed', 'bestowed', bestowed, { with: ['title:wikimaid', 'glyph:wikimaid'], look: () => t('coll.look.lilacwarren', 'Rabbits hopping round your feet on a ring of lilac light.') }),
-    nyxveil: E('broker', 'open', () => t('coll.how.nyxveil', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Dusk Tokens.', { price: insigniaById('aura:nyxveil')?.price ?? 0 }), { look: () => t('coll.look.nyxveil', 'A purple haze drifting about you, stars glinting in it.') }),
-    witchfire: E('festival', 'seasonal', wyrd('aura:witchfire'), { look: () => t('coll.look.witchfire', 'A coven’s green fire round your feet, tallow candles burning in its ring.') }),
-    sagesmoke: E('bestowed', 'bestowed', bestowed, { with: ['title:nirnrootsage', 'glyph:nirnrootsage'], look: () => t('coll.look.sagesmoke', 'Smoke billowing about you, nirnroots circling your waist and small green runes glowing round your feet.') }),
+    burningstair: E('society', 'open', society('aura:burningstair'), { look: () => t('coll.look.burningstair', 'Embers falling around you as if down a burning stair.') }),   // BUNNYFALL (caverns): the Breach's way is off; the Society's is open
+    firstlight: E('world', 'open', () => t('coll.how.firstlightFarm', 'Included with the Sovereign of the Sheaf title for completing 45,000 farm work on a Company farm. Previously awarded with First of the Spire.'), { with: ['title:sheafsovereign'], look: () => t('coll.look.firstlight', 'A dawn-white ring of light.') }),
+    lilacwarren: E('bestowed', 'bestowed', bestowed, { with: ['title:wikimaid', 'glyph:wikimaid'], look: () => t('coll.look.lilacwarren', 'Rabbits hopping around your feet on a ring of lilac light.') }),
+    nyxveil: E('broker', 'open', () => t('coll.how.nyxveil', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Dusk Tokens.', { price: insigniaById('aura:nyxveil')?.price ?? 0 }), { look: () => t('coll.look.nyxveil', 'A purple haze drifting around you, with stars glinting in it.') }),
+    witchfire: E('festival', 'seasonal', wyrd('aura:witchfire'), { look: () => t('coll.look.witchfire', 'A coven’s green fire around your feet, with tallow candles burning in its ring.') }),
+    sagesmoke: E('bestowed', 'bestowed', bestowed, { with: ['title:nirnrootsage', 'glyph:nirnrootsage'], look: () => t('coll.look.sagesmoke', 'Smoke billowing around you, nirnroots circling your waist, and small green runes glowing around your feet.') }),
   }),
   icon: Object.freeze({
     tallowskull: E('festival', 'seasonal', wyrd('icon:tallowskull')),
@@ -284,7 +284,7 @@ export const WARDROBE = Object.freeze({
     soulcake: E('festival', 'seasonal', () => t('coll.how.soulcake', 'Take {n} Soul Cakes from other players’ Hearth Offerings during the Witches’ Festival.', { n: SOULCAKE_TAKEN })),
   }),
   glyph: Object.freeze({
-    sprout: E('account', 'auto', () => t('coll.how.sprout', 'Every new account shows it for its first two weeks.')),
+    sprout: E('account', 'auto', () => t('coll.how.sprout', 'Shown automatically on every new account for the first two weeks.')),
     dev: E('staff', 'staff', developer, { with: ['title:developer', 'aura:seraphwings'] }),
     mod: E('staff', 'staff', () => t('coll.how.moderator', 'The game’s moderators.')),
     dm: E('staff', 'staff', dungeonMaster, { with: ['title:dungeonmaster'] }),

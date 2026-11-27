@@ -1,32 +1,9 @@
-// ═══════════════════════════════════════════════════════════════════
-// DW-B: DeepWaterTileData.cs (Iliac Puddle No More 1.2.2, jet082) - what
-// the deep bay knows about ONE streamed pixel: its climate and the 3 x 3
-// climates around it (blended into the floor's base depth and colour
-// band), whether it is ocean-connected (the pixel has water at all and
-// the bake is in), whether the fine bake missed its water (the local
-// fallback), and the distance-to-edge the floor's depth is built from.
-//
-// COORDINATES. The C# asks world positions and subtracts the terrain's
-// transform position, cached per frame. The port asks PIXEL-LOCAL
-// meters (lx east, lz north from the pixel's south-west corner) - the
-// frame the pixel's terrain is built in, which the floating origin never
-// moves - so `fracX = lx / 819.2` is the C#'s `(worldX - origin.x) /
-// tileWorldSize` with the origin already taken off. The global-map
-// fraction walk (GetGlobalMapFractions) is kept whole: a point just past
-// the pixel's edge still resolves to the neighbour pixel's bake cells.
-//
-// ETHER-DEEP: the C#'s map is the bake's FRAME (deepWatersBake.js BAY_FRAME, the Bay's 1000 x 500) - its clamps and its
-// map-edge refusals read the frame that holds the pixel, so an Eltheric Ocean pixel walks its own box's cells
-// (etherWatersBake.js) where it walked the Bay's clamped corner; the Bay's are the C#'s to the integer.
-// ═══════════════════════════════════════════════════════════════════
-
 import { climateBaseDepth, climateBandSignal } from './deepBathymetry.js';
 import { mapDataHasWater, isLocalPointWater } from './deepWaterClassification.js';
-import { BAY_FRAME } from './deepWatersBake.js';   // ETHER-DEEP: the map a bake's frame
+import { BAY_FRAME } from './deepWatersBake.js';
 
 const TILE_WORLD_SIZE = 819.2;
 const OCEAN_CLIMATE = 223;
-/** LocalWaterFallbackDistanceMeters: a local-fallback pixel's distance to the edge, everywhere. */
 export const LOCAL_WATER_FALLBACK_DISTANCE_METERS = Math.fround(810.00006);
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -35,14 +12,13 @@ const lerp = (a, b, t) => a + (b - a) * clamp01(t);
 
 export class DeepWaterTileData {
   /**
-   * DeepWaterTileData.Initialize.
    * @param {object} deps
    * @param {number} deps.mapPixelX
    * @param {number} deps.mapPixelY
-   * @param {object} deps.mapData - {samples, tilemap} of the streamed pixel
-   * @param {number} deps.climateIndex - MapsFile climate at the pixel
-   * @param {(x: number, y: number) => number} deps.climateAt - MapFileReader.GetClimateIndex (clamped by the caller's reader)
-   * @param {?object} deps.bake - the DeepWatersBake, or null while it is not in (HasDistanceField false)
+   * @param {object} deps.mapData
+   * @param {number} deps.climateIndex
+   * @param {(x: number, y: number) => number} deps.climateAt
+   * @param {?object} deps.bake
    */
   constructor({ mapPixelX, mapPixelY, mapData, climateIndex, climateAt, bake }) {
     this.mapPixelX = mapPixelX;
@@ -50,7 +26,7 @@ export class DeepWaterTileData {
     this.mapData = mapData;
     this.climateIndex = climateIndex;
     this.bake = bake ?? null;
-    this.frame = this.bake?.frameOf?.(mapPixelX, mapPixelY) ?? BAY_FRAME;   // ETHER-DEEP: the map this pixel's queries clamp to
+    this.frame = this.bake?.frameOf?.(mapPixelX, mapPixelY) ?? BAY_FRAME;
     this._climateAt = climateAt;
     this.usesLocalWaterFallback = false;
     this.biomeClimateIndex = this._resolveBiomeClimateIndex(climateIndex, mapPixelX, mapPixelY);
@@ -61,10 +37,8 @@ export class DeepWaterTileData {
     this.initialized = true;
   }
 
-  /** HasDistanceField: initialized and the bake loaded. */
   get hasDistanceField() { return !!(this.initialized && this.bake && this.bake.loaded); }
 
-  /** GetDistanceToEdgeMeters. */
   getDistanceToEdgeMeters(lx, lz) {
     if (this.usesLocalWaterFallback) return LOCAL_WATER_FALLBACK_DISTANCE_METERS;
     if (!this.bake || !this.bake.loaded) return Number.MAX_VALUE;
@@ -76,20 +50,17 @@ export class DeepWaterTileData {
     return this.bake.sampleEdgeDistanceMeters(g.mapPixelX, g.mapPixelY, g.fracX, g.fracZ);
   }
 
-  /** IsBakedWater. */
   isBakedWater(lx, lz) {
     if (!this.bake || !this.bake.loaded) return false;
     const g = this._global(lx, lz);
     return this.bake.isWaterAt(g.mapPixelX, g.mapPixelY, g.fracX, g.fracZ);
   }
 
-  /** IsCarvedWater(worldX, worldZ). */
   isCarvedWaterLocal(lx, lz) {
     const g = this._global(lx, lz);
     return this.isCarvedWater(g.mapPixelX, g.mapPixelY, g.fracX, g.fracZ);
   }
 
-  /** IsCarvedWater(mapPixelX, mapPixelY, fracX, fracZ). */
   isCarvedWater(mapPixelX, mapPixelY, fracX, fracZ) {
     if (this.usesLocalWaterFallback) {
       if (mapPixelX !== this.mapPixelX || mapPixelY !== this.mapPixelY) return false;
@@ -116,13 +87,13 @@ export class DeepWaterTileData {
     return false;
   }
 
-  /** GetNoiseWorldCoords: map-global meters, x east, z SOUTH (the bake's rows). */
+  // Returns map-global meters with x east and z south, in the row order of the bake, while pixel-local z runs
+  // north.
   getNoiseWorldCoords(lx, lz) {
     const g = this._global(lx, lz);
     return [(g.mapPixelX + g.fracX) * TILE_WORLD_SIZE, (g.mapPixelY + (1 - g.fracZ)) * TILE_WORLD_SIZE];
   }
 
-  /** GetBlendedClimate: the 3 x 3 neighbourhood's base depth and band, bilinear between pixel centres. */
   getBlendedClimate(lx, lz) {
     const g = this._global(lx, lz);
     const num = g.mapPixelX + g.fracX - 0.5;
@@ -144,7 +115,6 @@ export class DeepWaterTileData {
     return { baseDepth, band: lerp(num13, num14, num6) };
   }
 
-  /** GetBlendedClimateBaseDepth. */
   getBlendedClimateBaseDepth(lx, lz) { return this.getBlendedClimate(lx, lz).baseDepth; }
 
   _cacheClimateNeighborhood() {
@@ -158,17 +128,14 @@ export class DeepWaterTileData {
     }
   }
 
-  /** ClimateAtPixel: clamped to the map. */
   _climateAtPixel(mapX, mapY) {
     if (!this._climateAt) return this.climateIndex;
     const f = this.frame;
     return this._climateAt(clampInt(mapX, f.x0, f.x0 + f.w - 1), clampInt(mapY, f.y0, f.y0 + f.h - 1));
   }
 
-  /** ResolveBiomeClimateIndex: an ocean pixel near land wears its neighbours' commonest climate. */
   _resolveBiomeClimateIndex(climateIndex, mapX, mapY) {
     if (climateIndex !== OCEAN_CLIMATE) return climateIndex;
-    // With no bake the C#'s MapPixelHasLandCells answers false and every distance is float.MaxValue: offshore.
     if ((!this.bake || !this.bake.mapPixelHasLandCells(mapX, mapY)) && this._isFullyOffshore(mapX, mapY)) return climateIndex;
     if (!this._climateAt) return climateIndex;
     let result = climateIndex, best = 0;
@@ -184,7 +151,6 @@ export class DeepWaterTileData {
     return result;
   }
 
-  /** IsFullyOffshore: nine points of the pixel all more than 360 m from the coast. */
   _isFullyOffshore(mapX, mapY) {
     if (!this.bake || !this.bake.loaded) return true;
     for (let i = 0; i < 3; i++) {
@@ -213,7 +179,6 @@ export class DeepWaterTileData {
     return this._climateAt(mapX, mapY);
   }
 
-  /** GetGlobalMapFractions, with NormalizeMapFractionX/Y. */
   _global(lx, lz) {
     const fracX2 = lx / TILE_WORLD_SIZE, fracZ2 = lz / TILE_WORLD_SIZE;
     const num = this.mapPixelX + fracX2;
@@ -228,7 +193,6 @@ export class DeepWaterTileData {
     return { mapPixelX, mapPixelY, fracX, fracZ };
   }
 
-  /** ComputeOceanConnectivity: the pixel has water and the bake is in; the fallback when its fine cells are none. */
   _computeOceanConnectivity() {
     if (!this.bake || !this.bake.loaded) return false;
     if (!mapDataHasWater(this.mapData)) return false;

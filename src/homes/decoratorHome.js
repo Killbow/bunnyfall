@@ -1,7 +1,4 @@
 // @ts-check
-// The client side of decorating another player's home or caravan. A decorator sees their own draft in the room; a
-// home draft is saved on the account service, and a caravan draft stays here until it is sent. The owner's Decorators
-// window lists who may decorate and the templates sent, and a preview shows a template in the room with its price.
 import { createDecoratorsPanel, createTemplateBar } from '../ui/decoratorsPanel.js';
 import { decorPieceOf, decorYardPieceOf, DECOR_CAP, DECOR_YARD_CAP } from '../net/decorLaw.js';
 import { decoratorPieceOk, templatePrice } from '../net/decoratorLaw.js';
@@ -15,7 +12,7 @@ export const DECORATOR_TEXT = Object.freeze({
   sent: (name) => t('decor.template.sent', 'Template sent to {name}.', { name }),
   declined: (name) => t('decor.template.declined', '{name} declined your template.', { name }),
   get accepted() { return t('decor.template.accepted', 'The template is in place.'); },
-  get declinedOwner() { return t('decor.template.declinedOwner', 'The template went back to its decorator.'); },
+  get declinedOwner() { return t('decor.template.declinedOwner', 'You declined the template and returned it to the decorator.'); },
   short: (gold) => t('decor.template.short', 'You need {gold} gold in your purse and bank to accept this template.', { gold: Number(gold).toLocaleString('en-US') }),
   get full() { return t('decor.template.full', 'This template no longer fits. The room or yard would hold too many pieces.'); },
   get changed() { return t('decor.template.changed', 'The decorator changed this template. Preview it again.'); },
@@ -30,15 +27,14 @@ export const DECORATOR_TEXT = Object.freeze({
   whereCaravan: (name) => t('caravan.decorators.where', "{name}'s caravan (template)", { name }),
   get unsaved() { return t('decor.template.unsaved', 'Confirm your changes before you send the template.'); },
   get notSent() { return t('decor.template.notSent', 'The template could not be sent.'); },
-  get notRead() { return t('decor.template.notRead', 'The template could not be read.'); },
+  get notRead() { return t('decor.template.notRead', 'The template could not be loaded.'); },
   line: (name, pieces) => t('decor.decorators.line', '{name}: {pieces, plural, one {# template piece} other {# template pieces}}', { name, pieces }),
   lineSent: (name, pieces) => t('decor.decorators.lineSent', '{name}: template sent, {pieces, plural, one {# piece} other {# pieces}}', { name, pieces }),
 });
 
 /**
- * Each piece's radius in meters, off the game's own data (decorScan.js decorScanDeps: a model's ARCH3D header, a
- * flat's billboard), keyed by id. A piece whose size cannot be read is left out.
- * @param {any[]} pieces @param {{ modelRadius: (id: number) => (number | null), flatRadius: (a: number, r: number) => Promise<number | null> }} scan
+ * @param {any[]} pieces
+ * @param {{ modelRadius: (id: number) => (number | null), flatRadius: (a: number, r: number) => Promise<number | null> }} scan
  */
 export async function radiiOf(pieces, scan) {
   const out = new Map();
@@ -49,24 +45,14 @@ export async function radiiOf(pieces, scan) {
   return out;
 }
 
-/**
- * The controller. Its account doors are `homes()` and `decor()` (net/accountClient.js).
- * Its pieces are `pool`, or `poolNow()` in a yard (`yard`), measured by `scan()`.
- * `visit()` names the visit, and a yard by its key. `show(slot)` places a window.
- * `here()` answers `{ home, mapId, buildingKey, caravan }` for the room standing now.
- * `caravan()` and `caravanSet(pieces)` read and stand my caravan's pieces, unturned. `kept(rev)` follows an Accept.
- */
 export function createDecoratorHome(deps) {
   const yard = !!deps.yard;
   const poolNow = () => deps.poolNow?.() ?? deps.pool;
-  /** A decorator's draft in the home standing now; in a yard, each yard's by its visit key. */
   let dec = null;
   const drafts = new Map();
   const decNow = () => (yard ? drafts.get(deps.visit?.()) ?? null : dec);
   const areaOf = (data) => (yard ? data.yard ?? [] : data.pieces ?? []).map((p) => (yard ? decorYardPieceOf(p) : decorPieceOf(p))).filter(Boolean);
-  /** A caravan I visit as its decorator: its owner, whether granted, and the pieces it was shown with (unturned). */
   let cv = null;
-  /** The template the owner previews. */
   let prev = null;
   let panel = null, bar = null, slot = null, panelAt = null;
   let toldWaiting = -1;
@@ -74,8 +60,6 @@ export function createDecoratorHome(deps) {
   const live = (o) => !!o && o.visit === visitNow();
   const refusal = (r, fallback) => deps.refusal?.(r?.error) ?? fallback;
 
-  /** The room's list stood (worldModes.js loadHomeDecor): a decorator's own draft stands over it; an owner is told of a
-   *  template waiting, once a visit. */
   async function stood(home, mapId, buildingKey, into = null, restood = true) {
     const visit = yard ? `${mapId}:${buildingKey}` : visitNow();
     if (home?.decorator && !home.own) {
@@ -104,8 +88,6 @@ export function createDecoratorHome(deps) {
     }
   }
 
-  /** The caravan I visit told its pieces (worldModes.js applyCaravanDecor): the base a template is made against, and
-   *  whether its owner lets me send one (asked once a visit). */
   async function caravanStood(owner, doc, pieces) {
     const visit = visitNow();
     if (!cv || cv.visit !== visit || cv.owner !== owner) {
@@ -119,9 +101,10 @@ export function createDecoratorHome(deps) {
   }
 
   /**
-   * The decorator's template room for decorTool.js, or null while a preview is up or the draft is unread. Undefined
-   * means this is no decorator's room, so the host's own answer stands.
-   * @param {any} home @param {number} mapId @param {number} buildingKey @param {boolean} listed
+   * @param {any} home
+   * @param {number} mapId
+   * @param {number} buildingKey
+   * @param {boolean} listed
    */
   function roomHere(home, mapId, buildingKey, listed) {
     if (live(prev)) return null;
@@ -133,22 +116,18 @@ export function createDecoratorHome(deps) {
     }
     return undefined;
   }
-  /** The caravan I visit, as a template room - or undefined. */
   function caravanRoomHere() {
     if (!live(cv) || !cv.may) return undefined;
     return { kind: 'caravan', template: true, free: true, cap: DECOR_CAP, where: DECORATOR_TEXT.whereCaravan(cv.owner) };
   }
-  /** Whether the decorator may change this piece: their own draft's in a home, any plain piece in a caravan. */
   function editable(piece) {
     const d = decNow();
     if (live(d)) return !!piece && d.mine.has(piece.id);
     if (live(cv) && cv.may) return decoratorPieceOk(piece);
     return true;
   }
-  /** Whether the bar offers Send to owner. */
   const sendable = () => { const d = decNow(); return (live(d) && d.ready && d.mine.size > 0) || (live(cv) && cv.may); };
 
-  /** Confirm in a template room: a home's draft saved on the service; a caravan's kept until sent. */
   async function save({ put, drop }) {
     const d = decNow();
     if (live(cv) && cv.may && !live(d)) { deps.say?.(DECORATOR_TEXT.saved); return { ok: true }; }
@@ -158,7 +137,7 @@ export function createDecoratorHome(deps) {
       const write = () => Promise.resolve(deps.decor?.()?.draft({ mapId: d.mapId, buildingKey: d.buildingKey, character: deps.character?.(), draftRev: d.draftRev, put, drop, yard })).catch(() => null);
       let r = await write();
       if (r?.error === 'draft-changed') {
-        // the room and the yard share one revision: a save in the other moves it, and this area's own pieces decide
+        // The room and yard share one draft revision, so a stale save retries only when this area's pieces match.
         const again = await Promise.resolve(deps.homes?.()?.decorators({ op: 'draft', mapId: d.mapId, buildingKey: d.buildingKey, character: deps.character?.() })).catch(() => null);
         const ids = again?.ok ? areaOf(again.data).map((p) => p.id).sort().join(',') : null;
         if (ids != null && ids === [...d.mine].sort().join(',')) { d.draftRev = Number(again.data.draftRev) || 0; r = await write(); }
@@ -173,7 +152,6 @@ export function createDecoratorHome(deps) {
     } finally { d.saving = false; }
   }
 
-  /** Send to owner. `dirty` - unsaved changes in the tool (refused: Confirm first). */
   async function send(dirty = false) {
     if (dirty) { deps.say?.(DECORATOR_TEXT.unsaved); return false; }
     const d = decNow();
@@ -196,7 +174,6 @@ export function createDecoratorHome(deps) {
     return false;
   }
 
-  /** The Decorators window for a home (`at` its mapId and buildingKey) or for my caravan (`at.caravan`). */
   async function openPanel(at) {
     panel ??= createDecoratorsPanel({
       doc: deps.doc,
@@ -256,7 +233,6 @@ export function createDecoratorHome(deps) {
     return bar;
   }
   const showBar = () => { if (live(prev)) ensureBar().show({ name: prev.name, gold: prev.price?.total ?? (prev.caravan ? prev.apply?.pay ?? null : null), busy: prev.busy }); };
-  /** Stand `name`'s template here, priced: the room's pieces indoors, the yard's in the yard; all are priced. */
   async function preview(name) {
     if (live(prev)) closePreview();
     const at = panelAt;
@@ -303,7 +279,6 @@ export function createDecoratorHome(deps) {
     showBar();
     return true;
   }
-  /** Take the preview out of the room, as it was. */
   function closePreview() {
     const p = prev;
     prev = null;
@@ -312,7 +287,6 @@ export function createDecoratorHome(deps) {
     if (p.caravan) { p.pool.set(p.before); p.pool.showSaved?.(null); return; }
     for (const id of p.ids) p.pool.remove(id);
   }
-  /** Accept: a home's paid on the record with the pieces in one write; a caravan's paid from the purse and stood. */
   async function accept() {
     const p = prev;
     if (!live(p) || p.busy) return false;
@@ -364,7 +338,6 @@ export function createDecoratorHome(deps) {
       return true;
     } finally { p.busy = false; }
   }
-  /** Decline: a home template goes back to its decorator as a draft, and a caravan template is discarded. */
   async function decline() {
     const p = prev;
     if (!live(p) || p.busy) return false;
@@ -381,7 +354,6 @@ export function createDecoratorHome(deps) {
     return true;
   }
 
-  /** The owner's Decorators window for the room standing now, as an opener - or null (no home or caravan of mine). */
   function openerHere() {
     const h = deps.here?.();
     if (!h || live(prev) || !deps.homes?.()) return null;
@@ -395,10 +367,8 @@ export function createDecoratorHome(deps) {
     stood, caravanStood, roomHere, caravanRoomHere, editable, sendable, save, send,
     openPanel, closePanel, preview, closePreview, accept, decline,
     previewing: () => live(prev),
-    /** For the checks: the state standing now. */
     state: () => ({ decorator: live(dec) ? { mine: [...dec.mine], draftRev: dec.draftRev, sentAt: dec.sentAt, ready: dec.ready } : null,
       caravan: live(cv) ? { owner: cv.owner, may: cv.may } : null, preview: live(prev) ? { name: prev.name, gold: prev.price?.total ?? prev.apply?.pay ?? null, caravan: prev.caravan } : null }),
-    /** The visit ended: a preview's pieces go with the room. */
     left() { prev = null; bar?.hide(); closePanel(); },
   };
 }

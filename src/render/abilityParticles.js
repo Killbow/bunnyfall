@@ -1,4 +1,4 @@
-// Local coordinates: sideways, height, forward. Curves are sampled in order so their shape draws over time.
+// Paths return local [sideways, height, forward] offsets.
 const turn = 2 * Math.PI;
 const sin = Math.sin, cos = Math.cos;
 const paths = {
@@ -52,8 +52,6 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
   const horizontal = Math.hypot(dx,dz);
   const rightX = horizontal > .001 ? dz/horizontal : cos(yaw);
   const rightZ = horizontal > .001 ? -dx/horizontal : -sin(yaw);
-  // Build the large silhouettes from rings and moving particles, so they can
-  // still play when a neighbouring strike has filled the line-segment pool.
   if (phase === 'stroke' || self) {
     const along = distance => [at[0]+dx*distance, at[1]+(dir?.[1] ?? 0)*distance, at[2]+dz*distance];
     const plane = [dx,dir?.[1] ?? 0,dz];
@@ -85,7 +83,6 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
             g:0, drag:3, streak:.15, maxLen:.45, I:1.45 });
       }
     } else {
-      // Shed sparks along the outside edge of a cut in the direction of travel.
       for (let j=1; j<=5; j++) {
         const [x,y,z] = path(j/6,0);
         const point = along(z*reach);
@@ -98,8 +95,6 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
     }
     fx._light({ ...look, light:look.main }, along(reach*.55), .65, { life:.23 });
   }
-  // A drilling blow leaves two expanding collars at the contact plane. A shattered
-  // guard throws fragments downward; rain scatters upward where the shafts land.
   if (impact && (form === 'helix' || form === 'needle')) {
     for (let i=0; i<2; i++) fx._decal(look, at, { n:[dx,0,dz], r0:.05, r1:.3+i*.13,
       band:.055, life:.23+i*.07, delay:i*.055, I:1 });
@@ -108,7 +103,6 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
     for (let i=0; i<7; i++) fx._part(look, at, [fx.r(-2,2),fx.r(.6,2.5),fx.r(-2,2)],
       { life:.34, w:.027, g:7, streak:.065, I:1 });
   }
-  // Keep the contact accent stronger than the trail and the preparatory motes.
   const duration = charging ? .08 : self ? .28 : impact ? .07 : .13;
   const steps = impact ? 6 : 10;
   const ribbonLife = self ? .36 : impact ? .20 : .29;
@@ -124,8 +118,6 @@ export function drawAbilityArt(fx, look, at, { phase, form, yaw = 0, len = 2, sp
         at[2]+rightZ*side+dz*forward];
       if (previous) {
         const progress = (i-1)/steps;
-        // The tell gathers slowly, the stroke snaps through contact, and the
-        // finishing trace draws out as the sparks settle.
         const timing = charging ? Math.sqrt(progress) : impact ? progress*progress : progress;
         const delay = (finish ? .095 : 0) + duration*timing;
         if (!charging) {

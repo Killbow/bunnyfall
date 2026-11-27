@@ -61,13 +61,13 @@ test('a v1 POI becomes v2 at its first change, and only then', () => {
   assert.equal(edit.dirty(d.id), false);
   edit.redo();
   assert.equal(edit.docOf(d.id).v, 2);
-  // "Put back as saved" writes the saved v1 document over the v2 one: it stays v1, and clean
+  // "Revert to saved" writes the saved v1 document over the v2 one: it stays v1, and clean.
   edit.edit(d.id, 'revert', (x) => { for (const k of Object.keys(x)) delete x[k]; Object.assign(x, structuredClone(d)); });
   assert.equal(edit.docOf(d.id).v, 1);
   assert.equal(edit.dirty(d.id), false);
 });
 
-test('"Put back as saved" on a v1 POI opened unlike its saved v1 gives the saved v1, clean, at one press', () => {
+test('"Revert to saved" on a v1 POI opened unlike its saved v1 gives the saved v1, clean, at one press', () => {
   // a pack's v1 POI over its live v1, or a past v1 revision opened over the live one
   const edit = Edit.createPoiEdit({ rand });
   const live = v1Doc();

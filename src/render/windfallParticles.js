@@ -1,25 +1,6 @@
 // @ts-check
-// WINDFALL1 (2026-10-08, Mac: "These should be on by default and integrate into our enhanced environments
-// seamlessly") - WINDFALL's THREE PARTICLE SYSTEMS: the gust's leaves, the ambient falling leaves and the winter
-// boughs' snow (WindEnvironmentEffects.CreateLeaves / CreateSnow / CreateParticleSystem), run on the CPU and drawn as
-// one instanced quad each. The flows they run (where the emitter stands, its rate, the wind they ride) are
-// systems/windfallEffects.js's, set every outdoor frame.
-//
-// THE SYSTEMS, AS THE MOD BUILDS THEM: world-space simulation; a box emitter 30 x 10 x 20 about the system's place
-// (Unity's Box shape: anywhere in its volume); no start speed; a start lifetime, size and rotation each a random pick
-// between two constants (the leaves 4-8 s, 0.16-0.34 m; the ambient leaves 5-10 s, 0.14-0.30 m; the snow 3-7 s,
-// 0.05-0.14 m; a spin of -4..4 radians a second, -2..2 the snow); the leaves a random tile of their 8 x 8 sheet held for
-// the life (startFrame 0..0.999, frameOverTime 0); velocity over lifetime the flow's (the wind x its horizontal speed,
-// and its fall), the same for every live particle and changed live; the noise module at frequency 0.35, scrolling
-// 0.25, its strength the flow's. Billboards, cut out at the mod's 0.5 (Windfall/Particles: alpha-tested, Lambert-lit,
-// both faces), point-filtered as the mod's textures are imported (64 x 64 sheets of 8-pixel leaves, a 16-pixel flake).
-//
-// DEPARTURES (Port-Ledger A, WINDFALL1): UNITY'S NOISE MODULE is the engine's own noise; here three smooth channels of
-// sines at the module's frequency and scroll, added to the velocity at its strength - turbulence of the same scale and
-// pace, not the same field. THE LIGHT is the flats' (render/renderer.js flatLightAt at the player - the light the
-// trees they fall from take), not the mod's Lambert off the sun; unfogged, as the wisps are (the systems hug the eye
-// inside any fog's near field). The snow is the mod's own flake (its fallback material): the stock snow material it
-// prefers is DFU's particle prefab's, which the port's precipitation does not have.
+// Windfall's three particle systems, simulated on the CPU and drawn as one instanced quad each. The noise is three
+// sine channels at the mod's frequency and scroll, not Unity's noise field.
 
 import { buildProgram } from './glProgram.js';
 import { WINDFALL_PARTICLE_SYSTEMS, WINDFALL_EMITTER } from '../weather/windfallEffects.js';
@@ -57,12 +38,10 @@ void main() {
   outColor = vec4(t.rgb * uLight, 1.0);
 }`;
 
-/** Floats an instance carries: x, y, z, size, rotation, tile. */
 const INSTANCE_FLOATS = 6;
 const TAU = Math.PI * 2;
-const [BOX_X, BOX_Y, BOX_Z] = WINDFALL_EMITTER.box;   // AUDIT ENVIRONS W7: the emitter's box, read once (not a destructure a particle)
+const [BOX_X, BOX_Y, BOX_Z] = WINDFALL_EMITTER.box;
 
-/** One system's live particles, in flat arrays (EVERY ALLOCATION HAS AN OWNER: made once at its cap). */
 class ParticleSystemSim {
   /** @param {{ maxParticles: number, lifetime: number[], size: number[], spin: number[], sheet: number[]|null }} shape @param {() => number} random */
   constructor(shape, random) {
@@ -73,7 +52,6 @@ class ParticleSystemSim {
     this.count = 0; this.owed = 0;
   }
   clear() { this.count = 0; this.owed = 0; }
-  /** Emit one at an emitter (a box about `at`, the flow's place). */
   emitOne(at) {
     if (this.count >= this.shape.maxParticles) return;
     const i = this.count++, R = this.random, s = this.shape;
@@ -87,11 +65,9 @@ class ParticleSystemSim {
     this.spin[i] = s.spin[0] + (s.spin[1] - s.spin[0]) * R();
     this.tile[i] = s.sheet ? Math.floor(R() * 0.999 * s.sheet[0] * s.sheet[1]) : -1;
   }
-  /** A frame: the clear or the burst owed, the rate's emission, every particle aged and moved by the flow's velocity
-   *  and the noise. `t` the systems' clock (the noise's scroll). */
   step(flow, dt, t) {
     if (flow.clear) { this.clear(); flow.clear = false; }
-    if (flow.emit > 0) {   // AUDIT ENVIRONS W5: a burst (Emit), where it was asked for
+    if (flow.emit > 0) {
       const at = flow.emitAt ?? flow.position;
       for (; flow.emit > 0; flow.emit--) this.emitOne(at);
       flow.emitAt = null;
@@ -103,7 +79,7 @@ class ParticleSystemSim {
     let w = 0;
     for (let i = 0; i < this.count; i++) {
       const age = this.age[i] + dt;
-      if (age >= this.life[i]) continue;   // gone: the survivors close up behind it
+      if (age >= this.life[i]) continue;
       const x = this.pos[i * 3], y = this.pos[i * 3 + 1], z = this.pos[i * 3 + 2];
       const px = x * f, py = y * f, pz = z * f;
       const nx = Math.sin(py * 1.7 + pz * 2.3 + sc * TAU) * 0.6 + Math.sin(px * 0.9 - pz * 1.3 + sc * 3.1) * 0.4;
@@ -118,9 +94,7 @@ class ParticleSystemSim {
     }
     this.count = w;
   }
-  /** Shift every particle with the floating origin. */
   offset(o) { for (let i = 0; i < this.count; i++) { this.pos[i * 3] += o[0]; this.pos[i * 3 + 1] += o[1]; this.pos[i * 3 + 2] += o[2]; } }
-  /** Write the live particles as instances at `at` in `out`; answers how many. */
   write(out, at) {
     for (let i = 0; i < this.count; i++) {
       const o = (at + i) * INSTANCE_FLOATS;
@@ -131,10 +105,6 @@ class ParticleSystemSim {
   }
 }
 
-/**
- * The three systems and their draw. `images` { springSummer, fall, snow } - decoded top-down RGBA ({ width, height,
- * data }), any of them null until it loads (a system with no picture runs and draws nothing).
- */
 export class WindfallParticles {
   /** @param {WebGL2RenderingContext|null} gl @param {{ random?: () => number }} [opts] */
   constructor(gl, { random = Math.random } = {}) {
@@ -173,7 +143,6 @@ export class WindfallParticles {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
-  /** A picture, uploaded as the mod imports it: point-filtered, clamped, one level. */
   setImage(key, img) {
     const gl = this.gl;
     if (!gl || !img) return;
@@ -190,27 +159,21 @@ export class WindfallParticles {
     this.tex[key] = t;
   }
 
-  /** The frame's simulation, off the effects' flows (windfallEffects.js `flows`). */
   step(flows, dt) {
-    const d = Math.min(0.1, Math.max(0, dt));   // a hitch is not a tenth of a second of leaves at once
+    const d = Math.min(0.1, Math.max(0, dt));
     this.clock += d;
     this.systems.leaves.step(flows.leaves, d, this.clock);
     this.systems.ambientLeaves.step(flows.ambientLeaves, d, this.clock);
     this.systems.snow.step(flows.snow, d, this.clock);
   }
 
-  /** Every system, cleared (a new world, the mod switched off). */
   clear() { for (const s of Object.values(this.systems)) s.clear(); }
 
-  /** The floating origin moved the scene by `offset`: the particles stand where they were on the land. */
   offsetOrigin(offset) { for (const s of Object.values(this.systems)) s.offset(offset); }
 
-  /** How many stand now. */
   get live() { return this.systems.leaves.count + this.systems.ambientLeaves.count + this.systems.snow.count; }
 
   /**
-   * Draw: the two leaf systems in `sheet`'s picture ('springSummer' | 'fall'), then the snow. Depth-tested and written
-   * (a cutout), both faces. Answers whether it drew (the host marks the foreign pass).
    * @param {'springSummer'|'fall'} sheet @param {Float32Array|number[]} proj @param {Float32Array|number[]} view
    * @param {ArrayLike<number>} right @param {ArrayLike<number>} up @param {ArrayLike<number>} light
    */
@@ -242,7 +205,7 @@ export class WindfallParticles {
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, leafCount);
     }
     if (snowCount) {
-      // the snow's instances start where the leaves' end: the attributes' offset moved to them
+      // The snow instances follow the leaves', so the attribute offsets move to them and back after the draw.
       gl.vertexAttribPointer(1, 4, gl.FLOAT, false, INSTANCE_FLOATS * 4, leafCount * INSTANCE_FLOATS * 4);
       gl.vertexAttribPointer(2, 2, gl.FLOAT, false, INSTANCE_FLOATS * 4, leafCount * INSTANCE_FLOATS * 4 + 16);
       gl.bindTexture(gl.TEXTURE_2D, snowTex);
@@ -257,7 +220,6 @@ export class WindfallParticles {
     return true;
   }
 
-  /** EVERY ALLOCATION HAS AN OWNER: the program, the buffers, the vertex array, the pictures. */
   dispose() {
     const gl = this.gl;
     if (!gl) return;
@@ -269,7 +231,4 @@ export class WindfallParticles {
   }
 }
 
-// ---- the pictures ----------------------------------------------------------------------------------------------------
-/** The mod's three pictures by key, as their files are named (WindMod's asset names; vendor/windfall/Textures/ - served
- *  by scenes/windfallHost.js, which carries the bundler's glob this checked module cannot). */
 export const WINDFALL_PICTURES = Object.freeze({ springSummer: 'spring_summer_leaves', fall: 'fall_leaves', snow: 'snowflake' });

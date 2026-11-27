@@ -24,6 +24,7 @@ invariants:
   - "Young understory trees maintain JUNGLE.underClear (4.5 meters times trunk scale) from canopy trunks, and floor cover maintains coverClear (2.2 meters)."
   - "Canopy and young trees never place above JUNGLE.maxSteep (34 degrees), whereas palms and floor cover place up to floorSteep (50 degrees)."
   - "Understory trees, palms, and floor cover skip location rectangles, POI clearings, dirt tracks, and beaches."
+  - "The nature wire encodes a missing field as NaN, so `unpackNature` drops NaN and no layout may write a NaN field; a list with a non-number field crosses the wire unpacked."
 traps:
   - "Tree placement weights ground by tile record JUNGLE.ground ({1: 0.7, 2: 1, 3: 0.2}), allowing stone tiles (record 3) at reduced weight even though the floor carpet rejects stone."
   - "JUNGLE.grove.cell (32) must evenly divide 128 or species groves reset along every map pixel edge."

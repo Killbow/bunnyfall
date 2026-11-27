@@ -30,6 +30,7 @@ invariants:
   - "Each joining fighter adds `BOSS_TTK_S` times `dpsRef(lv)` to boss health at the current HP fraction, where `dpsRef(lv) = 5 + lv` with `lv` clamped between 1 and 60."
   - "Per-player damage buckets refill at `BUCKET_RATE_X` (3) times `dpsRef` per second up to `BUCKET_DEPTH_X` (15), clipping single blows at `HIT_CAP_X` (12)."
   - "Absent fighters retire their HP share after `ABSENT_RETIRE_MS` (`retireShare`, `restoreShare`), and `standsAt` preserves the remaining HP fraction if everyone retires."
+  - "`crystalStandIn` sets `crystalC` and `hostStandIn` sets `hostI`, so `standInSpell.js` routes a Cast When Strikes spell to that crystal or host body instead of the boss."
 traps:
   - "`STAND_IN_WHOLE` (`src/world/gateBoss.js`) is derived from `HIT_CAP_X * dpsRef(LV_MAX) * EG_BUCKET_X_MAX` (`12 * 65 * 1.25 = 975`) so stand-in Disintegrate claims stay below `GATE_DMG_WIRE_MAX` (100,000)."
   - "Health and magicka regeneration are disabled inside the court, and both the boss and summoned host carry `pacifyImmune`."

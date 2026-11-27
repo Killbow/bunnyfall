@@ -1,26 +1,20 @@
 // @ts-check
-// BUNNYFALL (2026-11-26, caverns): THE WAY OUT, SEEN - the owner: "the way out needs a texture as well". A timber-framed
-// opening onto daylight hung across the mouth tunnel just behind its exit door (systems/mine/mineHost.js mineExitDoor),
-// so the way back up reads from down the tunnel. One quad, both faces, its picture drawn here (no file to load) and
-// uploaded under the mines' own pseudo-archive (world/mine/mineArt.js MINE_ART_ARCHIVE), a record past the baked ones.
 import { MINE_ART_ARCHIVE } from './mineArt.js';
 
-/** The way out's picture record, and the opening's size and how far behind the door it hangs (m). */
 export const MINE_WAY_OUT_RECORD = 200;
-export const MINE_WAY_OUT = Object.freeze({ w: 2.4, h: 2.9, back: 1.4, sink: 0.4 });   // back: against the tunnel's closing wall (1.5 m)
+// `back` must stay under `MOUTH_BACK_M` (1.5 m) in mineModel.js, where the closing wall of the mouth tunnel sits.
+export const MINE_WAY_OUT = Object.freeze({ w: 2.4, h: 2.9, back: 1.4, sink: 0.4 });
 const SIDE = 32;
 
-/** The picture: daylight paling upward inside a timber frame (posts, a lintel), RGBA, top row first; and its glow (the
- *  daylight alone, the timbers black), so the light outside shines whatever the cave's dark - the timbers take its light. */
 export function mineWayOutPicture() {
   const colors = new Uint8Array(SIDE * SIDE * 4), glow = new Uint8Array(SIDE * SIDE * 4);
   for (let y = 0; y < SIDE; y++) for (let x = 0; x < SIDE; x++) {
     const i = (y * SIDE + x) * 4, post = x < 4 || x >= SIDE - 4, lintel = y < 4;
     let c;
-    if (post || lintel) {   // the timbers, their grain a stripe every few texels
+    if (post || lintel) {
       const g = ((post ? y : x) % 5 === 0 ? -18 : 0) + ((x * 7 + y * 3) % 3) * 4;
       c = [104 + g, 70 + g, 38 + g];
-    } else {   // daylight: white-gold near the top, a sandy glare toward the ground
+    } else {
       const f = (y - 4) / (SIDE - 5);
       c = [Math.round(255 - f * 25), Math.round(246 - f * 40), Math.round(214 - f * 70)];
     }
@@ -32,9 +26,7 @@ export function mineWayOutPicture() {
 }
 
 /**
- * The opening as a mesh in the mine's frame: across the mouth tunnel, `back` behind the door, facing into the mine. It
- * squares to the tunnel's own first leg (its closing wall's, world/mine/mineModel.js), not the mouth's heading, which
- * the leg wanders from.
+ * Squares to the first leg of the mouth tunnel, not the mouth heading, which the leg can drift from.
  * @param {{ mouth: { at: number[], facing: number }, tunnels: any[] }} layout
  */
 export function mineWayOutModel(layout) {

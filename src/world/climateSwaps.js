@@ -1,67 +1,24 @@
-// Climate texture swapping: remap texture archives to a location's
-// climate and season. 1:1 translation of Daggerfall Unity's
-// ClimateSwaps.cs (MIT, Daggerfall Workshop). Verbatim:
-//   - applyClimate: door-frame tapestry (archive % 100 == 74, record 3)
-//     never swaps; swamp keeps marble floors; deserts have no winter;
-//     swamp mages guilds and castle records > 3 have no winter (C#
-//     precedence preserved: the castle clause applies in EVERY
-//     climate); archive 82 records > 1 and all of 77 have no winter;
-//     archives {75, 76, 77, 79, 80, 82, 83} suppress the climate
-//     rebase; otherwise archives < 500 rebase to
-//     climateBase + (archive % 100) + weather (Winter 1 / Rain 2 when
-//     supported), and 500+ keep their archive with the winter bump.
-//   - getClimateTextureInfo classifies by archive % 100 (or the archive
-//     itself for the 500+ nature sets) into the verbatim
-//     exterior/interior/nature tables with winter/rain support flags.
-//   - isExteriorWindow is the verbatim per-archive/record window table
-//     (consumed later by the window-emission queue item).
-//   - getNatureArchive bumps the four wintering woodland sets by 1;
-//     getGroundArchive maps climate base -> {2, 102, 302, 402} with
-//     Winter +1 / Rain +2.
-// EQUIVALENCE (documented, not a departure): DFU routes through the
-// Unity-side ClimateBases enum and FromUnityClimateBase; we take the
-// API ClimateBaseType values (Desert 0 / Mountain 100 / Temperate 300 /
-// Swamp 400) directly - the exact integers DFU's conversion produces.
-
 import { SEASONS, seasonValue, dateFromClassicMinutes } from './gameDate.js';
 
 export const SEASON = { Summer: 0, Winter: 1, Rain: 2 };
 
-/** THE TEXTURE SEASON IS THE CALENDAR'S (A1). ClimateSeason has three
- *  members and the world clock only ever selects TWO of them: every
- *  production site in the reference writes the same one-line test -
- *  ClimateSwaps.cs:382-386 (the GetNatureArchive overload that takes a
- *  DaggerfallDateTime.Seasons), DaggerfallLocation.ApplyTimeAndSpace
- *  (:135-139), StreamingWorld.cs:812, RuntimeMaterials.cs:169,
- *  DaggerfallBankPurchasePopUp.cs:265. ClimateSeason.Rain is reachable
- *  only by hand (ApplyClimate's `supportsRain` arm and GetGroundArchive
- *  +2 stay ported for it), so it stays a debug choice here too.
- *
- *  DaggerfallLocation.Update (:118-130) re-reads this every frame and
- *  re-skins the standing location when `lastSeason` differs - the
- *  season is LIVE, not a value read once at load. */
+// The calendar selects only Summer or Winter, as in DFU; `SEASON.Rain` is reachable only by hand.
 export function climateSeasonFromDate(date) {
   return seasonValue(date) === SEASONS.Winter ? SEASON.Winter : SEASON.Summer;
 }
 
-/** The same law off the port's one clock (worldTick's classic minute
- *  count) - what DaggerfallUnity.WorldTime.Now.SeasonValue reads. */
 export function climateSeasonFromMinutes(classicMinutes) {
   return climateSeasonFromDate(dateFromClassicMinutes(classicMinutes));
 }
 
-/** DaggerfallInterior.cs:51 - `ClimateSeason climateSeason =
- *  ClimateSeason.Summer;`, a field the class declares and NEVER
- *  assigns. An interior is summer-skinned in the reference in the
- *  depths of Evening Star, so the season a door carries inside is a
- *  constant, not the weather outside. */
+// DFU's `DaggerfallInterior` never assigns its season field, so interiors always use summer textures whatever the
+// outside season.
 export const INTERIOR_SEASON = SEASON.Summer;
-const WEATHER_WINTER = 1; // DFLocation.ClimateWeather.Winter
-const WEATHER_RAIN = 2; // DFLocation.ClimateWeather.Rain
+const WEATHER_WINTER = 1;
+const WEATHER_RAIN = 2;
 
 const BASE = { Desert: 0, Mountain: 100, Temperate: 300, Swamp: 400 };
 
-// DFLocation.ClimateTextureSet values used by the classifier.
 const SET = {
   None: -1,
   Exterior_Terrain: 2,
@@ -135,10 +92,6 @@ const INTERIOR_SETS = new Set([
   SET.Interior_TavernInt, SET.Interior_TempleInt, SET.Interior_VillageInt,
   SET.Interior_Sewer,
 ]);
-/** RW1 (render/realWindows.js): the Interior_* sets a BUILDING is laid out from - the nine a house, a shop, a tavern,
- *  a temple, a guild hall, a manor, a farm or a castle wears inside (DFLocation.ClimateTextureSet's own values,
- *  read through the same SET table). Not the crypts, the dungeons, the mines, the caves, the sewers, the paintings or
- *  the marble floors: a window to the street stands in none of those. */
 export const BUILDING_INTERIOR_SETS = Object.freeze(new Set([
   SET.Interior_CastleInt, SET.Interior_CityInt, SET.Interior_FarmInt, SET.Interior_MagesGuildInt,
   SET.Interior_ManorInt, SET.Interior_MerchantHomesInt, SET.Interior_TavernInt, SET.Interior_TempleInt,
@@ -153,7 +106,6 @@ const NATURE_SETS = new Set([
   SET.Nature_Desert, ...NATURE_WINTER_SETS,
 ]);
 
-/** Verbatim ClimateSwaps.GetClimateTextureInfo. */
 export function getClimateTextureInfo(archive) {
   const ci = { textureSet: SET.None, textureGroup: GROUP.None, supportsWinter: false, supportsRain: false };
   if (archive > 499) {
@@ -185,28 +137,23 @@ export function getClimateTextureInfo(archive) {
 }
 
 /**
- * Verbatim ClimateSwaps.ApplyClimate: remap an archive to climate/season.
- * @param {number} archive - starting texture archive.
+ * @param {number} archive
  * @param {number} record
- * @param {number} climateBase - API ClimateBaseType (0/100/300/400).
- * @param {number} season - SEASON value.
- * @returns {number} remapped archive.
+ * @param {number} climateBase
+ * @param {number} season
+ * @returns {number}
  */
 export function applyClimate(archive, record, climateBase, season) {
-  // Do not swap the door-frame tapestry.
   if (archive % 100 === 74 && record === 3) return archive;
 
   const ci = getClimateTextureInfo(archive);
   if (ci.textureSet === SET.None) return archive;
 
-  // Swamps keep marble floors.
   if (climateBase === BASE.Swamp && ci.textureSet === SET.Interior_MarbleFloors) {
     return archive;
   }
-  // Deserts do not support winter.
   if (climateBase === BASE.Desert) ci.supportsWinter = false;
-  // Verbatim C# precedence: (swamp && mages guild) OR
-  // (castle && record > 3) - the castle clause fires in every climate.
+  // This matches the C# precedence: the castle clause applies in every climate, swamp or not.
   if ((climateBase === BASE.Swamp && ci.textureSet === SET.Exterior_MagesGuild) ||
       (ci.textureSet === SET.Exterior_Castle && record > 3)) {
     ci.supportsWinter = false;
@@ -234,7 +181,6 @@ export function applyClimate(archive, record, climateBase, season) {
   return climateIndex;
 }
 
-/** Verbatim ClimateSwaps.IsExteriorWindow (colour-changing windows). */
 export function isExteriorWindow(archive, record) {
   if ((archive >= 375 && archive <= 379) || archive === 210 || archive === 280) {
     return false;
@@ -268,7 +214,6 @@ export function isExteriorWindow(archive, record) {
   return false;
 }
 
-/** Verbatim GetNatureArchive: winter bumps the four woodland sets by 1. */
 export function getNatureArchive(baseNatureArchive, season) {
   let archive = NATURE_SETS.has(baseNatureArchive)
     ? baseNatureArchive
@@ -277,38 +222,20 @@ export function getNatureArchive(baseNatureArchive, season) {
   return archive;
 }
 
-/** Verbatim GetGroundArchive: climate base ground + Winter 1 / Rain 2. */
-/** TerrainMaterialProvider.GetClimateInfo (Terrain/TerrainMaterialProvider.cs
- *  :120-134), verbatim - THE TERRAIN's ground tileset, distinct from
- *  getGroundArchive below (DaggerfallGroundPlane.cs:83, the RMB ground
- *  plane and the water tile). The terrain keys on the CLIMATE's own
- *  GroundArchive field - MountainWoods (230) is ClimateType Temperate
- *  but GroundArchive 102 - and refuses the winter +1 in Desert-base
- *  climates, whose snow archive (3) is not a 56-record terrain tileset
- *  at all (TextureReader.cs:757-766 returns null for it; DFU never
- *  uploads it). The 2026-09-01 incident: the hosts keyed the terrain on
- *  the ground-plane member, so a winter boot - classic starts 4th
- *  Morning Star, WINTER - put snow under every desert and the wrong
- *  archive family under MountainWoods. */
+// The terrain keys on the climate's own `groundArchive` (MountainWoods is Temperate but uses 102), not
+// `getGroundArchive`; Desert bases skip the winter +1 because archive 3 is no terrain tileset.
 export function getTerrainGroundArchive(climateSettings, season) {
   return climateSettings.groundArchive + (groundIsSnowy(climateSettings, season) ? 1 : 0);
 }
 
-/** WEATHER2a: THE GROUND WEARS SNOW - the one law getTerrainGroundArchive
- *  keys its winter +1 on (every climate but a Desert base, in Winter),
- *  named so the weather sim can ask the same question the terrain does:
- *  rain on a ground that answers true here is the fault Mac saw. */
 export function groundIsSnowy(climateSettings, season) {
   return climateSettings.climateType !== BASE.Desert && season === SEASON.Winter;
 }
 
-/** SNOWLESS1: the texture door's word on a winter ground archive whose DRAWN set wears no snow - Vanilla Enhanced's
- *  Snowless Swamps and Jungles deciding 403 (systems/dfmodTextures.js winterGroundSnowless registers it). None by default. */
 let _snowlessGround = null;
 export function setSnowlessGround(fn) { _snowlessGround = typeof fn === 'function' ? fn : null; }
-/** SNOWLESS1: THE GROUND AS DRAWN WEARS SNOW - groundIsSnowy (the archive law the terrain keys its +1 on, unchanged: the
- *  pack dresses 403, it does not move the terrain off it), unless the set drawn for that winter archive is a snowless
- *  one. What the weather's ground law and Snowfall ask. */
+// Texture packs may draw a snowless set for the winter archive without moving the terrain off it, so weather code
+// asks this instead of `groundIsSnowy`.
 export function groundWearsSnow(climateSettings, season) {
   return groundIsSnowy(climateSettings, season) && !(_snowlessGround?.(climateSettings.groundArchive + 1) ?? false);
 }

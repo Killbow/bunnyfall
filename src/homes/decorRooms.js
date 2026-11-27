@@ -1,84 +1,34 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// DECOR-ROOMS (2026-09-27, Discord: "For a house with multiple
-// connects, add room switching tabs").
-//
-// A HOUSE OF SEVERAL ROOMS, FOUND IN ITS OWN WALLS. Daggerfall builds a
-// building's interior as one scene and names no rooms in it, and the
-// decorator treated the whole interior as one: its free camera starts
-// at the owner's eye and flies no further than DECOR_FLY_LEASH, and
-// since DECOR-SHELL it stops at every face - so a room behind a shut
-// door, or up a stair and round a corner, could only be furnished by
-// shutting the decorator, walking there and opening it again. The
-// panel's tabs switch between the rooms instead: the flight starts in
-// the room chosen, and the room's lists are that room's.
-//
-// A ROOM IS WHERE THE EYE CAN GO. The interior's own collider is
-// sampled on a grid across its box: each column is cast down through
-// every surface it meets, and a surface is FLOOR where a body stands on
-// it - headroom above it (a table's underside is no floor) and a
-// ceiling over it (a roof's top is no floor either). Two floors in
-// neighbouring columns are one room when the rise between them is a
-// step (a stair is a run of them) and nothing stands between them at
-// waist height - a wall, or a door as it stands now, which is exactly
-// what the flight itself cannot pass. The joined floors that are
-// large enough to stand in are the rooms, lowest floor first.
-//
-// STEPPED, as the catalogue scan is: a few hundred rays a frame while
-// the panel is up, never a hitch the moment it opens. Pure: the
-// collider's `raycastHit` and the interior's box are arguments.
-// Not a DFU member: Daggerfall Unity has no decorator. Ledger A.
-// ═══════════════════════════════════════════════════════════════════
 
-/** Metres between two samples of the floor. */
 export const DECOR_ROOM_CELL = 1;
-/** The most columns one house is sampled in - a larger house is sampled wider apart. */
 export const DECOR_ROOM_MAX_COLUMNS = 4096;
-/** A floor has at least this much room above it (a body stands there)... */
 export const DECOR_ROOM_HEADROOM = 1.7;
-/** ...and a ceiling within this: a surface with nothing over it is a roof's top, outside every room. */
 export const DECOR_ROOM_CEILING = 10;
-/** The most a floor rises from one sample to the next and stays one room - a stair's run of steps climbs. */
 export const DECOR_ROOM_STEP = 0.75;
-/** How high above the higher floor two neighbours are looked between - a wall stops it, a rug does not. */
 export const DECOR_ROOM_WAIST = 1;
-/** Fewer floors than this joined are a nook, a table top or a bed, never a room of their own. */
 export const DECOR_ROOM_MIN_CELLS = 6;
-/** The most surfaces one column is cast through. */
 export const DECOR_ROOM_LEVELS = 8;
-/** How many rays one step of the finder casts. */
 export const DECOR_ROOM_RAYS_A_STEP = 600;
-/** How far off the cells' middles the samples stand - off the round numbers walls are built on. */
 export const DECOR_ROOM_OFFSET = 0.0173;
-/** Where the flight starts in a room chosen: this far above its floor, the body's own eye. */
 export const DECOR_ROOM_EYE = 1.6;
 
 const DOWN = Object.freeze([0, -1, 0]);
 const UP = Object.freeze([0, 1, 0]);
 
-/**
- * THE FINDER for one interior: `raycastHit(origin, dir, max)` answers `{ dist }` (Infinity on a miss - player/collider.js
- * Collider.raycastHit) and `box` is the interior's `{ min: [x, y, z], max: [x, y, z] }`. `step(rays)` casts about that
- * many rays and answers whether it is done; `rooms()` the rooms once it is (null until then), each
- * `{ id, name, cells, floor, eye: [x, y, z] }` - `eye` where a flight begins in it; `roomOf(point)` the room a point
- * stands in (its floor beneath it), or null.
- * @param {{ raycastHit: (o: number[], d: readonly number[], max: number) => ({ dist: number }|null), box: { min: number[], max: number[] }, cell?: number }} o
- */
+/** @param {{ raycastHit: (o: number[], d: readonly number[], max: number) => ({ dist: number }|null), box: { min: number[], max: number[] }, cell?: number }} o */
 export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
   const ok = box && [0, 1, 2].every((i) => Number.isFinite(box.min?.[i]) && Number.isFinite(box.max?.[i]) && box.max[i] >= box.min[i]);
   const spanX = ok ? box.max[0] - box.min[0] : 0;
   const spanZ = ok ? box.max[2] - box.min[2] : 0;
   let size = cell > 0 ? cell : DECOR_ROOM_CELL;
   while (Math.ceil(spanX / size) * Math.ceil(spanZ / size) > DECOR_ROOM_MAX_COLUMNS) size *= 1.25;
-  // the samples stand in the MIDDLE of their cells, a hair off the round numbers a room is built on: a sample on a
-  // wall's own plane sees through it both ways and would join the rooms either side of it
   const nx = ok ? Math.max(1, Math.ceil(spanX / size)) : 0;
   const nz = ok ? Math.max(1, Math.ceil(spanZ / size)) : 0;
+  // Samples sit a hair off the round numbers walls are built on; a sample on a wall's plane sees through it.
   const x0 = ok ? box.min[0] + (spanX - (nx - 1) * size) / 2 + DECOR_ROOM_OFFSET : 0;
   const z0 = ok ? box.min[2] + (spanZ - (nz - 1) * size) / 2 + DECOR_ROOM_OFFSET : 0;
   const top = ok ? box.max[1] + 0.5 : 0;
   const bottom = ok ? box.min[1] - 0.5 : 0;
-  /** `out.back`: whether the ray struck a face's BACK (player/collider.js raycastHit, AUDIT REST II F4). */
   const cast = (o, d, max, out = null) => {
     let h = null;
     try { h = raycastHit(o, d, max); } catch { h = null; }
@@ -89,23 +39,20 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
 
   /** @type {{ x: number, y: number, z: number, col: number }[]} */
   const nodes = [];
-  /** @type {number[][]} column -> its floors' node indices */
+  /** @type {number[][]} */
   const byCol = Array.from({ length: nx * nz }, () => []);
-  let col = 0;          // the next column to sample
-  let link = 0;         // the next node to join to its neighbours
+  let col = 0;
+  let link = 0;
   const parent = [];
   const find = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
   const join = (a, b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[Math.max(ra, rb)] = Math.min(ra, rb); };
   /** @type {any[]|null} */
   let found = null;
-  /** @type {Map<number, number>} a kept component's root -> its room's index */
+  /** @type {Map<number, number>} */
   const roomOfRoot = new Map();
-  /** HOME-DOORS: every pair of floors joined, as [a, b, dx, dz] - where the eye passes from one floor to the next, the
-   *  doorways among them (systems/decor/decorDoorways.js) */
   const linked = [];
 
   const below = { back: false }, above = { back: false };
-  /** One column: every floor it passes through, top down. Answers the rays it cast. */
   function sample(c) {
     const x = x0 + (c % nx) * size;
     const z = z0 + Math.floor(c / nx) * size;
@@ -118,9 +65,9 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
       const fy = y - d;
       const head = cast([x, fy + 0.05, z], UP, DECOR_ROOM_CEILING, above);
       rays++;
-      // VOID-ROOM: a face met from behind under the samples and another over them - a ceiling's top under the next
-      // storey's floor, the inside of a wall - is outside every room, however much room it has
+      // A face met from behind both below and above (inside a wall or between floors) is outside every room.
       if (below.back && above.back) { y = fy - 0.05; continue; }
+      // A floor needs headroom and a ceiling within reach, so the underside of a table or a roof is no floor.
       if (head >= DECOR_ROOM_HEADROOM && Number.isFinite(head)) {
         const i = nodes.length;
         nodes.push({ x, y: fy, z, col: c });
@@ -132,7 +79,6 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
     return rays;
   }
 
-  /** One node joined to its floors east and south of it (west and north joined it on their turn). */
   function joinNode(i) {
     const a = nodes[i];
     const cx = a.col % nx;
@@ -166,7 +112,6 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
       const floor = Math.min(...g.map((i) => nodes[i].y));
       const cxm = g.reduce((s, i) => s + nodes[i].x, 0) / g.length;
       const czm = g.reduce((s, i) => s + nodes[i].z, 0) / g.length;
-      // the flight begins over the floor nearest the room's middle - a floor, so never inside a wall or a cupboard
       let best = g[0];
       let bestD = Infinity;
       for (const i of g) {
@@ -177,7 +122,7 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
       const n = nodes[best];
       return { root, cells: g.length, floor, eye: [n.x, n.y + DECOR_ROOM_EYE, n.z] };
     });
-    // lowest floor first, then the larger; ties by where it stands, so the same house numbers its rooms the same way
+    // The order is fixed by floor, size, and position, so the same house always numbers its rooms the same way.
     kept.sort((a, b) => a.floor - b.floor || b.cells - a.cells || a.eye[0] - b.eye[0] || a.eye[2] - b.eye[2]);
     found = kept.map((r, k) => {
       roomOfRoot.set(r.root, k);
@@ -194,7 +139,6 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
     return !!found;
   }
 
-  /** The room a point stands in: the floor beneath it in its column or the next ones out, no more than a storey down. */
   function roomOf(p) {
     if (!found || !Array.isArray(p) || !nx) return null;
     const cx = Math.round((p[0] - x0) / size);
@@ -227,13 +171,10 @@ export function createDecorRooms({ raycastHit, box, cell = DECOR_ROOM_CELL }) {
     done: () => !!found,
     rooms: () => found,
     roomOf,
-    /** HOME-DOORS: once done, every pair of neighbouring floors the eye passes between - `{ a, b, dir }`, the two floors
-     *  (a floor's point) and the step from `a` to `b` (east or south, one sample on) - else null. */
     links: () => (found ? linked.map(([i, j, dx, dz]) => {
       const a = nodes[i], b = nodes[j];
       return { a: [a.x, a.y, a.z], b: [b.x, b.y, b.z], dir: [dx, 0, dz] };
     }) : null),
-    /** How far along, 0..1 - the columns, then the joins. */
     progress: () => (found ? 1 : (col + link) / Math.max(1, nx * nz + nodes.length)),
   };
 }

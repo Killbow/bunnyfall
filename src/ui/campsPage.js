@@ -68,11 +68,11 @@ export function drawCampsPage(detail, rerender, { el, divider } = /** @type {any
   detail.append(divider(t('camps.page.title', 'Camps')));
   if (_read.status === 'idle' || (_read.status !== 'loading' && Date.now() - _read.at > READ_KEEP_MS)) ask(rerender);
   if (_read.status === 'loading' && !_read.at) { detail.append(el('p', 'px-note', t('camps.page.loading', 'Loading...'))); return; }
-  if (_read.status === 'fail') { detail.append(el('p', 'px-note', t('camps.page.fail', 'Your camps could not be read just now. Try again in a moment.'))); return; }
+  if (_read.status === 'fail') { detail.append(el('p', 'px-note', t('camps.page.fail', 'Could not load your camps right now. Try again in a moment.'))); return; }
   const camps = _read.camps;
-  detail.append(el('p', 'px-note', t('camps.page.intro', 'A tent pitched outdoors with the camping kit stays as a camp until its tent is packed up. You may keep {max} at once. Mark one to follow it on your map, or pack one up from here.', { max: CAMPS_MAX })));
+  detail.append(el('p', 'px-note', t('camps.page.intro', 'A tent pitched outdoors with the camping kit stays as a camp until you pack it up. You can have up to {max} camps at once. Mark one to track it on your map, or pack it up from here.', { max: CAMPS_MAX })));
   if (_note) detail.append(el('p', 'px-note', _note));
-  if (!camps.length) { detail.append(el('p', 'px-note', t('camps.page.none', 'You keep no camps.'))); return; }
+  if (!camps.length) { detail.append(el('p', 'px-note', t('camps.page.none', 'You have no active camps.'))); return; }
   const maps = keptMaps();
   const list = el('div', 'hld-list');
   camps.forEach((c) => {
@@ -134,6 +134,6 @@ export async function campsWhereWords() {
   try {
     const r = await api().campsMine();
     const s = r?.ok ? campsSentence(r.data?.camps) : '';
-    return s ? t('camps.page.whereMine', 'Yours stand at: {list}.', { list: s }) : '';
+    return s ? t('camps.page.whereMine', 'Your camps are at: {list}.', { list: s }) : '';
   } catch { return ''; }
 }

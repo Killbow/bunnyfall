@@ -1,6 +1,6 @@
 // @ts-check
-// Uploads pictures read at runtime for spell meshes into one shared texture archive, one record per picture. Records
-// are numbered across all cast engines: they share one renderer, and it keeps the first picture uploaded under a key.
+// Records are numbered across all cast engines because they share one renderer, which keeps the first picture
+// uploaded under a key.
 
 const SPELL_ART_ARCHIVE = 9921;
 const ARTS = new Map();

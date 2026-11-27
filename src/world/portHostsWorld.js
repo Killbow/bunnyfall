@@ -27,15 +27,15 @@ export function createPortHostsWorld(shared) {
       }
       return _yardSites;
     },
-    groundAt: (x, z) => surfaceAt(x, z),   // the drawn ground, as the monument stands on
+    groundAt: (x, z) => surfaceAt(x, z),
     eye: () => cam.pos, feet: () => (walkMode && shared.playerSpawned ? player.feetAt() : null),
     horseArt: () => !!hcc.presentation.horseArt.ensureStationary(),
     showWagon: (r, texRemap, position, rotation, kind) => hcc.drawShowWagon(r, texRemap, position, rotation, kind),
     wagonBox: (kind) => hcc.partsOf(kind)?.box ?? null,
-    open: (site, mode, name) => shared.modes?.openYardTrade?.(site.kind, site.regionIndex, mode, name, site.mapId) ?? false,   // STEED1: the town's own horses
+    open: (site, mode, name) => shared.modes?.openYardTrade?.(site.kind, site.regionIndex, mode, name, site.mapId) ?? false,
     say: (text) => townTalk.say(text), midText: (text) => setMidScreenText(text),
-    mend: () => mendAtYard(),   // WAGONS4: the Wagon Yard's wright
-    bench: () => openYardBench(),   // CARP-YARD: the joinery's workbench
+    mend: () => mendAtYard(),
+    bench: () => openYardBench(),
   });
   shared.portHost = createPortHost({
     renderer, getTexture, uploadRecordFrame, collider: () => collider,
@@ -53,9 +53,9 @@ export function createPortHostsWorld(shared) {
       }
       return _portSites;
     },
-    groundAt: (x, z) => surfaceAt(x, z),   // the drawn ground, as the yards stand on
+    groundAt: (x, z) => surfaceAt(x, z),
     feet: () => (walkMode && shared.playerSpawned ? player.feetAt() : null),
-    lit: () => lightsOnAt(minuteNow()),   // the lamp's hours: the town's lanterns'
+    lit: () => lightsOnAt(minuteNow()),
     open: (site, page) => openShipyard(site, page),
     climb: (site, way, at) => climbLighthouse(way, at),
     say: (text) => townTalk.say(text), midText: (text) => setMidScreenText(text),

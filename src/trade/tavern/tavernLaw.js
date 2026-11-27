@@ -53,9 +53,9 @@ export function drinkRound(/** @type {any} */ entity, rolls = Math.random) {
 /** The words. */
 export const tavernWords = {
   buy: (/** @type {number} */ gold) => t('tavern.round.buy', 'B - Buy a round for the house ({gold} gold)', { gold }),
-  bought: () => t('tavern.round.bought', 'You buy a round for the house. Cups are raised all round.'),
+  bought: () => t('tavern.round.bought', 'You buy a round for the house. Cups are raised all around.'),
   poor: () => t('tavern.round.poor', 'You cannot afford a round.'),
-  heard: (/** @type {string} */ name) => t('tavern.round.heard', '{name} buys a round for the house! You raise your cup.', { name }),
+  heard: (/** @type {string} */ name) => t('tavern.round.heard', '{name} buys a round for the house. You raise your cup.', { name }),
   luck: () => t('tavern.round.luck', 'Luck +{n} for a few hours.', { n: ROUND_LUCK }),
   quenched: () => t('tavern.round.quenched', 'Your thirst is quenched.'),
   tip: (/** @type {string} */ name, /** @type {number} */ gold, /** @type {string} */ key) => t('tavern.tip.offer', '{key} - Tip {name} {gold} gold', { name, gold, key }),

@@ -86,7 +86,7 @@ const actText = (/** @type {any} */ h) => {
     case 'unmute': return t('net.safety.actUnmute', 'unmuted');
     case 'ban': return t('net.safety.actBan', 'banned {until}', { until });
     case 'unban': return t('net.safety.actUnban', 'unbanned');
-    case 'dismiss': return t('net.safety.actDismiss', 'a case dismissed');
+    case 'dismiss': return t('net.safety.actDismiss', 'case dismissed');
     default: return String(h?.kind ?? '');
   }
 };
@@ -240,7 +240,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     for (const tab of log()?.tabs ?? []) for (const l of tab.messages) if (l.sub && !l.mine && !l.system && !found.has(l.sub) && sanitizeName(l.name).toLowerCase() === want) found.set(l.sub, String(l.name));
     if (found.size === 1) { const [[sub, shown]] = [...found]; return { sub, name: shown }; }
     if (found.size > 1) return { error: NAMED[op].many(found.size, name), why: 'many' };
-    if (unaccounted) return { error: t('net.safety.unaccounted', '{name} cannot be named from here yet. Try again in a moment.', { name }), why: 'unaccounted' };
+    if (unaccounted) return { error: t('net.safety.unaccounted', '{name}\'s account is not available yet. Try again in a moment.', { name }), why: 'unaccounted' };
     return { error: NAMED[op].none(name), why: 'none' };
   };
 
@@ -249,22 +249,22 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     if ('error' in cmd) { say(tabId, cmd.error); return; }
     if (cmd.op === 'list') {
       const names = hiddenSkins().map(([sub, n]) => n || sub);
-      say(tabId, names.length ? t('net.safety.skinList', 'Skins hidden: {names}', { names: names.join(', ') }) : t('net.safety.skinNone', 'You have hidden nobody\'s skin.'));
+      say(tabId, names.length ? t('net.safety.skinList', 'Skins hidden: {names}', { names: names.join(', ') }) : t('net.safety.skinNone', 'You have not hidden anyone\'s skin.'));
       return;
     }
     const want = sanitizeName(cmd.name).toLowerCase();
     if (cmd.op === 'show') {
       const hit = hiddenSkins().find(([, n]) => sanitizeName(n).toLowerCase() === want);
       const who = hit ? { sub: hit[0], name: hit[1] } : accountOf(cmd.name, 'skin');
-      if ('error' in who || !skinHiddenFor(who.sub)) { say(tabId, t('net.safety.skinNotHidden', 'You have not hidden a skin of {name}. /hiddenskins lists them.', { name: cmd.name })); return; }
+      if ('error' in who || !skinHiddenFor(who.sub)) { say(tabId, t('net.safety.skinNotHidden', 'You have not hidden {name}\'s skin. Use /hiddenskins to list hidden skins.', { name: cmd.name })); return; }
       setSkinHidden(who.sub, false);
-      say(tabId, t('net.safety.skinShown', 'You will see the skin of {name} again.', { name: who.name || cmd.name }));
+      say(tabId, t('net.safety.skinShown', 'You will see {name}\'s skin again.', { name: who.name || cmd.name }));
       return;
     }
     const who = accountOf(cmd.name, 'skin');
     if ('error' in who) { say(tabId, who.error); return; }
     setSkinHidden(who.sub, true, who.name);
-    say(tabId, t('net.safety.skinHidden', 'You will not see the skin of {name}. /showskin {name} undoes it.', { name: who.name }));
+    say(tabId, t('net.safety.skinHidden', '{name}\'s skin is hidden. Type /showskin {name} to show it again.', { name: who.name }));
   };
 
   const block = async (sub, name) => {
@@ -277,8 +277,8 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     // AUDIT SAFE CLIENT-3: the ACCOUNT named, where the list's name is not the one the line showed (NAME-AS)
     const account = blocked.get(sub) ?? '';
     sayActive(account && sanitizeName(account).toLowerCase() !== sanitizeName(name).toLowerCase()
-      ? t('net.safety.blockedAs', 'You blocked {name} (account {account}). You will not see their lines, invites or requests. /unblock {name} undoes it.', { name, account })
-      : t('net.safety.blocked', 'You blocked {name}. You will not see their lines, invites or requests. /unblock {name} undoes it.', { name }));
+      ? t('net.safety.blockedAs', 'You blocked {name} (account {account}). You will not see their messages, invites, or requests. Type /unblock {name} to unblock them.', { name, account })
+      : t('net.safety.blocked', 'You blocked {name}. You will not see their messages, invites, or requests. Type /unblock {name} to unblock them.', { name }));
   };
   const unblock = async (sub, name) => {
     const a = io();
@@ -341,7 +341,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     bannedUntil = until;
     try { minter()?.forget?.(); } catch { /* the latch holds without it */ }
     for (const l of allLinks()) { if (typeof l?.bar === 'function') l.bar(); else l?.leave?.(); }
-    if (banSaid !== `until:${until}`) { banSaid = `until:${until}`; sayActive(t('net.safety.bannedSelf', 'This account is banned {until}. You have left the online world.', { until: untilText(until) })); }
+    if (banSaid !== `until:${until}`) { banSaid = `until:${until}`; sayActive(t('net.safety.bannedSelf', 'This account is banned {until}. You have been disconnected from the online world.', { until: untilText(until) })); }
   };
 
   /** Each link's word on my own chat (SAFE4, SAFE6), and its ear (AUDIT SAFE CLIENT-7), and its welcome (CLIENT-8). */
@@ -415,7 +415,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
   };
   const hand = (act, sub, name) => {
     if (!post(act, sub, name)) return;
-    sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing opens without the Staff Panel extension.', { act: STAFF_LABEL[act](), name }));
+    sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing will open unless the Staff Panel extension is installed.', { act: STAFF_LABEL[act](), name }));
   };
   /** STAFF-PANEL2-CHATMENU: MOD1's mute, by the account - said as /mute says it, refusals too. */
   const muteFor = async (sub, name, minutes) => {
@@ -455,7 +455,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
       const row = { label: STAFF_LABEL[act](), title: STAFF_SEEN.includes(act) ? t('net.staffMenu.seen', 'The player can see this.') : t('net.staffMenu.unseen', 'The player does not see this.'), ...(act === 'follow' ? {} : { group: 'staff' }) };
       // CHAT-FOLLOW-CARD (2026-10-24, mob: "no panel pops up when followingf from chat"): a follow that took hands the panel
       // the followed player's card, as a tag's click does (scenes/staffViewHost.js go) - the same act word, no line said
-      if (act === 'follow') return typeof f === 'function' ? { ...row, run: () => { void Promise.resolve().then(() => f(sub)).then((ok) => { if (ok !== false && card) post('follow', sub, name); if (ok === false) sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing opens without the Staff Panel extension.', { act: row.label, name })); }).catch((e) => sayActive(String(e?.message ?? e))); } } : null;   // false: no Staff Panel over this game (staffFollowHost.js follow), said as the panel's other acts say it
+      if (act === 'follow') return typeof f === 'function' ? { ...row, run: () => { void Promise.resolve().then(() => f(sub)).then((ok) => { if (ok !== false && card) post('follow', sub, name); if (ok === false) sayActive(t('net.staffMenu.handed', 'Staff Panel: {act} {name}. Nothing will open unless the Staff Panel extension is installed.', { act: row.label, name })); }).catch((e) => sayActive(String(e?.message ?? e))); } } : null;   // false: no Staff Panel over this game (staffFollowHost.js follow), said as the panel's other acts say it
       if (act === 'tp') return typeof teleport === 'function' && typeof line.id === 'string' && line.id ? { ...row, run: () => tpTo(line) } : null;
       if (act === 'mute') return { ...row, menu: STAFF_MUTE_MINUTES.map((m) => ({ label: spanText(m), title: row.title, run: () => { void muteFor(sub, name, m); } })) };
       if (act === 'ban') return { ...row, menu: STAFF_BAN_DAYS.map((d) => ({ label: spanText(d * 1440), title: row.title, menu: banLevel(sub, name, d) })) };
@@ -571,7 +571,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
       if (cmd.op === 'conduct') { showCard(tabId); return; }
       if (cmd.op === 'blocked') {
         const names = [...blocked.keys()].map(blockedLabel).filter(Boolean);
-        say(tabId, names.length ? t('net.safety.blockedList', 'Blocked: {names}', { names: names.join(', ') }) : t('net.safety.blockedNone', 'You have blocked nobody.'));
+        say(tabId, names.length ? t('net.safety.blockedList', 'Blocked: {names}', { names: names.join(', ') }) : t('net.safety.blockedNone', 'You have not blocked anyone.'));
         return;
       }
       if (cmd.op === 'modhelp') { for (const line of modHelpLines()) say(tabId, line); return; }
@@ -581,7 +581,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
         const want = sanitizeName(cmd.name).toLowerCase();
         let sub = [...blocked.keys()].find((s) => sanitizeName(blocked.get(s) ?? '').toLowerCase() === want || sanitizeName(shownAs.get(s) ?? '').toLowerCase() === want) ?? null;
         if (!sub) { const who = accountOf(cmd.name, 'block'); if (!('error' in who) && blocked.has(who.sub)) sub = who.sub; }
-        if (!sub) { say(tabId, t('net.safety.notBlocked', 'You have not blocked anyone called {name}. /blocked lists them.', { name: cmd.name })); return; }
+        if (!sub) { say(tabId, t('net.safety.notBlocked', 'You have not blocked anyone called {name}. Use /blocked to list blocked players.', { name: cmd.name })); return; }
         await unblock(sub, cmd.name.trim());
         return;
       }
@@ -641,7 +641,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     const r = await modCases(a);
     if (!r.ok) { say(tabId, accountRefusalText(r.error)); return; }
     const cases = Array.isArray(r.data?.cases) ? r.data.cases : [];
-    if (!cases.length) { say(tabId, t('net.safety.casesNone', 'No case is open.')); return; }
+    if (!cases.length) { say(tabId, t('net.safety.casesNone', 'There are no open cases.')); return; }
     say(tabId, t('net.safety.casesHead', '{count, plural, one {# open case} other {# open cases}}, the most credible first:', { count: cases.length }));
     for (const c of cases) {
       const row = t('net.safety.caseRow', '{name} (#{account}): {reports, plural, one {# report} other {# reports}}, {credible} credible. {reasons}.', { name: c.name, account: c.target, reports: Number(c.reports) || 0, credible: Number(c.credible) || 0, reasons: reasonsText(c.reasons) });
@@ -655,7 +655,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     for (const note of Array.isArray(c.notes) ? c.notes : []) say(tabId, t('net.safety.caseNote', 'Note: {note}', { note: String(note) }));
     if (c.auto) say(tabId, t('net.safety.caseAuto', 'Muted automatically.'));
     const lines = Array.isArray(c.lines) ? c.lines : [];
-    if (!lines.length) { say(tabId, t('net.safety.caseNoLines', 'No lines are kept on this case.')); return; }
+    if (!lines.length) { say(tabId, t('net.safety.caseNoLines', 'No chat messages are saved for this case.')); return; }
     for (const l of lines) {
       const mark = l.sub === c.target ? '>' : '-';
       say(tabId, `${mark} ${momentText(l.at)} ${l.name}: ${l.text}`);

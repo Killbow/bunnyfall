@@ -209,7 +209,7 @@ export function createVendorTab(v, ui) {
     }
     if (take) {
       bar.append(el('span', 'market-ask', count > 1
-        ? t('vendor.take.stack', 'Take the {n} left of {name} off sale and back into your pack?', { n: count, name: nameOf(row.item) })
+        ? t('vendor.take.stack', 'Take the remaining {n} of {name} off sale and back into your pack?', { n: count, name: nameOf(row.item) })
         : `Take ${nameOf(row.item)} off sale and back into your pack?`));
       const back = button('market-cancel', 'Take back', () => act(() => v.take(row)));
       back.disabled = ui.busy();
@@ -243,7 +243,7 @@ export function createVendorTab(v, ui) {
     const entries = all.map((g) => ({ item: g.item, name: nameOf(g.item), sub: [packTierWord(g.item), wearText(wearOf(g.item))].filter(Boolean).join(' · ') || null, why: g.why ?? null }));
     box.append(packPickerNode({ entries, chosen: st.good, sift: st.sift, pick: (it) => { st.good = st.good === it ? null : it; ui.rerender(); },
       picture: v.picture ?? null, wake, label: t('market.list.packLabel', 'The pieces in your pack'), focus: 'vendor-good', empty: VENDOR_TEXT.packEmpty,
-      refusedWhat: t('vendor.put.refused', 'Stays in your pack'), redraw: () => ui.rerender() }),
+      refusedWhat: t('vendor.put.refused', 'Cannot be sold here'), redraw: () => ui.rerender() }),
     packCardNode(entries.find((e) => e.item === st.good) ?? null, { picture: v.picture ?? null, wake, look: (it) => v.stats?.(it) ?? null,
       none: t('market.list.pickPack', 'Press a piece above to look at it and set its price.') }));
     // TRADER STACKS: a stack of the pack is put up by the unit - how many of it, and the price of each
@@ -268,7 +268,7 @@ export function createVendorTab(v, ui) {
     // fields in a column, and this form, in its dress, stood its select and its press each the window's width
     const field = (name, input, cls = '') => { const f = el('label', `market-field${cls ? ` ${cls}` : ''}`); f.append(el('span', 'notice-label', name), input); return f; };
     const fields = el('div', 'market-fields');
-    if (have > 1) fields.append(field(t('vendor.put.qtyField', 'How many (you hold {n})', { n: have }), qtyIn));   // TRADER STACKS
+    if (have > 1) fields.append(field(t('vendor.put.qtyField', 'How many (you have {n})', { n: have }), qtyIn));   // TRADER STACKS
     fields.append(field(have > 1 ? t('vendor.put.priceEach', 'Price in gold, each') : 'Price in gold', price), go);   // PACK-PICK: the piece is the picker's, above
     box.append(fields, el('p', 'notice-tip', VENDOR_TEXT.stockTip));
     return box;

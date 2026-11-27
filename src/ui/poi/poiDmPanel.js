@@ -53,7 +53,7 @@ const WORD = {
   loop: () => t('poi.dm.w.loop', 'Loop'), pingpong: () => t('poi.dm.w.pingpong', 'There and back'), once: () => t('poi.dm.w.once', 'Once'),
   hostile: () => t('poi.dm.w.hostile', 'Attack on sight'), passive: () => t('poi.dm.w.passive', 'Fight only when attacked'),
   never: () => t('poi.dm.w.never', 'Never'), on_reentry: () => t('poi.dm.w.onReentry', 'When a player comes back'),
-  all_dead: () => t('poi.dm.w.allDead', 'All enemies are dead'), leader_dead: () => t('poi.dm.w.leaderDead', 'The leader dies'), timer_survived: () => t('poi.dm.w.timer', 'The player holds out long enough'),
+  all_dead: () => t('poi.dm.w.allDead', 'All enemies are dead'), leader_dead: () => t('poi.dm.w.leaderDead', 'The leader dies'), timer_survived: () => t('poi.dm.w.timer', 'The player survives until time runs out'),
   chest: () => t('poi.dm.w.chest', 'Chest'), door: () => t('poi.dm.w.door', 'Door or gate'), switch: () => t('poi.dm.w.switch', 'Switch'), quest_object: () => t('poi.dm.w.questObject', 'Quest object'), trigger: () => t('poi.dm.w.zone', 'Zone'),
   boolean: () => t('poi.dm.w.boolean', 'True or false'), number: () => t('poi.dm.w.number', 'Number'), string: () => t('poi.dm.w.string', 'Text'),
   event: () => t('poi.dm.w.scopeEvent', 'One event run'), instance: () => t('poi.dm.w.scopeVisit', 'One visit'), character: () => t('poi.dm.w.scopeChar', 'Each character, saved'), poi_global: () => t('poi.dm.w.scopeAll', 'Everyone, saved'),
@@ -74,7 +74,7 @@ const ACTION_WORD = {
 };
 /** @type {Record<string, () => string>} */
 const OPTION_WORD = {
-  goto: () => t('poi.dm.o.goto', 'Go to another line'), close: () => t('poi.dm.o.close', 'End the talk'), open_trade: () => t('poi.dm.o.openTrade', 'Open a trade'),
+  goto: () => t('poi.dm.o.goto', 'Go to another line'), close: () => t('poi.dm.o.close', 'End dialogue'), open_trade: () => t('poi.dm.o.openTrade', 'Open a trade'),
   run_trade_recipe: () => t('poi.dm.o.runRecipe', 'Run a trade recipe'), trigger_event: () => t('poi.dm.o.runEvent', 'Run an event'),
 };
 /** @type {Record<string, () => string>} */
@@ -99,9 +99,9 @@ export function heldNotEditable(held) {
 /** The DM fields a POI holds that this panel does not offer, as lines. @param {any} doc */
 export function dmHeldLines(doc) {
   const h = DM.dmHeldOf(doc), out = [];
-  if (h.patrols) out.push(t('poi.dm.held.patrols', '{n, plural, one {# spawn point has} other {# spawn points have}} a patrol route, which the game does not walk yet.', { n: h.patrols }));
-  if (h.facing) out.push(t('poi.dm.held.facing', '{n, plural, one {# object has} other {# objects have}} a facing, which the game does not use.', { n: h.facing }));
-  if (h.flatLooks) out.push(t('poi.dm.held.flatLooks', '{n, plural, one {# object looks} other {# objects look}} like a flat picture, which the game does not draw yet.', { n: h.flatLooks }));
+  if (h.patrols) out.push(t('poi.dm.held.patrols', '{n, plural, one {# spawn point has} other {# spawn points have}} a patrol route, which enemies do not follow yet.', { n: h.patrols }));
+  if (h.facing) out.push(t('poi.dm.held.facing', '{n, plural, one {# object has} other {# objects have}} a facing direction, which the game does not use.', { n: h.facing }));
+  if (h.flatLooks) out.push(t('poi.dm.held.flatLooks', '{n, plural, one {# object uses} other {# objects use}} a flat picture appearance, which the game does not draw yet.', { n: h.flatLooks }));
   return out;
 }
 
@@ -212,12 +212,12 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   /** A spot in the POI's own frame: three numbers, Pick (a click on the ground), and Here (the ground under the eye). */
   const point = (/** @type {string} */ label, /** @type {any[]} */ path, /** @type {number[]} */ value) => {
     const r = row(label, ...value.map((c, i) => input('number', Number(c.toFixed?.(2) ?? c), (raw) => { const v = Number(raw); if (Number.isFinite(v)) put([...path, i], r3(v)); })));
-    r.append(btn(t('poi.dm.pick', 'Pick'), () => { const i = id(); if (!i) return; editor.pickSpot?.(i, (/** @type {number[]} */ p) => put(path, p.map(r3))); say(t('poi.dm.pickHint', 'Click the ground where it goes. Esc to stop.')); }),
+    r.append(btn(t('poi.dm.pick', 'Pick'), () => { const i = id(); if (!i) return; editor.pickSpot?.(i, (/** @type {number[]} */ p) => put(path, p.map(r3))); say(t('poi.dm.pickHint', 'Click the ground to choose a spot. Press Esc to cancel.')); }),
       btn(t('poi.dm.here', 'Here'), () => { const p = here(); if (p) put(path, p); }));
     return r;
   };
   /** The ground under the eye in the POI's frame, or null (said) while it is not built. */
-  const here = () => { const i = id(); const p = i ? editor.spotUnderEye?.(i) : null; if (!p) { say(t('poi.dm.noGround', 'The ground under the eye is not ready yet.'), 'bad'); return null; } return p.map(r3); };
+  const here = () => { const i = id(); const p = i ? editor.spotUnderEye?.(i) : null; if (!p) { say(t('poi.dm.noGround', 'The ground under the camera is not ready yet.'), 'bad'); return null; } return p.map(r3); };
 
   // an item stack: the game's item, its group where it has more than one, its material where it takes one, a count
   const itemPick = (/** @type {any} */ stack, /** @type {any[]} */ path, /** @type {string} */ label, { counted = true, takes = false } = {}) => {
@@ -234,7 +234,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       const name = DM.stackItemName(stack);
       const op = /** @type {HTMLOptionElement} */ (el('option', '', name ?? t('poi.dm.itemUnknown', 'Unknown item {n}', { n: stack.template }))); op.value = now; op.selected = true; off.append(op);
     }
-    const gold = /** @type {HTMLOptionElement} */ (el('option', '', t('poi.dm.noGold', 'Gold: give or take it as an amount'))); gold.disabled = true; gold.value = ''; off.append(gold);
+    const gold = /** @type {HTMLOptionElement} */ (el('option', '', t('poi.dm.noGold', 'Gold (use a gold amount instead of an item)'))); gold.disabled = true; gold.value = ''; off.append(gold);
     s.append(off);
     const change = (/** @type {any} */ to) => run((d) => { const x = get(d, path); if (x) DM.setStackItem(x, to); });
     s.addEventListener('change', () => change(DM.choiceItem(s.value)));
@@ -264,7 +264,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   const stacks = (/** @type {string} */ label, /** @type {any[]} */ path, /** @type {any[]} */ list, takes = false) => {
     const box = el('div');
     list.forEach((s, i) => { const r = itemPick(s, [...path, i], label, { takes }); r.append(btn('x', () => run((d) => { get(d, path).splice(i, 1); }))); box.append(r); });
-    const add = btn(t('poi.dm.addItem', 'Add an item'), () => run((d) => { const a = get(d, path); if (a.length < LIM.stacks) a.push({ template: 71, count: 1 }); else return { refused: t('poi.dm.maxHere', 'At most {max, number} here.', { max: LIM.stacks }) }; return null; }));
+    const add = btn(t('poi.dm.addItem', 'Add an item'), () => run((d) => { const a = get(d, path); if (a.length < LIM.stacks) a.push({ template: 71, count: 1 }); else return { refused: t('poi.dm.maxHere', 'You can add at most {max, number} item entries here.', { max: LIM.stacks }) }; return null; }));
     add.disabled = list.length >= LIM.stacks;
     box.append(add);
     return box;
@@ -315,8 +315,8 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     const mine = [own(coll, index)];
     if (coll === 'encounters') for (const k of linkedEvents(d, d.encounters[index])) mine.push(own('events', (d.events ?? []).findIndex((/** @type {any} */ x) => x.key === k)));
     const ps = poiPayProblems(d, poiDocProblems(d)).filter((p) => mine.some((f) => f(p)));
-    if (!ps.length) return [el('div', 'dfpoi-ok', t('poi.dm.rowOk', 'Nothing is wrong with it.'))];
-    return [section(t('poi.editor.problems', 'What is wrong')), ...ps.slice(0, 20).map((p) => { const r = el('div', 'dfpoi-problem'); const where = problemWhere(p.path, d); r.textContent = where ? `${where}: ${problemText(p)}` : problemText(p); r.title = p.path; return r; })];
+    if (!ps.length) return [el('div', 'dfpoi-ok', t('poi.dm.rowOk', 'No problems found.'))];
+    return [section(t('poi.editor.problems', 'Problems')), ...ps.slice(0, 20).map((p) => { const r = el('div', 'dfpoi-problem'); const where = problemWhere(p.path, d); r.textContent = where ? `${where}: ${problemText(p)}` : problemText(p); r.title = p.path; return r; })];
   }
 
   // ── lists ──
@@ -358,13 +358,13 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     npcs() {
       const d = getDoc(), n = d.npcs?.find((/** @type {any} */ x) => x.key === ui.key) ?? null, p = ['npcs', { key: ui.key }];
       return listPane('npcs', n ? [
-        section(n.name), note(t('poi.dm.peopleHint', 'Add and place people with the bar\'s Person button. Here they get a route, a dialogue, a trade, a talk range, and when they are shown.')),
+        section(n.name), note(t('poi.dm.peopleHint', 'Add and place people with the Person button in the toolbar. Here you can set their route, dialogue, trade, talk range, and when they are shown.')),
         ref(t('poi.dm.walksRoute', 'Walks route'), [...p, 'route'], n.route, 'routes', t('poi.dm.none', 'none')),
         ref(t('poi.dm.dialogue', 'Dialogue'), [...p, 'dialogue'], n.dialogue, 'dialogues', t('poi.dm.none', 'none')),
         ref(t('poi.dm.trade', 'Trade'), [...p, 'trade'], n.trade, 'trades', t('poi.dm.none', 'none')),
         num(t('poi.dm.talkRange', 'Talk range (m)'), [...p, 'radius'], n.radius, { min: 1, max: 20, none: true, whole: false, step: 0.5 }),
         cond(t('poi.dm.shownWhen', 'Shown only when'), [...p, 'showWhen'], n.showWhen),
-      ] : [note(d.npcs?.length ? t('poi.dm.pickPerson', 'Pick a person.') : t('poi.dm.noPeople', 'This POI has no people yet. Add one with the bar\'s Person button.'))]);
+      ] : [note(d.npcs?.length ? t('poi.dm.pickPerson', 'Pick a person.') : t('poi.dm.noPeople', 'This POI has no people yet. Add one with the Person button in the toolbar.'))]);
     },
     routes() {
       const d = getDoc(), r = d.routes?.find((/** @type {any} */ x) => x.key === ui.key) ?? null, p = ['routes', { key: ui.key }];
@@ -372,7 +372,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         section(r.name), text(t('poi.dm.name', 'Name'), [...p, 'name'], r.name), select(t('poi.dm.walk', 'Walk'), [...p, 'mode'], r.mode, words(POI_ROUTE_MODES)),
         row(t('poi.dm.waitAll', 'Wait at every stop (s)'), input('number', '', (raw) => { const v = Number(raw); if (Number.isFinite(v)) run((dd) => { DM.setWaitAll(get(dd, p), v); }); })),
         note(t('poi.dm.waypointsOf', '{n, number} of {max, number} waypoints. The path is drawn in the world.', { n: r.waypoints.length, max: LIM.waypoints })),
-        DM.loopStopsTwice(r) ? note(t('poi.dm.loopTwice', 'A loop walks back to the first waypoint on its own, so a last waypoint on that spot makes the person stop there twice. Remove it to stop once.')) : null,
+        DM.loopStopsTwice(r) ? note(t('poi.dm.loopTwice', 'Looping routes return to the first waypoint automatically, so a final waypoint on the same spot makes the person stop there twice. Remove the extra waypoint to stop once.')) : null,
         ...r.waypoints.map((/** @type {any} */ wp, /** @type {number} */ i) => {
           const wpp = [...p, 'waypoints', { key: wp.key }];
           const card = el('div', 'dfpoi-card');
@@ -389,9 +389,9 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
             ref(t('poi.dm.whenReached', 'When reached, run'), [...wpp, 'onArriveEvent'], wp.onArriveEvent, 'events', t('poi.dm.nothing', 'nothing')));
           return card;
         }),
-        (() => { const b = btn(t('poi.dm.addWaypointHere', 'Add a waypoint here'), () => { const pt = here(); if (pt) run((dd) => DM.addWaypoint(get(dd, p), pt)); }); b.disabled = r.waypoints.length >= LIM.waypoints; return b; })(),
-        (() => { const b = btn(t('poi.dm.addWaypointPick', 'Add a waypoint on the ground...'), () => { const i = id(); if (!i) return; editor.pickSpot?.(i, (/** @type {number[]} */ pt) => run((dd) => DM.addWaypoint(get(dd, p), pt))); say(t('poi.dm.pickHint', 'Click the ground where it goes. Esc to stop.')); }); b.disabled = r.waypoints.length >= LIM.waypoints; return b; })(),
-        note(t('poi.dm.waypointDragHint', 'A waypoint is moved by its numbers, Pick, or Here, not by the world\'s handles.')),
+        (() => { const b = btn(t('poi.dm.addWaypointHere', 'Add waypoint here'), () => { const pt = here(); if (pt) run((dd) => DM.addWaypoint(get(dd, p), pt)); }); b.disabled = r.waypoints.length >= LIM.waypoints; return b; })(),
+        (() => { const b = btn(t('poi.dm.addWaypointPick', 'Add waypoint on ground...'), () => { const i = id(); if (!i) return; editor.pickSpot?.(i, (/** @type {number[]} */ pt) => run((dd) => DM.addWaypoint(get(dd, p), pt))); say(t('poi.dm.pickHint', 'Click the ground to choose a spot. Press Esc to cancel.')); }); b.disabled = r.waypoints.length >= LIM.waypoints; return b; })(),
+        note(t('poi.dm.waypointDragHint', 'Move waypoints with their Spot coordinates, Pick, or Here rather than dragging them in the world.')),
       ] : [note(t('poi.dm.pickRoute', 'Pick a route or add one.'))];
       return listPane('routes', kids, { add: adder((dd, name) => DM.addRoute(dd, name, here0()), t('poi.dm.newRoute', 'Route')) });
     },
@@ -414,7 +414,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         e.complete.rule === 'timer_survived' ? num(t('poi.dm.seconds', 'Seconds inside its area'), [...p, 'complete', 'seconds'], e.complete.seconds, { min: 1, max: 3600 }) : null,
         ref(t('poi.dm.onStart', 'When it starts, run'), [...p, 'onStart'], e.onStart, 'events', t('poi.dm.nothing', 'nothing')),
         ref(t('poi.dm.onEnd', 'When it ends, run'), [...p, 'onComplete'], e.onComplete, 'events', t('poi.dm.nothing', 'nothing')),
-        note(t('poi.dm.foesOf', '{n, number} of {max, number} enemies, {s, number} of {smax, number} spawn points. An event can also start it. A level is optional.', { n: DM.foeCount(e), max: LIM.foesPerEncounter, s: e.spawns.length, smax: LIM.spawns })),
+        note(t('poi.dm.foesOf', '{n, number} of {max, number} enemies, {s, number} of {smax, number} spawn points. An event can also start this encounter, and setting a level is optional.', { n: DM.foeCount(e), max: LIM.foesPerEncounter, s: e.spawns.length, smax: LIM.spawns })),
         ...e.spawns.map((/** @type {any} */ s) => {
           const sp = [...p, 'spawns', { key: s.key }];
           const card = el('div', 'dfpoi-card');
@@ -433,7 +433,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
             num(t('poi.dm.spread', 'Spread (m)'), [...sp, 'spread'], s.spread, { min: 0, max: 50, whole: false, step: 0.5 }));
           return card;
         }),
-        (() => { const b = btn(t('poi.dm.addSpawn', 'Add a spawn point here'), () => { const pt = here(); if (pt) run((dd) => DM.addSpawn(get(dd, p), 136, 1, pt)); }); b.disabled = e.spawns.length >= LIM.spawns; return b; })(),
+        (() => { const b = btn(t('poi.dm.addSpawn', 'Add spawn point here'), () => { const pt = here(); if (pt) run((dd) => DM.addSpawn(get(dd, p), 136, 1, pt)); }); b.disabled = e.spawns.length >= LIM.spawns; return b; })(),
       ] : [note(t('poi.dm.pickEncounter', 'Pick an encounter or add one.'))];
       return listPane('encounters', kids, { add: adder((dd, name) => DM.addEncounter(dd, name, here0()), t('poi.dm.newEncounter', 'Encounter')) });
     },
@@ -447,22 +447,22 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         o.kind !== 'trigger' ? select(t('poi.dm.looksLike', 'Looks like'), null, o.appearance?.k === 'part' ? o.appearance.key : '', (d.parts ?? []).map((/** @type {any} */ x) => /** @type {[string, string]} */ ([x.key, x.name || x.key])), {
           none: t('poi.dm.lookNone', 'Nothing (used at its spot)'), onPick: (v) => put([...p, 'appearance'], v === '' ? { k: 'none' } : { k: 'part', key: v }),
         }) : null,
-        o.appearance?.k === 'part' ? note(o.kind === 'door' ? t('poi.dm.lookDoor', 'It is used where that part stands. Open, the part is not drawn and does not block.') : t('poi.dm.lookPart', 'It is used where that part stands.')) : point(t('poi.dm.spot', 'Spot'), [...p, 't'], o.t),
+        o.appearance?.k === 'part' ? note(o.kind === 'door' ? t('poi.dm.lookDoor', 'Players interact with it at that part\'s position. When open, the part is hidden and does not block movement.') : t('poi.dm.lookPart', 'Players interact with it at that part\'s position.')) : point(t('poi.dm.spot', 'Spot'), [...p, 't'], o.t),
         num(o.kind === 'trigger' ? t('poi.dm.zoneRadius', 'Zone radius (m)') : t('poi.dm.useReach', 'Used from within (m)'), [...p, 'radius'], o.radius, { min: 0.5, max: 200, whole: false, step: 0.5 }),
-        o.kind === 'door' || o.kind === 'chest' ? note(t('poi.dm.doorHint', 'Using a closed one opens it; using an open door shuts it. A locked one opens with its key item, or by an event.')) : null,
-        o.kind === 'switch' ? note(t('poi.dm.switchHint', 'A switch is off or on, and each use flips it, then its events run. With a key item, only a player who holds the key can use it.')) : null,
+        o.kind === 'door' || o.kind === 'chest' ? note(t('poi.dm.doorHint', 'Using a closed door or chest opens it, and using an open door closes it. If locked, it requires its key item or an event to open.')) : null,
+        o.kind === 'switch' ? note(t('poi.dm.switchHint', 'Using a switch toggles it between off and on and runs its events. With a key item, only a player holding that key can use it.')) : null,
         o.kind === 'quest_object' ? note(t('poi.dm.questHint', 'While inactive it cannot be used. With a key item, only a player who holds the key can use it.')) : null,
         o.kind !== 'trigger' ? (o.keyItem
           ? (() => { const r = itemPick(o.keyItem, [...p, 'keyItem'], t('poi.dm.keyItem', 'Key item')); r.append(btn('x', () => put([...p, 'keyItem'], undefined))); return r; })()
-          : btn(t('poi.dm.needsKey', 'Needs a key item'), () => put([...p, 'keyItem'], { template: 71, count: 1 }))) : null,
+          : btn(t('poi.dm.needsKey', 'Require key item'), () => put([...p, 'keyItem'], { template: 71, count: 1 }))) : null,
         select(t('poi.dm.stateVar', 'State saved in'), [...p, 'stateVar'], o.stateVar, kept.map((/** @type {any} */ v) => /** @type {[string, string]} */ ([v.key, v.name ?? v.key])), { none: t('poi.dm.stateVarNone', 'not saved (each visit starts as set above)') }),
-        note(t('poi.dm.stateVarHint', 'A persistent text variable carries the object\'s state from visit to visit. An event sets it to a state\'s name, such as open or locked, and the object takes it. For a switch, it holds inactive (off) or active (on).')),
+        note(t('poi.dm.stateVarHint', 'A persistent text variable saves this object\'s state across visits, such as open or locked. For a switch, inactive means off and active means on. When an event sets that variable to a state name, the object updates to match.')),
         // The law takes only a persistent text variable here. Say why when the POI has a persistent true-or-false or
         // number variable, and offer to make a text one for the object while it has none.
         (d.variables ?? []).some((/** @type {any} */ v) => v.type !== 'string' && (v.scope === 'character' || v.scope === 'poi_global'))
-          ? note(t('poi.dm.stateVarOnlyText', 'True-or-false and number variables are not offered: a state is a word, so only a text variable holds it. To open this when something is true, set a text variable to a state in the same event.')) : null,
+          ? note(t('poi.dm.stateVarOnlyText', 'Only text variables are listed here because object states are stored as text names. To change this object\'s state from another condition, have your event set the text variable to the new state.')) : null,
         o.stateVar ? null : btn(t('poi.dm.stateVarMake', 'Make persistent text variable'), () => run((dd) => DM.addStateVariable(dd, o.key))),
-        note(o.kind === 'trigger' ? t('poi.dm.zoneHint', 'A zone starts events when a player walks in. Make an event that starts when a player walks into a zone.') : t('poi.dm.objectHint', 'Events can start when a player uses this object.')),
+        note(o.kind === 'trigger' ? t('poi.dm.zoneHint', 'Zones trigger events when a player enters them. To use this zone, create an event set to start when a player walks into a zone.') : t('poi.dm.objectHint', 'Events can start when a player uses this object.')),
       ] : [note(t('poi.dm.pickObject', 'Pick an object or add one.'))];
       const kind = /** @type {HTMLSelectElement} */ (el('select'));
       for (const k of POI_INTERACTIVE_KINDS) { const op = /** @type {HTMLOptionElement} */ (el('option', '', w(k))); op.value = k; kind.append(op); }
@@ -487,7 +487,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         select(t('poi.dm.startsAt', 'Starts at'), [...p, 'start'], dl.start, dl.nodes.map((/** @type {any} */ n) => /** @type {[string, string]} */ ([n.key, n.key])))];
       const addLine = btn(t('poi.dm.addLine', 'Add a line'), () => { const r = run((dd) => DM.addNode(get(dd, p))); if (r?.row) { st.sel = r.row.key; st.scrollTo = r.row.key; render(); } });
       addLine.disabled = dl.nodes.length >= LIM.nodes;
-      const hint = note(t('poi.dm.lineHint', 'A line nobody can reach from the start is a problem. Link each new line from an answer.'));
+      const hint = note(t('poi.dm.lineHint', 'Every line must be reachable from the starting line. Link each new line from an answer.'));
       if (st.view === 'map') {
         const pick = dl.nodes.find((/** @type {any} */ n) => n.key === st.sel) ?? dl.nodes.find((/** @type {any} */ n) => n.key === dl.start) ?? dl.nodes[0];
         const side = el('div', 'dfpoi-map-side');
@@ -562,8 +562,8 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         tg.k === 'npc_talk' ? select(t('poi.dm.person', 'Person'), [...p, 'trigger', 'npc'], tg.npc, (d.npcs ?? []).map((/** @type {any} */ n) => /** @type {[string, string]} */ ([n.key, n.name]))) : null,
         tg.k === 'waypoint_reached' ? select(t('poi.dm.route', 'Route'), null, tg.route, rowsOf('routes'), { onPick: (v) => put([...p, 'trigger'], { k: tg.k, route: v, waypoint: getDoc().routes.find((/** @type {any} */ r) => r.key === v)?.waypoints[0]?.key ?? '' }) }) : null,
         tg.k === 'waypoint_reached' ? select(t('poi.dm.waypoint', 'Waypoint'), [...p, 'trigger', 'waypoint'], tg.waypoint, (d.routes?.find((/** @type {any} */ r) => r.key === tg.route)?.waypoints ?? []).map((/** @type {any} */ x) => /** @type {[string, string]} */ ([x.key, x.name]))) : null,
-        tg.k === 'chained' ? note(t('poi.dm.chainedHint', 'It runs when another event, a waypoint, an encounter, a trade, or an answer starts it.')) : null,
-        DM.asksAway(d, e) ? note(t('poi.dm.asksAway', 'A waypoint, a delay, or an encounter starts this event, so the game asks the player for the items or gold wherever they are.')) : null,
+        tg.k === 'chained' ? note(t('poi.dm.chainedHint', 'This event runs when another event, a waypoint, an encounter, a trade, or a dialogue answer triggers it.')) : null,
+        DM.asksAway(d, e) ? note(t('poi.dm.asksAway', 'Because this event is triggered by a waypoint, delay, or encounter, it prompts the player for items or gold wherever they are.')) : null,
         cond(t('poi.dm.onlyWhen', 'Only when'), [...p, 'when'], e.when),
         section(t('poi.dm.thenN', 'Then ({n, number} of {max, number} actions in all)', { n: (e.then ?? []).length + (e.else ?? []).length, max: LIM.actions })), ...actions('then'), addAction('then'),
         section(t('poi.dm.otherwise', 'Otherwise (when the condition is not met)')), ...actions('else'), addAction('else'),
@@ -580,7 +580,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         section(v.name ?? v.key), text(t('poi.dm.name', 'Name'), [...p, 'name'], v.name), keyRow(v),
         select(t('poi.dm.holds', 'Holds'), null, v.type, words(POI_VAR_TYPES), { onPick: (x) => run((dd) => { DM.setVariableType(dd, v.key, x); }) }),
         select(t('poi.dm.keptFor', 'Lasts for'), [...p, 'scope'], v.scope, words(POI_VAR_SCOPES)), valueIn(t('poi.dm.startsAs', 'Starts as'), [...p, 'initial'], v.initial, v.type),
-        note(t('poi.dm.scopeHintEvent', 'One event run: fresh for each event started by a trigger, waypoint, delay, answer, or trade, or by walking into or winning an encounter. Events it runs at once share it.')),
+        note(t('poi.dm.scopeHintEvent', 'One event run: resets for each event started by a trigger, waypoint, delay, dialogue answer, trade, or encounter. Chained events that run immediately share the same value.')),
         note(t('poi.dm.scopeHintVisit', 'One visit: while the POI stays loaded around the player.')),
         note(t('poi.dm.scopeHintKept', 'Persistent variables are saved from visit to visit, for everyone or for each character.')),
       ] : [note(t('poi.dm.pickVariable', 'Pick a variable or add one.'))], { add: adder((dd, name) => DM.addVariable(dd, name, 'boolean', 'poi_global'), t('poi.dm.newVariable', 'Variable')) });
@@ -602,7 +602,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       const ans = input('text', o.text, (v) => { if (v.trim()) put([...op, 'text'], v.trim().slice(0, LIM.text)); });
       ans.className = 'dfpoi-grow'; ans.maxLength = LIM.text;
       const x = btn('x', () => run((dd) => { get(dd, [...np, 'options']).splice(i, 1); })); x.disabled = n.options.length < 2;
-      const lead = btn(t('poi.dm.leadNew', 'Lead to a new line'), () => { const r = run((dd) => DM.addNodeFrom(get(dd, p), n.key, i)); if (r?.row) { st.sel = r.row.key; st.scrollTo = r.row.key; render(); } });
+      const lead = btn(t('poi.dm.leadNew', 'Lead to new line'), () => { const r = run((dd) => DM.addNodeFrom(get(dd, p), n.key, i)); if (r?.row) { st.sel = r.row.key; st.scrollTo = r.row.key; render(); } });
       lead.disabled = dl.nodes.length >= LIM.nodes;
       lead.title = t('poi.dm.leadNewHint', 'Add a line and make this answer go to it.');
       const then = select(t('poi.dm.then', 'Then'), null, th.k, POI_OPTION_KINDS.map((k) => /** @type {[string, string]} */ ([k, OPTION_WORD[k]()])), { onPick: (v) => put([...op, 'then'], DM.thenOf(getDoc(), dl, v)) });
@@ -628,11 +628,11 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     const made = DM.wonStartEvent(d, e);
     const undo = () => btn(t('poi.dm.letStartAgain', 'Let it start again'), () => run((dd) => DM.unkeepWon(dd, e.key)));
     // the start event keepWon made still ends the encounter after Starts again leaves Never: say so, and offer removal
-    if (e.respawn !== 'never') return made ? [note(t('poi.dm.wonStillKept', 'Its start event still ends it while {name} is true, so once won it does not start again.', { name: d.variables?.find((/** @type {any} */ x) => x.key === made.when.var)?.name ?? made.when.var })), undo()] : [];
+    if (e.respawn !== 'never') return made ? [note(t('poi.dm.wonStillKept', 'The start event still ends this encounter while {name} is true, so it will not run again after being won.', { name: d.variables?.find((/** @type {any} */ x) => x.key === made.when.var)?.name ?? made.when.var })), undo()] : [];
     const v = DM.wonKeeper(d, e);
-    if (v) return [note(t('poi.dm.wonKept', 'It stays won across visits. Winning it sets {name}, and while that is true it ends as soon as it starts, with no enemies.', { name: v.name ?? v.key })), undo()];
+    if (v) return [note(t('poi.dm.wonKept', 'This encounter stays won across visits. Winning sets {name} to true, and while it is true, the encounter ends as soon as it starts, with no enemies.', { name: v.name ?? v.key })), undo()];
     return [
-      note(t('poi.dm.respawnHint', 'A won encounter set to never start again stays won while the POI stays loaded. Once the player has gone far enough for it to unload, it can start again unless a persistent variable remembers the win.')),
+      note(t('poi.dm.respawnHint', 'An encounter set to never restart only stays completed while the POI remains loaded. After the player leaves and the POI unloads, it can start again unless a persistent variable tracks the win.')),
       btn(t('poi.dm.keepWon', 'Keep won across visits'), () => run((dd) => DM.keepWon(dd, e.key))),
     ];
   }
@@ -657,13 +657,13 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   function keyRow(v) {
     const i = keyInput(v.key, () => !!getDoc()?.variables?.some((/** @type {any} */ x) => x.key === v.key), (to) => {
       const r = run((dd) => DM.renameVariableKey(dd, v.key, to));
-      if (r?.ok && r.key !== v.key) { ui.key = r.key; say(t('poi.dm.keyChanged', 'The key is now {key}, and {n, plural, one {# place} other {# places}} that named it changed with it.', { key: r.key, n: r.moved })); }
+      if (r?.ok && r.key !== v.key) { ui.key = r.key; say(t('poi.dm.keyChanged', 'Changed the key to {key} and updated {n, plural, one {# place} other {# places}} that used it.', { key: r.key, n: r.moved })); }
     });
     const box = el('div');
     box.append(row(t('poi.dm.key', 'Key'), i));
     const kept = v.scope === 'character' || v.scope === 'poi_global';
-    if (kept && isLive()) box.append(note(t('poi.dm.keyLive', 'This POI is live, and players\' saved values are stored under this key. With a new key, every saved value of {name} resets to {initial} once the change is approved.', { name: v.name ?? v.key, initial: JSON.stringify(v.initial) })));
-    else box.append(note(t('poi.dm.keyHint', 'The key is how the POI names this variable. Changing it changes every place that uses it.')));
+    if (kept && isLive()) box.append(note(t('poi.dm.keyLive', 'This POI is live, and saved player values use this key. Renaming it will reset every saved value of {name} to {initial} once the change is approved.', { name: v.name ?? v.key, initial: JSON.stringify(v.initial) })));
+    else box.append(note(t('poi.dm.keyHint', 'This key identifies the variable across the POI. Changing it updates every place that uses it.')));
     return box;
   }
 

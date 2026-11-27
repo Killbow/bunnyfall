@@ -1,12 +1,5 @@
 // @ts-check
 
-// The DM's content, as data the editors change: routes and their waypoints, encounters and their spawns, interactive
-// objects, dialogues, trades, variables, and events. The edit functions change the document they are given in place,
-// and an editor runs each inside one poiEdit step (the in-game editor's DM panel, src/ui/poi/poiDmPanel.js, and the
-// World Builder's DM view). Some refuse a change themselves (a full collection, or a row something still needs);
-// poiLawV2.js says whether the rest is allowed, and new rows start as valid as the law lets them (a trade needs a
-// reward, a route needs two waypoints). Plain words for events and the event graph live here too (`actionText`,
-// `conditionText`, `eventGraph`), through the text core.
 
 import { POI_V2_LIMITS as L, POI_INTERACTIVE_STATES, POI_FOE_RANGES } from './poiLawV2.js';
 import { POI_ITEM_CHOICES } from './poiItemChoices.js';
@@ -30,21 +23,16 @@ const list = (doc, name) => (doc[name] ??= []);
 const plus = (p, dx = 0, dy = 0, dz = 0) => [r3(p[0] + dx), r3(p[1] + dy), r3(p[2] + dz)];
 const refuse = (why) => ({ refused: why });
 
-/** A key for a new row from the name it is given (poiScene.js's: lower case, plain letters, and a number added when it is
- *  taken), passed on for the World Builder's scene.js and the tests. */
 export { freshKey };
 
-/** The collections the DM suite edits, with the most each may hold. */
 export const DM_COLLECTIONS = Object.freeze({
   routes: L.routes, encounters: L.encounters, interactives: L.interactives, dialogues: L.dialogues, trades: L.trades, variables: L.variables, events: L.events,
 });
 
-/** Returns the display name for an enemy ID, from the base game or Daggerfall Enemy Expansion. */
 export const foeName = (id) => (id <= 42 ? ENEMY_NAMES[id] : id >= 128 && id <= 146 ? ENEMY_NAMES[43 + id - 128] : dexEnemyNameText(id)) ?? t('poi.dm.edit.foeN', 'Enemy {id}', { id });
-/** Every enemy id the law allows, with its name, in order. */
 export const FOES = Object.freeze(POI_FOE_RANGES.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, i) => ({ id: a + i, name: foeName(a + i) }))));
 
-const noRoom = (max) => t('poi.dm.edit.noRoom', 'No room: a POI may hold at most {max, number} of these.', { max });
+const noRoom = (max) => t('poi.dm.edit.noRoom', 'A POI can hold at most {max, number} of these.', { max });
 function room(doc, name, wanted) {
   const rows = list(doc, name);
   const max = DM_COLLECTIONS[/** @type {keyof typeof DM_COLLECTIONS} */ (name)];
@@ -52,7 +40,6 @@ function room(doc, name, wanted) {
   return { key: freshKey(wanted, keysOf(rows)) };
 }
 
-// ── items ──
 /** @type {{ template: number, name: string, group: string, recipe?: string }[] | null} */
 let itemRows = null;
 /** @param {string} recipe */
@@ -75,7 +62,7 @@ export const choiceItem = (v) => {
   const [template, recipe] = String(v).split(':');
   return recipe === undefined ? { template: Number(template) } : { template: Number(template), recipe };
 };
-/** Returns an item's name from the picker list, or from the classic item table. @param {number} template */
+/** @param {number} template */
 const itemNameOf = (template) => {
   itemNames ??= new Map(itemChoices().filter((r) => r.recipe === undefined).map((r) => [r.template, r.name]));
   return itemNames.get(template) ?? ITEM_TEMPLATES[template]?.name ?? null;
@@ -84,7 +71,7 @@ const itemNameOf = (template) => {
 let itemNames = null;
 /** @param {{ template: number, recipe?: string }} s */
 export const stackItemName = (s) => (s.recipe !== undefined ? potionName(s.recipe) : itemNameOf(s.template));
-/** The groups an item may be made in (a few templates are minted in more than one). @param {number} template */
+/** @param {number} template */
 export const itemGroups = (template) => templateGroups(template).filter((g) => g !== 'Currency');
 /** @type {Record<string, () => string>} */
 const GROUP_WORD = {
@@ -96,7 +83,7 @@ const GROUP_WORD = {
   MiscellaneousIngredients1: () => t('poi.dm.g.misc1', 'Other ingredients'), MetalIngredients: () => t('poi.dm.g.metal', 'Metals'), MiscellaneousIngredients2: () => t('poi.dm.g.misc2', 'More ingredients'),
   Potions: () => t('poi.dm.g.potions', 'Potions'), Transportation: () => t('poi.dm.g.transport', 'Transport'), Deeds: () => t('poi.dm.g.deeds', 'Deeds'), Jewellery: () => t('poi.dm.g.jewelry', 'Jewelry'), MiscItems: () => t('poi.dm.g.misc', 'Other items'), QuestItems: () => t('poi.dm.g.quest', 'Quest items'),
 };
-/** An item group's name as the builder reads it. @param {string} g */
+/** @param {string} g */
 export const groupWord = (g) => GROUP_WORD[g]?.() ?? g;
 /** @type {Record<string, () => string>} */
 const MATERIAL_WORD = {
@@ -106,18 +93,13 @@ const MATERIAL_WORD = {
   Adamantium: () => t('poi.dm.material.adamantium', 'Adamantium'), Ebony: () => t('poi.dm.material.ebony', 'Ebony'), Orcish: () => t('poi.dm.material.orcish', 'Orcish'),
   Daedric: () => t('poi.dm.material.daedric', 'Daedric'),
 };
-/**
- * The materials an item of a group may be made of, as `[value, word]`: weapons and armor only (the law refuses a
- * material on anything else, and the classic second chain is not offered, as the trade law does not take it).
- * @param {string} group
- */
+/** @param {string} group */
 export function materialChoices(group) {
   const table = group === 'Weapons' ? WEAPON_MATERIALS : group === 'Armor' ? ARMOR_MATERIAL : null;
   if (!table) return [];
   return Object.entries(table).filter(([k, v]) => v >= 0 && k !== 'Chain2').map(([k, v]) => /** @type {[number, string]} */ ([v, MATERIAL_WORD[k]?.() ?? k]));
 }
 
-// ── variables ──
 const INITIAL = { boolean: false, number: 0, string: '' };
 export function addVariable(doc, name, type = 'boolean', scope = 'poi_global', wantedKey = name) {
   const r = room(doc, 'variables', wantedKey); if (r.refused) return r;
@@ -125,12 +107,10 @@ export function addVariable(doc, name, type = 'boolean', scope = 'poi_global', w
   doc.variables.push(v);
   return { row: v };
 }
-/** Change a variable's type: its starting value goes back to the type's own. */
 export function setVariableType(doc, key, type) { const v = doc.variables?.find((x) => x.key === key); if (!v) return false; v.type = type; v.initial = /** @type {any} */ (INITIAL)[type]; return true; }
 /**
- * Creates a per-character persistent text variable starting at the object's initial state, and sets the object to take
- * its state from that variable. An object's state is a word (open, locked, active), so only a text variable holds one.
- * @param {any} doc @param {string} objectKey
+ * @param {any} doc
+ * @param {string} objectKey
  */
 export function addStateVariable(doc, objectKey) {
   const o = doc.interactives?.find((x) => x.key === objectKey);
@@ -142,10 +122,9 @@ export function addStateVariable(doc, objectKey) {
   return r;
 }
 /**
- * Renames a variable's key to a valid unused key (1 to 32 of a-z, 0-9, hyphen, and underscore, starting with a letter
- * or digit) and updates every reference to it across conditions, set actions, and objects that take their state from
- * it. Returns `{ ok, key, moved }` (where `moved` is the number of references updated) or a refusal.
- * @param {any} doc @param {string} from @param {string} to
+ * @param {any} doc
+ * @param {string} from
+ * @param {string} to
  */
 export function renameVariableKey(doc, from, to) {
   const v = doc.variables?.find((x) => x.key === from);
@@ -160,7 +139,6 @@ export function renameVariableKey(doc, from, to) {
   return { ok: true, key: k, moved: uses.length };
 }
 
-// ── routes ──
 export function addRoute(doc, name, at = [0, 0, 0]) {
   const r = room(doc, 'routes', name); if (r.refused) return r;
   const route = { key: r.key, name: String(name).slice(0, 48), mode: 'loop', waypoints: [] };
@@ -176,7 +154,6 @@ export function addWaypoint(route, p, name = t('poi.dm.edit.wpN', 'Waypoint {n}'
   return { row: w };
 }
 export function moveWaypoint(route, key, p) { const w = route.waypoints.find((x) => x.key === key); if (!w) return false; w.t = p.map(r3); return true; }
-/** Move a waypoint one place earlier (-1) or later (+1) in the order. */
 export function shiftWaypoint(route, key, dir) {
   const i = route.waypoints.findIndex((x) => x.key === key), j = i + dir;
   if (i < 0 || j < 0 || j >= route.waypoints.length) return false;
@@ -195,10 +172,8 @@ export function loopStopsTwice(route) {
   }
   return false;
 }
-/** Wait the same time at every waypoint. */
 export function setWaitAll(route, waitS) { for (const w of route.waypoints) w.waitS = Math.max(0, Math.min(3600, Math.round(waitS))); return route.waypoints.length; }
 
-// ── encounters ──
 export function addEncounter(doc, name, center = [0, 0, 0]) {
   const r = room(doc, 'encounters', name); if (r.refused) return r;
   const e = { key: r.key, name: String(name).slice(0, 48), center: center.map(r3), radius: 20, aggression: 'hostile', respawn: 'never', spawns: [], complete: { rule: 'all_dead' } };
@@ -212,26 +187,27 @@ export function addSpawn(enc, foe, count, at, wanted = foeName(foe)) {
   enc.spawns.push(s);
   return { row: s };
 }
-/** @param {any} enc @param {boolean} on */
+/**
+ * @param {any} enc
+ * @param {boolean} on
+ */
 export function setPacifiable(enc, on) {
   if (on) delete enc.pacifiable; else enc.pacifiable = false;
 }
-/** The rule that ends an encounter. A leader rule names one spawn point; a timer rule a number of seconds. */
 export function setComplete(enc, rule, extra) {
   if (rule === 'all_dead') enc.complete = { rule };
   else if (rule === 'leader_dead') enc.complete = { rule, leader: extra ?? enc.spawns[0]?.key ?? '' };
   else enc.complete = { rule, seconds: Number.isFinite(extra) ? extra : 60 };
 }
-/** Returns why a key is refused (invalid format or already used in this list), or null. */
 function keyProblem(k, taken) {
-  if (!POI_PART_KEY_RE.test(k)) return t('poi.dm.edit.badKey', 'A key is up to 32 lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.');
+  if (!POI_PART_KEY_RE.test(k)) return t('poi.dm.edit.badKey', 'Keys must start with a letter or digit and use up to 32 lowercase letters, digits, hyphens, and underscores.');
   if (taken.has(k)) return t('poi.dm.edit.keyTakenHere', 'Another row here has the key {key}.', { key: k });
   return null;
 }
 /**
- * Renames a spawn point's key to a valid key unused in its encounter, updating the encounter's leader rule if it
- * named the old key. Returns `{ ok, key }` or a refusal.
- * @param {any} enc @param {string} from @param {string} to
+ * @param {any} enc
+ * @param {string} from
+ * @param {string} to
  */
 export function renameSpawnKey(enc, from, to) {
   const s = enc?.spawns?.find((x) => x.key === from);
@@ -245,9 +221,9 @@ export function renameSpawnKey(enc, from, to) {
   return { ok: true, key: k };
 }
 /**
- * Sets a spawn point's enemy. If its key still matches the default derived from the old enemy's name (such as `rogue`
- * or `rogue-2`), renames it to match the new enemy; a custom key stays as set.
- * @param {any} enc @param {string} key @param {number} foe
+ * @param {any} enc
+ * @param {string} key
+ * @param {number} foe
  */
 export function setSpawnFoe(enc, key, foe) {
   const s = enc?.spawns?.find((x) => x.key === key);
@@ -260,8 +236,6 @@ export function setSpawnFoe(enc, key, foe) {
   return { ok: true, key: s.key };
 }
 export const foeCount = (enc) => enc.spawns.reduce((n, s) => n + (Number.isInteger(s.count) ? s.count : 0), 0);
-/** Removes a spawn point (refused when the encounter has only one left); a leader rule that named it switches to the
- *  first remaining spawn point. */
 export function removeSpawn(enc, key) {
   if (enc.spawns.length < 2 || !enc.spawns.some((s) => s.key === key)) return false;
   enc.spawns = enc.spawns.filter((s) => s.key !== key);
@@ -269,23 +243,17 @@ export function removeSpawn(enc, key) {
   return true;
 }
 
-/** Returns whether a variable is persistent across visits (for each character, or for everyone). */
 const keptVar = (v) => v?.scope === 'character' || v?.scope === 'poi_global';
-/** Returns the branches an event can take (`['then']`, or `['then', 'else']` when it has a condition). */
 const endBranches = (ev) => (ev?.when ? ['then', 'else'] : ['then']);
-/** Returns whether an event sets the given variable to true in every branch it can take. */
 const setsTrue = (ev, key) => endBranches(ev).every((b) => (ev[b] ?? []).some((a) => a.k === 'set_var' && a.var === key && a.to === true));
-/** Returns the start event that keepWon made for an encounter (ending it while a variable is true), or null. */
 export const wonStartEvent = (doc, enc) => {
   const ev = doc.events?.find((e) => e.key === enc?.onStart);
   const c = ev?.when;
   return ev && c?.k === 'var' && c.op === 'eq' && c.value === true && (ev.then ?? []).some((a) => a.k === 'end_encounter' && a.encounter === enc.key) ? ev : null;
 };
 /**
- * Returns the persistent true-or-false variable that keeps an encounter won across visits, or null. The encounter's
- * start event ends it at once while that variable is true, so no enemy spawns, and its end event sets the variable
- * true in every branch.
- * @param {any} doc @param {any} enc
+ * @param {any} doc
+ * @param {any} enc
  */
 export function wonKeeper(doc, enc) {
   const ev = wonStartEvent(doc, enc);
@@ -295,11 +263,8 @@ export function wonKeeper(doc, enc) {
   return v && v.type === 'boolean' && keptVar(v) && end && setsTrue(end, v.key) ? v : null;
 }
 /**
- * Keeps a won encounter won across visits. An encounter's runtime state lasts only while its POI stays loaded, so a
- * persistent true-or-false variable records the win: the end event sets it true in each branch (reusing one it already
- * sets true, or creating a per-character variable), and a new start event ends the encounter at once while the
- * variable is true or runs the previous start event otherwise.
- * @param {any} doc @param {string} encKey
+ * @param {any} doc
+ * @param {string} encKey
  */
 export function keepWon(doc, encKey) {
   const e = doc.encounters?.find((x) => x.key === encKey);
@@ -308,7 +273,6 @@ export function keepWon(doc, encKey) {
   const events = list(doc, 'events');
   if (events.length + (e.onComplete ? 1 : 2) > L.events) return refuse(noRoom(L.events));
   let end = events.find((x) => x.key === e.onComplete) ?? null;
-  // Reuse a persistent true-or-false variable the end event already sets true, or create one for it.
   let v = (doc.variables ?? []).find((x) => x.type === 'boolean' && keptVar(x) && end && (end.then ?? []).some((a) => a.k === 'set_var' && a.var === x.key && a.to === true)) ?? null;
   const missing = end ? endBranches(end).filter((b) => !v || !(end[b] ?? []).some((a) => a.k === 'set_var' && a.var === v.key && a.to === true)) : ['then'];
   if (end && (end.then?.length ?? 0) + (end.else?.length ?? 0) + missing.length > L.actions) return refuse(t('poi.dm.edit.fullEvent', 'Its end event already holds {max, number} actions.', { max: L.actions }));
@@ -334,9 +298,8 @@ export function keepWon(doc, encKey) {
   return { ok: true, row: v };
 }
 /**
- * Removes the start event that keepWon added to an encounter and restores the previous start event, if any. The
- * variable and the end event's set action are left in place in case the builder uses them elsewhere.
- * @param {any} doc @param {string} encKey
+ * @param {any} doc
+ * @param {string} encKey
  */
 export function unkeepWon(doc, encKey) {
   const e = doc.encounters?.find((x) => x.key === encKey);
@@ -344,10 +307,9 @@ export function unkeepWon(doc, encKey) {
   if (!ev) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
   return removeRow(doc, 'events', ev.key);
 }
-/** Returns the prior start event that a keepWon start event chains to, or undefined. @param {any} ev */
+/** @param {any} ev */
 const wonStartsInstead = (ev) => (ev?.else?.length === 1 && ev.else[0].k === 'trigger_event' ? ev.else[0].event : undefined);
 
-// ── interactive objects ──
 export const DEFAULT_STATE = Object.freeze({ chest: 'closed', door: 'closed', switch: 'inactive', quest_object: 'active', trigger: 'active' });
 export function addInteractive(doc, kind, name, p = [0, 0, 0]) {
   const r = room(doc, 'interactives', name); if (r.refused) return r;
@@ -355,10 +317,8 @@ export function addInteractive(doc, kind, name, p = [0, 0, 0]) {
   doc.interactives.push(o);
   return { row: o };
 }
-/** Change what an object is: its state goes to the first one the new kind has, if the old one does not fit. */
 export function setInteractiveKind(o, kind) { o.kind = kind; if (!/** @type {any} */ (POI_INTERACTIVE_STATES)[kind].includes(o.state)) o.state = /** @type {any} */ (DEFAULT_STATE)[kind]; }
 
-// ── dialogues ──
 export function addDialogue(doc, name) {
   const r = room(doc, 'dialogues', name); if (r.refused) return r;
   const d = { key: r.key, name: String(name).slice(0, 48), start: 'root', nodes: [{ key: 'root', say: t('poi.dm.edit.wellMet', 'Well met.'), options: [{ text: t('poi.dm.edit.goodbye', 'Goodbye.'), then: { k: 'close' } }] }] };
@@ -385,7 +345,6 @@ export function addOption(node, text = t('poi.dm.edit.tellMore', 'Tell me more.'
   node.options.push(o);
   return { row: o };
 }
-/** Who points at a node: the answers (and the dialogue's start) that lead to it. */
 export function nodeReferrers(dlg, key) {
   const out = [];
   if (dlg.start === key) out.push(t('poi.dm.edit.refStart', 'the start of the dialogue'));
@@ -399,7 +358,6 @@ export function removeNode(dlg, key) {
   dlg.nodes = dlg.nodes.filter((n) => n.key !== key);
   return { ok: true };
 }
-/** What an answer does, with the defaults a fresh one needs. */
 export function thenOf(doc, dlg, kind) {
   if (kind === 'goto') return { k: 'goto', node: dlg.nodes[0]?.key ?? '' };
   if (kind === 'open_trade') return { k: 'open_trade', trade: doc.trades?.[0]?.key ?? '' };
@@ -408,7 +366,6 @@ export function thenOf(doc, dlg, kind) {
   return { k: 'close' };
 }
 
-// ── trades ──
 export function addTrade(doc, name) {
   const r = room(doc, 'trades', name); if (r.refused) return r;
   const tr = { key: r.key, name: String(name).slice(0, 48), recipes: [] };
@@ -416,14 +373,12 @@ export function addTrade(doc, name) {
   addRecipe(tr, t('poi.dm.edit.trade', 'Trade'));
   return { row: tr };
 }
-/** A new recipe asks 10 gold for one iron: a trade the law accepts, for the author to change. */
 export function addRecipe(trade, name = t('poi.dm.edit.trade', 'Trade')) {
   if (trade.recipes.length >= L.recipes) return refuse(t('poi.dm.edit.maxRecipes', 'A trade holds at most {max, number} recipes.', { max: L.recipes }));
   const rec = { key: freshKey(name, keysOf(trade.recipes)), name: String(name).slice(0, 48), requireItems: [], requireGold: 10, rewardItems: [{ template: 71, count: 1 }], rewardGold: 0, limitMode: 'unlimited' };
   trade.recipes.push(rec);
   return { row: rec };
 }
-/** Set how often a recipe may run. Stock needs a number; the other modes drop it. */
 export function setLimit(rec, mode, maxStock = 10) { rec.limitMode = mode; if (mode === 'global_stock') rec.maxStock = maxStock; else delete rec.maxStock; }
 export function addStack(rec, side, template, count = 1) {
   const rows = rec[side];
@@ -433,7 +388,8 @@ export function addStack(rec, side, template, count = 1) {
   return { row: s };
 }
 /**
- * @param {any} s @param {{ template?: number, recipe?: string, group?: string | null, material?: number | null }} to
+ * @param {any} s
+ * @param {{ template?: number, recipe?: string, group?: string | null, material?: number | null }} to
  */
 export function setStackItem(s, to) {
   if (to.template !== undefined) {
@@ -449,7 +405,6 @@ export function setStackItem(s, to) {
   if (material != null && mats.some(([v]) => v === material)) s.material = material; else delete s.material;
 }
 
-// ── events ──
 export const TRIGGERS = Object.freeze({
   enter_area: t('poi.dm.trigger.enterArea', 'A player enters a zone'), interact: t('poi.dm.trigger.interact', 'A player uses an object'), npc_talk: t('poi.dm.trigger.npcTalk', 'A player talks to a person'),
   waypoint_reached: t('poi.dm.trigger.waypoint', 'A person reaches a waypoint'), chained: t('poi.dm.trigger.chained', 'Another event or link starts it'),
@@ -467,7 +422,6 @@ export function addEvent(doc, name, triggerKind = 'chained') {
   doc.events.push(e);
   return { row: e };
 }
-/** What each action asks for, so a fresh one is shaped right. */
 export function actionOf(doc, kind) {
   const first = (name) => doc[name]?.[0]?.key ?? '';
   switch (kind) {
@@ -498,7 +452,6 @@ export function removeAction(ev, branch, index) {
   if (branch === 'else' && !ev.else.length) delete ev.else;
   return true;
 }
-/** A condition of a kind, ready to be filled in. */
 export function conditionOf(doc, kind) {
   if (kind === 'all' || kind === 'any') return { k: kind, of: [conditionOf(doc, 'has_gold')] };
   if (kind === 'has_item') return { k: kind, item: { template: 71, count: 1 } };
@@ -506,24 +459,20 @@ export function conditionOf(doc, kind) {
   const v = doc.variables?.[0];
   return { k: 'var', var: v?.key ?? '', op: 'eq', value: v ? INITIAL_OF(v) : true };
 }
-/** How deep a condition tree is, and how many leaves: what the law limits. */
 export function conditionSize(c) {
   if (!c) return { depth: 0, leaves: 0 };
   if (c.k === 'all' || c.k === 'any') { const parts = (c.of ?? []).map(conditionSize); return { depth: 1 + Math.max(0, ...parts.map((p) => p.depth)), leaves: parts.reduce((n, p) => n + p.leaves, 0) }; }
   return { depth: 1, leaves: 1 };
 }
 
-// ── who points at what ──
-/**
- * Lists every place where the document names a DM row by key, each as `{ coll, key, where, optional, clear }`. An
- * `optional` one may be left out, and `clear()` drops it; the rest belong to an action, trigger, answer, or condition
- * that needs them. A variable's reference also has `set(key)`, which points it at another variable.
- */
 export function refsOf(doc) {
   /** @type {{ coll: string, key: string, sub?: string, where: string, optional: boolean, clear: () => void, set?: (key: string) => void }[]} */
   const out = [];
   const add = (coll, key, where, optional, clear, sub, set) => { if (typeof key === 'string') out.push({ coll, key, where, optional, clear, ...(sub ? { sub } : {}), ...(set ? { set } : {}) }); };
-  /** Returns a setter that updates field `f` on `o` to a new variable key. @param {any} o @param {string} f */
+  /**
+   * @param {any} o
+   * @param {string} f
+   */
   const setField = (o, f) => (/** @type {string} */ k) => { o[f] = k; };
   const dropField = (o, f) => () => { delete o[f]; };
   const none = () => {};
@@ -572,19 +521,16 @@ export function refsOf(doc) {
 }
 function walkWhen(c, fn) { if (!c) return; if (c.k === 'var') fn(c); else for (const x of c.of ?? []) walkWhen(x, fn); }
 
-/** Who uses a row: `[{ where, optional }]`. Waypoints and recipes are asked as `collection` 'waypoints' or 'recipes' with `sub` the route or trade. */
 export function referrers(doc, coll, key, sub) {
   return refsOf(doc).filter((r) => r.coll === coll && r.key === key && (sub === undefined || r.sub === sub)).map((r) => ({ where: r.where, optional: r.optional }));
 }
 
-/** Remove a row. A row something needs is refused, with who needs it; links that may be left out are dropped with it. */
 export function removeRow(doc, coll, key) {
   const rows = doc[coll];
   if (!rows?.some((r) => r.key === key)) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
   const uses = refsOf(doc).filter((r) => r.coll === coll && r.key === key);
   const hard = uses.filter((u) => !u.optional);
   if (hard.length) return refuse(stillUsed([...new Set(hard.map((u) => u.where))].slice(0, 4)));
-  // When removing a start event made by keepWon, restore the prior start event it chained to.
   const relink = coll === 'events' ? (doc.encounters ?? []).filter((e) => e.onStart === key && wonStartEvent(doc, e)) : [];
   const instead = relink.length ? wonStartsInstead(rows.find((r) => r.key === key)) : undefined;
   for (const u of uses) u.clear();
@@ -594,20 +540,18 @@ export function removeRow(doc, coll, key) {
   return { ok: true, cleared: uses.length };
 }
 
-// ── plain words ──
 const nameOf = (doc, coll, key) => (doc[coll] ?? []).find((r) => r.key === key)?.name ?? key ?? '?';
-/** Returns a waypoint's display name for the given route and waypoint key, falling back to the key. */
 export const waypointName = (doc, route, key) => (doc.routes ?? []).find((r) => r.key === route)?.waypoints?.find((w) => w.key === key)?.name ?? key ?? '?';
 /**
- * A stack as words: "2 x Iron". `names` is the World Builder's asset catalog, or null for the game's own item names.
- * @param {any} names @param {any} s
+ * @param {any} names
+ * @param {any} s
  */
 export const itemName = (names, s) => {
   const known = names && s.recipe === undefined ? names.assets?.find((a) => a.namespace === 'paperdoll-item' && a.template === s.template)?.name : stackItemName(s);
   return t('poi.dm.text.stack', '{count, number} x {item}', { count: s.count ?? 1, item: known ?? t('poi.dm.text.itemN', 'item {n}', { n: s.template }) });
 };
 const OP_WORD = { eq: () => t('poi.dm.op.eq', 'is'), ne: () => t('poi.dm.op.ne', 'is not'), gt: () => '>', ge: () => '>=', lt: () => '<', le: () => '<=' };
-/** A comparison's word ("is", "is not", ">"). @param {string} op */
+/** @param {string} op */
 export const opWord = (op) => /** @type {any} */ (OP_WORD)[op]?.() ?? op;
 
 export function conditionText(doc, c, names = null) {
@@ -653,12 +597,17 @@ const STATE_WORD = {
   closed: () => t('poi.dm.state.closed', 'closed'), open: () => t('poi.dm.state.open', 'open'), locked: () => t('poi.dm.state.locked', 'locked'),
   active: () => t('poi.dm.state.active', 'active'), inactive: () => t('poi.dm.state.inactive', 'inactive'),
 };
-/** An object's state as a word; a switch's two are its off and on positions. @param {string} s @param {string} [kind] */
+/**
+ * @param {string} s
+ * @param {string} [kind]
+ */
 export const stateWord = (s, kind) => (kind === 'switch' && s === 'inactive' ? t('poi.dm.state.off', 'off') : kind === 'switch' && s === 'active' ? t('poi.dm.state.on', 'on') : STATE_WORD[s]?.() ?? s);
 const kindOf = (doc, key) => (doc.interactives ?? []).find((o) => o.key === key)?.kind;
 
-// ── the event graph ──
-/** @param {any} doc @param {any} ev */
+/**
+ * @param {any} doc
+ * @param {any} ev
+ */
 export function asksAway(doc, ev) {
   const takes = ['then', 'else'].some((b) => (ev?.[b] ?? []).some((/** @type {any} */ a) => a.k === 'take_item' || a.k === 'take_gold'));
   if (!takes) return false;
@@ -669,13 +618,7 @@ export function asksAway(doc, ev) {
   return (doc.events ?? []).some((/** @type {any} */ e) => ['then', 'else'].some((b) => (e[b] ?? []).some((/** @type {any} */ a) => a.k === 'trigger_event' && a.delayS > 0 && named(a.event))));
 }
 
-/**
- * The events and what starts them, as a graph for an editor to draw. Nodes: every event, plus a source node for each
- * thing that starts one (a zone, an object, a person, a route, an encounter, a trade, or an answer in a dialogue).
- * Edges run from a source to the event it starts, and from an event to the events its actions run. Columns are the
- * longest way in.
- * @returns {{ nodes: { id: string, kind: 'event' | 'source', label: string, sub: string[], col: number, row: number }[], edges: { from: string, to: string, label: string }[] }}
- */
+/** @returns {{ nodes: { id: string, kind: 'event' | 'source', label: string, sub: string[], col: number, row: number }[], edges: { from: string, to: string, label: string }[] }} */
 export function eventGraph(doc, names = null) {
   const nodes = new Map(), edges = [];
   const node = (id, kind, label, sub = []) => { if (!nodes.has(id)) nodes.set(id, { id, kind, label, sub, col: 0, row: 0 }); return id; };
@@ -697,7 +640,6 @@ export function eventGraph(doc, names = null) {
   for (const c of doc.encounters ?? []) { if (c.onStart) link(node(`enc:${c.key}`, 'source', c.name), c.onStart, t('poi.dm.graph.starts', 'starts')); if (c.onComplete) link(node(`enc:${c.key}`, 'source', c.name), c.onComplete, t('poi.dm.graph.ends', 'ends')); }
   for (const tr of doc.trades ?? []) for (const r of tr.recipes ?? []) if (r.onSuccessEvent) link(node(`trade:${tr.key}.${r.key}`, 'source', `${tr.name}: ${r.name}`), r.onSuccessEvent, t('poi.dm.graph.traded', 'traded'));
   for (const d of doc.dialogues ?? []) for (const n of d.nodes ?? []) for (const o of n.options ?? []) if (o.then?.k === 'trigger_event') link(node(`dlg:${d.key}.${n.key}`, 'source', `${d.name}: "${o.text}"`), o.then.event, t('poi.dm.graph.says', 'says'));
-  // columns: the longest way in from a node nothing leads to (a cycle falls back to column 0)
   const into = new Map();
   for (const ed of edges) (into.get(ed.to) ?? into.set(ed.to, []).get(ed.to)).push(ed.from);
   const memo = new Map(), busy = new Set();
@@ -714,7 +656,6 @@ export function eventGraph(doc, names = null) {
   return { nodes: [...nodes.values()], edges };
 }
 
-/** Remove a waypoint, unless an event waits for someone to reach it. */
 export function removeWaypoint(doc, routeKey, key) {
   const route = doc.routes?.find((r) => r.key === routeKey);
   if (!route?.waypoints.some((w) => w.key === key)) return refuse(t('poi.dm.edit.noSuchWaypoint', 'There is no such waypoint.'));
@@ -724,7 +665,6 @@ export function removeWaypoint(doc, routeKey, key) {
   return { ok: true };
 }
 
-/** Remove a recipe, unless an answer in a dialogue runs it. */
 export function removeRecipe(doc, tradeKey, key) {
   const trade = doc.trades?.find((x) => x.key === tradeKey);
   if (!trade?.recipes.some((r) => r.key === key)) return refuse(t('poi.dm.edit.noSuchRecipe', 'There is no such recipe.'));
@@ -734,11 +674,9 @@ export function removeRecipe(doc, tradeKey, key) {
   return { ok: true };
 }
 
-// ── what the in-game editor still cannot change ──
 /**
- * The DM fields a document holds that the in-game DM panel does not offer, because the game does not act on them yet:
- * a spawn point's patrol route, an object's facing, and an object that looks like a flat picture.
- * @param {any} doc @returns {{ patrols: number, facing: number, flatLooks: number }}
+ * @param {any} doc
+ * @returns {{ patrols: number, facing: number, flatLooks: number }}
  */
 export function dmHeldOf(doc) {
   const spawns = (doc?.encounters ?? []).flatMap((e) => e?.spawns ?? []);

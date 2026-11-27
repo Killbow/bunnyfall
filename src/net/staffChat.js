@@ -44,7 +44,7 @@ export const frozenUntilText = (until) => t('net.freeze.until', 'Frozen {until}.
 /** @param {unknown} reason */
 export const frozenReasonText = (reason) => t('net.freeze.reason', 'Reason: {reason}', { reason: String(reason ?? '') });
 export const frozenLiftedText = () => t('net.freeze.lifted', 'Staff lifted your freeze. You can move again.');
-export const frozenChatText = () => t('net.freeze.chatShut', 'While you are frozen you can only talk to staff, in the Staff tab.');
+export const frozenChatText = () => t('net.freeze.chatShut', 'While you are frozen, you can only talk to staff in the Staff tab.');
 /** @param {string} url */
 export const staffInviteText = (url) => t('net.freeze.invite', 'Our Discord: {url}', { url });
 export const staffNameText = () => t('net.freeze.staff', 'Staff');

@@ -1,52 +1,22 @@
 // @ts-check
-// SNOWFALL1 (2026-10-08): THE MOD'S SNOW SURFACE, AS GLSL - Daggerfall/Mods/DynamicSnow (vendor/snowfall/shaders/
-// DynamicSnow.glsl, read back from its DXBC), its one pass's vertex and fragment programs, with every constant the DXBC
-// carries. One program draws the three tiers the runtime stands (systems/snowfallRuntime.js): the local window, the
-// middle ring and the streamed blanket, told apart by their uniforms as the mod's three materials are.
-//
-// THE VERTEX LAW: a vertex stands on the ground (its object y) and rises by the snow the context mask resolves there
-// (SnowDepthRules.Resolve in the shader: the wild's depth lerped to the location's, a berm's rise, the caps), times
-// the static mask's depth multiplier (the coverage squared, the slope's taper - SnowContactRamp's ramp at bare edges),
-// times what the tracks left (the dynamic mask's red, eroded by its four diagonal neighbours, focused toward the track's
-// centre by ImpressionStrength; a body's hollow in its green), faded at the boundaries the material says - plus the
-// coverage's 8 mm surface offset. The blanket rises by its vertex's own context instead; the middle ring morphs toward
-// the blanket's surface over its outer band (104 to 120 m), so the two meet where the blanket takes over.
-//
-// THE FRAGMENT: discarded at the tier's edges (the ring's edge fade, the blanket's hole round the nearer tiers, the
-// window's outer clip) and where the coverage is under 0.005; the albedo tiled over the world, 3% darker on a path,
-// darkened by CompressionDarkening where the tracks pressed it (the deeper the snow, the darker, by a square root);
-// the ring blends the far track mask in toward its edge. THE LIGHT IS THE GROUND'S: the mod lights its snow with the
-// sun's Lambert over RenderSettings.ambientLight (its _TerrainAmbientLight - the terrain's own ambient); here the
-// albedo goes into the ground's own fragment program in place of the tile (snowTerrainFs), so the snow takes every
-// light the ground takes - the sun and its shadow map, the moon, the clouds' shadow, the lanterns, the fog - on either
-// lane. Port-Ledger A, SNOWFALL1.
-import { snowCoreGlsl, SNOW_TILE_M } from './snowCoverGlsl.js';   // AUDIT PRECIP GROUND-9: the ground's own snow, where the mod's lies
+// GLSL port of the DynamicSnow mod's surface pass. One program draws all three tiers, and its albedo replaces the
+// tile in the ground's own fragment program (snowTerrainFs), so the snow takes every light the ground takes.
+import { snowCoreGlsl, SNOW_TILE_M } from './snowCoverGlsl.js';
 
-/** The attribute locations of a snow mesh: the mod's mesh channels (POSITION, NORMAL, TEXCOORD0..4, TANGENT). */
 export const SNOW_ATTR = Object.freeze({ pos: 0, normal: 1, uv: 2, ctxA: 3, blanket: 4, ctxB: 5, ctxC: 6, blanketNormal: 7 });
-/** The texture units the snow's five pictures take - above every unit the world programs reserve (0-15). */
+// Above the 0-15 units the world programs reserve.
 export const SNOW_UNITS = Object.freeze({ dynamic: 16, static: 17, context: 18, far: 19, albedo: 20 });
-/** AUDIT ENVIRONS G2: the pass's `Offset -0.25, -0.25` (the shader asset, every pass): the snow a quarter of a resolvable step and a quarter
- *  of its slope nearer the eye than the ground it lies on, so a snow surface standing at the ground's own height - a
- *  contact ramp's first texel, a faded rim - is the snow's and not a speckle of both. Under the sea's film
- *  (render/waterSurface.js WATER_LAYER_UNITS), a layer of the one stack. */
+// Matches the mod's Offset -0.25, -0.25, so snow level with the ground wins the depth test instead of speckling.
+// It sits under the sea film's offset (render/waterSurface.js WATER_LAYER_UNITS) in one polygon offset stack.
 export const SNOW_LAYER = Object.freeze({ factor: -0.25, units: -0.25 });
 
-/** SNOW-TELL (2026-10-11, from play: "Can't see any boss ground attack overlays with heavy snow"): the most a tier's
- *  surface stands over the ground under it, from the tier's own uniforms (systems/snowfallRuntime.js depthUniforms and
- *  its tier's `radius`) - snowResolve's highest answer (the wild's depth or the settlement's, whichever is deeper, and
- *  a road's berm over it; the caps and the path only pull it down), never more than SNOW_VS lifts it (the slope's
- *  multiplier and the tracks only lessen it), and the surface offset over that. A foe's telegraph lies this far over
- *  its ground while the snow is drawn (render/foeTelegraph.js telegraphLift), so the snow cannot bury it. */
+// The most a tier's surface rises over its ground. Telegraphs lift this far (render/foeTelegraph.js telegraphLift)
+// so the snow cannot bury them.
 export const snowSurfaceRise = (u) => Math.max(0, u.depths[0], u.depths[1]) + Math.max(0, u.limits[0]) + Math.max(0, u.radius[2]);
 
-/** AUDIT PRECIP GROUND-9: the frame the ground's own snow is read in on the mod's surface - the scene point of the snow
- *  window's first world tile (renderer.js setSnowFrame's `anchor`; the tile itself is uEcoOrigin: the terrain program
- *  declares it in its ecotone, the vertex program beside this). */
 const SNOW_LAID_DECL = 'uniform vec2 uSnowAnchor;';
 const f = (v) => (Number.isInteger(v) ? `${v}.0` : `${v}`);
 
-/** The law both programs share: Resolve, one bounded read of a track mask, and what a track and a body leave. */
 const SNOW_COMMON_GLSL = `
 uniform vec4 uSnowDepths;     // _BaseSnowDepth (the wild's), _SettlementSnowDepth, _LocationMaximumSnowDepth, _PathMaximumSnowDepth
 uniform vec4 uSnowLimits;     // _RoadBermRise, _WildernessMaximumDepth, _SettlementMaximumDepth, _CorpseRemainingDepth
@@ -101,7 +71,6 @@ float snowOnPath(float b, vec2 statUV) {
 }
 `;
 
-/** The vertex program (the DXBC's FORWARDBASE vertex shader). */
 export const SNOW_VS = `#version 300 es
 precision highp float;
 precision highp sampler2D;
@@ -194,8 +163,6 @@ void main() {
   gl_Position = uProj * uView * world;
 }`;
 
-/** The fragment's snow - the DXBC's fragment shader up to its light - ending in `tex`, the colour the ground's light
- *  takes. `decode` wraps a picture's colour as the lane decodes its pictures. */
 const snowFragment = (decode) => `  // SNOWFALL1: THE MOD'S SNOW IN PLACE OF THE TILE (DynamicSnow's fragment program); the light below is the ground's own
   vec4 sn = vSnow;
   bool blanket = uSnowFlags.y > 0.5, morph = uSnowFlags.z > 0.5;
@@ -246,7 +213,6 @@ const snowFragment = (decode) => `  // SNOWFALL1: THE MOD'S SNOW IN PLACE OF THE
   vec3 tex = albedo * (1.0 - dd * (1.0 - remain));
 `;
 
-/** The fragment's own declarations: the law (the blanket's path test with it), the far mask and the albedo. */
 const SNOW_FS_DECL = `precision highp sampler2D;   // the vertex program's samplers are the same uniforms, at its precision
 in vec4 vSnow;
 ${SNOW_LAID_DECL}
@@ -260,13 +226,7 @@ ${SNOW_COMMON_GLSL}
 const DECODE_FROM = '  vec2 unwrapped = vLocalXZ / uTileSize;\n';
 const DECODE_TO = '  vec3 n = normalize(vNormal);\n';
 
-/**
- * SNOWFALL1: a ground fragment program's SNOW variant - the same program, its tile decode (the tile array, the tilemap,
- * the ecotone, the bed) swapped for the mod's snow, so `tex` is the snow and every light after it is the ground's.
- * Made from either lane's terrain shader (TERRAIN_FS, EL_TERRAIN_FS: the lane decodes its pictures with elDecode).
- * @param {string} fs - a terrain fragment shader
- * @returns {string}
- */
+/** @param {string} fs @returns {string} */
 export function snowTerrainFs(fs) {
   const from = fs.indexOf(DECODE_FROM), to = fs.indexOf(DECODE_TO);
   if (from < 0 || to < from || fs.indexOf(DECODE_FROM, from + 1) >= 0 || fs.indexOf(DECODE_TO, to + 1) >= 0) {

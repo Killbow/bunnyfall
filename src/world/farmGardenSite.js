@@ -1,4 +1,5 @@
-// All crop prefabs on a farm, in stable layout order. Legacy addresses keep their positions.
+// Bed order is the bed address the farm state stores. The first 16 beds come first so older addresses keep their
+// positions.
 import { flatFieldFor } from './flatFields.js';
 import { FARM_BEDS, FARM_BED_SPACING, FARM_BED_SIZE } from '../net/farmGardenLaw.js';
 export function farmGardenFields(blocks) {
@@ -31,7 +32,6 @@ export function farmGardenSite(farm, { farms, built, state, heightAt, renderer }
   if(!beds.every(b=>Number.isFinite(b[1])))return null;
   let masked=[],signature='',groupsSeen=null;
   function restore(){for(const g of masked)if(!g.batch._dead)renderer?.moveBillboardBatch(g.batch,g.centers);masked=[];signature='';}
-  // FARM EXPANSION: each crop field's rectangle in the scene (x0, z0, x1, z1), for the farmstead's layout
   const rects=fields.map(f=>{const x0=origin[0]+f.block.originX+f.x,z0=origin[1]+f.block.originZ+f.z;return[x0,z0,x0+f.width,z0+f.depth];});
   const site={beds,pixel,rects,mapId:farm.mapId,fields:fields.length,center:[...beds[0]],restore,
     rebase(delta){tr[0]+=delta[0];tr[2]+=delta[2];site.center=site.center.map((v,i)=>v+delta[i]);for(const b of site.beds)for(let i=0;i<3;i++)b[i]+=delta[i];site.rects=site.rects.map(r=>[r[0]+delta[0],r[1]+delta[2],r[2]+delta[0],r[3]+delta[2]]);site.farmstead?.rebase(delta);},

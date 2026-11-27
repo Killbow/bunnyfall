@@ -9,11 +9,18 @@ files:
   - src/render/glRelease.js
   - src/formats/textureFile.js
   - src/net/remotePlayers.js
+  - src/render/billboardKey.js
+  - src/render/skinPalette.js
 invariants:
   - "External WebGL passes must call renderer.markForeignPass() afterward so cached program, VAO, and cloud-shadow state resets."
   - "Evicted pixels, closed modal contexts, and dynamic skins must release their VBO, IBO, VAO, FBO, and texture handles."
 traps:
   - "World billboard shaders sample bottom-up texels while UI canvases are top-down RGBA; pass { bottomUp: true } to cropRgba or sprites render upside down."
+  - "`sortByKey` (`src/render/billboardKey.js`) must give exactly the order of a stable string sort of the texture keys, because at an exact depth tie the first drawn cutout quad keeps the pixel."
+  - "The projection mirrors NDC x and the renderer sets `frontFace(CW)`, so only world passes may draw with `CULL_FACE` on, and every other pass must turn culling off around its draw."
+  - "The cloud deck (`setCloudShadow`), the deep-water fog, the jungle haze (`setJungleHaze`), and the travel-view focus (`setFocus`) are per-frame state that `beginFrame` clears, so a host must set them again every frame."
+  - "Texture units are claimed by constants in separate modules, such as `1`, `6`, and `7` for water, `3` to `5` for ecotones, `6` for the billboard surface, `8` for the shadow lo tier, `9` and `10` for light clusters, `11` and `12` for the air pass, `13` and `14` for sun and point shadows, `15` for the cloud shadow, `16` to `20` for snow, `21` for the skin palette (`SKIN_PALETTE_UNIT`), `22` for the view pane, and `23` for snow lines; check every `*_UNIT` constant before a new pass takes one."
+  - "The projection mirrors NDC x and the renderer sets `gl.frontFace(gl.CW)`, so a world mesh face is front-facing only when its corners wind counter-clockwise about its outward normal."
 dfu:
   - Assets/Scripts/API/TextureFile.cs
   - Assets/Scripts/MaterialReader.cs

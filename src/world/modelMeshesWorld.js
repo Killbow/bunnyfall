@@ -1,14 +1,10 @@
-// The world's model mesh sizes and bounding boxes, each read once per model id and then reused.
 import { localAabb } from '../render/frustum.js';
 
 /** @param {any} shared */
 export function createModelMeshesWorld(shared) {
   const { arch } = shared;
-  /** AUDIT 64 F11: DFMesh.Size for a model id - `modelData.DFMesh.Size`
-   *  at RMBLayout.cs:873. Arch3dFile.cs:711-713 divides the raw extent by
-   *  pointDivisor and WritePoint (:941-943) divides the VERTICES by the
-   *  same, so `size * GlobalScale` is the model's world extent - the
-   *  building's silhouette, which is what HasHit boxes. */
+  // The classic reader divides both the extent and the vertices by `pointDivisor`, so `size * GLOBAL_SCALE` is the
+  // world extent of the model.
   const dfMeshSizes = new Map();
   const dfMeshSize = (id) => {
     let sz = dfMeshSizes.get(id);

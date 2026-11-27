@@ -1,8 +1,6 @@
 // @ts-check
-// Draws editor lines (as screen-width quads in CSS px scaled by `scale`, since WebGL caps GL_LINES at 1 px), lit gizmo
-// meshes, and route bands (`ROUTE_BAND` width/spacing in m, floor in CSS px, speed in m/s; chevrons clip to `aR` at
-// piece ends). Buffers only grow; batches can be raised `lift` m in Y and draw `onTop`, depth-tested (pulled `toEye` m
-// toward the eye), or `hidden` (`gl.GEQUAL`), never writing depth, and restore GL state for the foreign-pass check.
+// Editor lines draw as screen-width quads because WebGL caps GL_LINES at 1 px. Batches never write depth and restore
+// GL state for the foreign-pass check.
 import { buildProgram } from './glProgram.js';
 import { telegraphLineW } from './gateTelegraph.js';
 

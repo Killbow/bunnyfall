@@ -25,6 +25,8 @@ invariants:
   - "`CSA_WIRE_BOATS_MAX` equals `POSE_ABOARD_SLOTS` (8) in `src/net/wire.js`; `CSA_WIRE_SAILS_MAX` = 16."
   - "`CSA_WIRE_SPEED_MAX` = 2 * 1024 * 1024 natives/s; faster way vectors are scaled to 0.999 of the cap."
   - "Peer easing: `CSA_PEER_SNAP_M` 20, `CSA_PEER_SNAP_S` 2.5, `CSA_PEER_LEAD_MAX` = (2 * `FOES_FULL_MS`) / 1000, `CSA_PEER_CATCH` 1, `CSA_PEER_CATCH_MPS` 0.3, `CSA_PEER_CATCH_SHARE` 0.25."
+  - "`applyOwner` only stores a peer's word; each frame builds at most one peer boat, rationed per owner by a token bucket (burst `CSA_PEER_BUILD_BURST`, one token back per `CSA_PEER_BUILD_REFILL_MS`, which equals `FOES_FULL_MS`), and a bucket is deleted only once it is full and its owner has no live record, so a reconnect never resets it."
+  - "The optional record keys `m`, `u`, `n`, `f`, `l`, `d`, and `p` are sent only while some boat uses them. A bad `m` or `u` refuses the whole record, while a refused name, flag, livery, fittings list, or plaque reads as none and keeps the record."
 traps:
   - "Never hardcode the relay version string; pose `ab` fields ride the frame versioned by `RELAY_VERSION` in `src/net/wire.js`."
   - "Buildings and dungeons carry no `sa` peer boats; do not assume peer boats exist outside the exterior."

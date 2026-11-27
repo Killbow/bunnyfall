@@ -33,6 +33,7 @@ traps:
   - "Dungeon `roomRecord` omits street fields `z`, `nm`, `yd`, `ex`, and `sp`, so band follower `rt` is omitted underground and dungeon followers appear unnamed to peers while still carrying `feudWire` (`ad`, `wq`, `p2`, and `rb`) and `blowWire`."
   - "Peer hits on puppets require `damage > 0` before sending the weakness flag in `hitClassField` (`wc`), preventing bare-hands 0-damage hits from triggering `feudRevealWeak` on the owner."
   - "`applyFoes` caps peer puppets marked as revenants at `PEER_REVENANT_PUPPETS_MAX` = 9 (3 hunting plus 6 sworn) and strips revenant ownership before heir handover via `heirOf`."
+  - "`adaptMask` bit `i` is `ADAPTATIONS[i]` and the wire weakness index `wq` is a `WEAKNESSES` index (`src/revenants/revenantFeud.js`), so new entries go only at the end of each list. The 16 adaptations already fill `FOE_ADAPT_MASK_MAX` (`0xffff`), and `FOE_WEAK_MAX` (`13`) in `src/net/wire.js` is the last `WEAKNESSES` index, so a new entry also needs a wider wire limit."
 tags:
   - multiplayer
   - wire

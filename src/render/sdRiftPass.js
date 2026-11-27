@@ -1,45 +1,18 @@
 // @ts-check
-// SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md sections 1 and 2): THE RIFT'S WINDOW AND ITS LIGHT ON
-// THE FLOOR, and THE RETURN'S WINDOW HOME - one foreign pass (the gate membrane's law, render/gate/gatePass.js: depth-tested,
-// never written, fogged, both faces, every rate whole over its wrapped clock), drawn by the dungeon arm after the flats.
-//
-//   THE WINDOW - a disc in the ring's plane between the iris's leaves (world/superDungeon/sdRiftModel.js: the leaves shut it from both
-//     sides by depth, so the aperture IS the state and leaves and window always agree). Each fragment snaps to a grid of
-//     SD_WINDOW_CELLS across (chunky as the wall's texels) and looks down the eye's own ray through its point - true
-//     parallax - turned into the ring's frame, so looking straight in from its front looks toward the Hour's +z where its
-//     clock hangs: one tap of the Hour's own painted sky (render/superDungeon/sdSky.js SD_SKY_FETCH_GLSL - the very map the Hour
-//     draws, hands and all). Gold filaments drag inward from the rim in a slow spiral and meet the brass at a white-gold
-//     lip; a refusal clouds it to ember; a step through ripples it from the point of entry.
-//   THE FLOOR LIGHT - a flat disc a hair over the floor about its foot, added on: its edge the hall's own (eight radii
-//     from the stand's rays, so it stops at the walls), twelve hour ticks and six cracks seeping from the crater, the
-//     gear's 36 teeth turning across it as spokes (a gobo, never a shadow), pulsed outward on each toll.
-//   THE WAY BACK'S WINDOW (the Rift seen from the Hour's side, `window.hollow`) - the Hollow you came from: a dark hall of
-//     coursed Daggerfall stone behind the ring, in true parallax (an INTERIOR MAPPING - the eye's ray met with the planes
-//     of a room 6 m deep and 6 m wide that is not there), lit only from the front in the Rift's gold, cold and small, a
-//     faint silver glow on its right wall where the Return stands. The stone is the code's own (the Hollow's textures
-//     may be gone after the step) and is never a live view of the real hall.
-//   THE RETURN'S WINDOW - its lancet opening, looking home: the Bay's sky at the hour of the world (day, dusk, night - the
-//     game's clock, never the Hour's), slow pixel clouds, at night the stars and Masser and Secunda, and along its sill
-//     the city the Hollow rose by, right way up, a few windows warm. It goes out by clouding over from the top.
-//
-// Not a DFU member. Ledger A (SUPER-DUNGEONS).
+// Super dungeon Rift pass: the Rift window, the floor light, the window back to the Hollow, and the Return window.
+// The Hollow stone is drawn in code because the Hollow textures may be unloaded after the step.
 import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { BAYER_GLSL, SD_PIXEL_GLSL } from './orderedDither.js';
 import { DEAD_NOISE_GLSL } from './deadlands.js';
 import { SD_SKY_FETCH_GLSL, SD_SKYLINE_GLSL, sdSkyClock } from './sdSky.js';
 
-/** The window's grid across its disc; the floor light's cell (m); the disc's and the floor's triangles. */
 export const SD_WINDOW_CELLS = 128;
 export const SD_FLOOR_CELL_M = 0.08;
 export const SD_WINDOW_FAN = 48;
-/** The way back's room behind its ring (m): its depth, its half-width, its ceiling over the floor; a stone texel and
- *  the courses (texels a course, texels a block). */
 export const SD_HOLLOW_ROOM = Object.freeze({ deep: 9, half: 2.6, ceil: 3.8, texel: 0.0625, course: 8, block: 16 });
-/** The window's magnification about the ring's heart, and its sky's gain over the Hour's own (a portal glows). */
 export const SD_WINDOW_ZOOM = 2.6;
 export const SD_WINDOW_GAIN = 1.5;
-/** The floor light's bearings (its edge's radii) - the stand casts one ray each. */
 export const SD_FLOOR_BEARINGS = 8;
 
 const HEAD = `#version 300 es
@@ -64,7 +37,6 @@ void main() {
   gl_Position = uProj * uView * w;
 }`;
 
-/** The Rift's window. */
 export const SD_WINDOW_FS = HEAD + `in vec2 vDisc;
 in vec3 vWorld;
 uniform mat4 uModel;
@@ -112,7 +84,6 @@ void main() {
   o = vec4(sdPixel(col, cell, uSteps), 1.0);
 }`;
 
-/** The way back's window: the Hollow's hall behind the ring, interior-mapped. */
 export const SD_HOLLOW_FS = HEAD + `in vec2 vDisc;
 in vec3 vWorld;
 uniform mat4 uModel;
@@ -194,7 +165,6 @@ void main() {
   o = vec4(sdPixel(col, cell, uSteps), 1.0);
 }`;
 
-/** The floor light, in the ring's foot frame: x across, z through (the disc's own xy - see the VS, laid flat). */
 export const SD_FLOOR_VS = HEAD + `layout(location = 0) in vec2 aDisc;
 uniform mat4 uView, uProj, uModel;
 uniform float uReach;
@@ -240,7 +210,6 @@ void main() {
   o = vec4(sdPixel(col, cell, uSteps), 1.0);
 }`;
 
-/** The Return's window home: the Bay's sky at the world's hour, its clouds, its moons, its city on the sill. */
 export const SD_BAY_FS = HEAD + `in vec2 vDisc;
 in vec3 vWorld;
 uniform vec2 uSize;
@@ -290,7 +259,6 @@ void main() {
   o = vec4(sdPixel(sky * 0.85, cell, uSteps), 1.0);
 }`;
 
-/** A fan of `n` triangles over the unit disc (-1..1), as xy pairs. */
 function discFan(n) {
   const out = [];
   for (let k = 0; k < n; k++) {
@@ -299,8 +267,6 @@ function discFan(n) {
   }
   return new Float32Array(out);
 }
-/** The Return's opening as a fan over -1..1 (its sill at y -1, its apex at +1): `outline` the opening's edge in
- *  (x, y) of the arch's own frame and `size` its half-size. */
 export function archFan(outline, half) {
   const out = [], cx = 0, cy = 0;
   for (let k = 0; k + 1 < outline.length; k++) {
@@ -319,8 +285,6 @@ function bindFog(gl, U, fog) {
   gl.uniform3fv(U.uFogColor, fog?.color ?? [0, 0, 0]);
 }
 
-/** The pass: the window, the floor light and the Return's window. */
-/** The fight's word to a window's sky when it has none (AUDIT SD V P1 - made once, never a frame's). */
 const NO_CLOCK = new Float32Array(4);
 
 export class SdRiftRenderer {
@@ -348,7 +312,6 @@ export class SdRiftRenderer {
     this._size = new Float32Array(2);
     this.drawn = 0;
   }
-  /** The Return's opening's fan, made once for its outline. */
   archOf(key, outline, half) {
     let a = this._arches.get(key);
     if (!a) { a = this._vao(archFan(outline, half)); this._arches.set(key, a); }
@@ -359,17 +322,11 @@ export class SdRiftRenderer {
     gl.uniformMatrix4fv(U.uView, false, view); gl.uniformMatrix4fv(U.uProj, false, proj); gl.uniformMatrix4fv(U.uModel, false, model);
     bindFog(gl, U, fog);
   }
-  /**
-   * Draw what `look` asks: `{ window?: { model, toLocal, radius, eye, light, ember, ripple, sky: { map, seconds, gain,
-   * clock }, hollow?: { floor } }, floor?: { model, reach, radii, crater, gear, pulse, color }, bay?: { model, key, outline, half, hour,
-   * clouds, fade } }` - each in the frame's fog, at the pixel law's `steps`. Answers whether anything drew.
-   */
   draw(proj, view, look, fog = null, steps = 10) {
     const gl = this.gl;
     let n = 0;
     gl.enable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.CULL_FACE);
     if (look.window?.hollow) {
-      // the way back's window: the Hollow's hall behind the ring
       const w = look.window, P = this.hollow, U = P.u;
       gl.disable(gl.BLEND);
       gl.useProgram(P.prog);
@@ -395,7 +352,7 @@ export class SdRiftRenderer {
       gl.uniform1f(U.uLight, w.light ?? 1); gl.uniform1f(U.uEmber, w.ember ?? 0);
       gl.uniform4fv(U.uRipple, w.ripple ?? [0, 0, 0, 9]);
       gl.uniform1f(U.uSteps, steps);
-      gl.uniform1f(U.uTime, sdSkyClock(w.sky.seconds)); gl.uniform1f(U.uGain, w.sky.gain ?? 1); gl.uniform4fv(U.uClock, w.sky.clock ?? NO_CLOCK);   // AUDIT SD V (P1): none, made once
+      gl.uniform1f(U.uTime, sdSkyClock(w.sky.seconds)); gl.uniform1f(U.uGain, w.sky.gain ?? 1); gl.uniform4fv(U.uClock, w.sky.clock ?? NO_CLOCK);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, w.sky.map); gl.uniform1i(U.uSkyMap, 0);
       gl.bindVertexArray(this.disc.vao);
       gl.drawArrays(gl.TRIANGLES, 0, this.disc.count);

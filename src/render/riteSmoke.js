@@ -1,76 +1,40 @@
 // @ts-check
-// WB12d (2026-10-01, Mac: "faithful and a Summoner"): THE RITE'S SMOKE - a pillar of smoke over the faithful's circle,
-// from the omen until the breach opens, seen across the omen's ring: a dark plume rising from the altar's flame,
-// widening and leaning as it climbs, churning upward. Design: bible/11-Multiplayer/World-Bosses.md section 19 D.
-//
-// The gate's beacon's law (render/gate/gatePass.js): fixed geometry (its column), every placement a uniform, the clock
-// handed wrapped and every rate whole cycles over it - the smoke's noise TILES along the column, and each octave climbs
-// a whole number of columns over SMOKE_CLOCK_PERIOD, so the wrap never shows. The column's rows and its noise run on
-// the billows' own height (smokeBillowOf), so its billows grow as they climb, and the biggest bulge its outline
-// (AUDIT WB12d G17). Blended PREMULTIPLIED (ONE,
-// ONE_MINUS_SRC_ALPHA): its alpha is how much sky it hides, and the fire's glow in its foot is light added. Lit as the
-// frame is (AUDIT WB12d G8). Never thinner than a few pixels: far off it widens with its distance, and in a clear day's
-// distance fog it never thins below SMOKE_FOG_FLOOR, so a circle a few kilometres off is a dark line on the horizon -
-// weather's fog takes it whole (AUDIT WB12d G9).
-//
-// Not a DFU member. Ledger A (WB).
+// Rite smoke pillar pass, blended premultiplied: alpha is how much sky it hides, and the fire glow is added light.
+// Each noise octave climbs a whole number of columns over SMOKE_CLOCK_PERIOD, so the clock wrap never shows.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 
-/** The clock the smoke is drawn on, seconds, wrapped. */
 export const SMOKE_CLOCK_PERIOD = 120;
 export const smokeClock = (seconds) => ((seconds % SMOKE_CLOCK_PERIOD) + SMOKE_CLOCK_PERIOD) % SMOKE_CLOCK_PERIOD;
-/** The plume: how tall, its radius at the fire and at its top, how slowly it swells (the power of its height), and how
- *  far it leans by its top (metres east, north - the same way every day: no wind is read). AUDIT WB12d (G3): its foot
- *  the altar's flame's width, swelling slowly - a 3 m foot swelling at the height's 0.6 stood a 9 m funnel round the
- *  braziers. */
 export const SMOKE_HEIGHT_M = 340;
 export const SMOKE_FOOT_R = 1.2;
 export const SMOKE_TOP_R = 70;
 export const SMOKE_SWELL = 0.9;
 export const SMOKE_LEAN = Object.freeze([60, 24]);
-/** The column's rings round and up (a plume's swell needs its rows - a beacon's two make a cone). */
 export const SMOKE_SEGMENTS = 24;
 export const SMOKE_ROWS = 40;
-/** Its noise's tiles round the column and up it, and AUDIT WB12d (G17) the columns each octave climbs over the clock's
- *  period (whole, so the wrap never shows): the big billows slow, the fine faster - a plume churning as it rises, where
- *  one sheet of noise slid up it whole at 5.7 m/s. */
 export const SMOKE_TILES_AROUND = 4;
 export const SMOKE_TILES_UP = 10;
 export const SMOKE_CLIMB_HEIGHTS = Object.freeze([2, 3, 5]);
-/** AUDIT WB12d (G17): the billows grow as they climb, each about as tall as it is wide - the noise's height runs on
- *  log(1 + SMOKE_BILLOW h) - where cells 34 m tall stood up a column 2 m wide and drew a searchlight's streaks. */
 export const SMOKE_BILLOW = 20;
-/** The billows' height at a height up the column (both 0..1), and its inverse - the column's rows run on it, close at
- *  the fire and far apart at the top. Pure. */
 export const smokeBillowOf = (h) => Math.log(1 + SMOKE_BILLOW * h) / Math.log(1 + SMOKE_BILLOW);
 export const smokeHeightOf = (y) => (Math.exp(y * Math.log(1 + SMOKE_BILLOW)) - 1) / SMOKE_BILLOW;
-/** AUDIT WB12d (G17): how far its biggest billows bulge out of its outline (a share of its radius, either way) - a smooth
- *  cone's edge read as a funnel. */
 export const SMOKE_LUMP = 0.6;
-/** AUDIT WB12d (G9): each octave fades to SMOKE_LOD_MEAN as its billows shrink under SMOKE_LOD_RAD (radians, about 3
- *  pixels on a wide view) - no shimmer far off, and a little over the noise's own mean, so a far plume reads thick; and
- *  the noise's thin and thick edges, where it begins to hide the sky and where it hides it all. */
 export const SMOKE_LOD_RAD = 0.003;
 export const SMOKE_LOD_MEAN = 0.58;
 export const SMOKE_COVER = Object.freeze([0.28, 0.7]);
-/** How dark, how thick, the least of it a clear day's distance fog may leave, its widening a metre away. */
 export const SMOKE_COLOR = Object.freeze([0.11, 0.1, 0.095]);
 export const SMOKE_ALPHA = 0.95;
 export const SMOKE_FOG_FLOOR = 0.6;
 export const SMOKE_WIDEN = 0.007;
-/** AUDIT WB12d (G3): it fades in over its first metre - the flame's - and the fire glows in it over its first few
- *  metres (the glow falls by e every SMOKE_EMBER_M): light added, never the smoke's own colour. */
 export const SMOKE_FOOT_FADE_M = 1;
 export const SMOKE_EMBER = Object.freeze([0.85, 0.28, 0.08]);
 export const SMOKE_EMBER_M = 2.5;
 export const SMOKE_GLOW = 1.4;
-/** AUDIT WB12d (G8): the least of the frame's light it takes - the night darkens it, never to a hole in the sky. */
 export const SMOKE_LIGHT_MIN = 0.06;
-/** The most pillars a frame draws (its host stands one circle at a time - AUDIT WB12d D21: no day's pillar beside another's). */
 export const SMOKE_MAX = 2;
-/** AUDIT WB12d (G14): THE ONE THRESHOLD - a pillar this faint or fainter is not drawn, and its host says it is not
- *  smoking (scenes/riteHost.js): a pass asked to draw always draws, so the host's foreign-pass mark always follows. */
+// The pass and worldEvents/riteHost.js share this threshold, so a pass asked to draw always draws and the host's
+// foreign-pass mark always follows.
 export const SMOKE_FADE_MIN = 0.001;
 
 const HEAD = `#version 300 es
@@ -169,7 +133,6 @@ ${NOISE}void main() {
   o = vec4(${v3(SMOKE_COLOR)} * max(uLight, ${f1(SMOKE_LIGHT_MIN)}) * a + glow, a);
 }`;
 
-/** The plume's column, (around, up) pairs, two triangles a cell. Pure. */
 export function smokeVertices(segments = SMOKE_SEGMENTS, rows = SMOKE_ROWS) {
   const out = new Float32Array(segments * rows * 12);
   let o = 0;
@@ -193,16 +156,13 @@ function mat4Multiply(out, a, b) {
 }
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_FOCUS = new Float32Array(4);
-const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
+const NO_HAZE = new Float32Array(8);
 const ORIGIN = new Float32Array([0, 0, 0]);
 
-/** FIRST-USE (#1144): the pass's one program, as its constructor builds it - what the rite's door waits on
- *  (render/glProgram.js compiledPass). */
 export const RITE_SMOKE_PROGRAMS = /** @type {ReadonlyArray<readonly [string, string]>} */ (Object.freeze([[SMOKE_VS, SMOKE_FS]]));
 
-/** The rite's pillars of smoke, one foreign pass. */
 export class RiteSmokeRenderer {
-  /** @param {WebGL2RenderingContext} gl @param {{ max?: number }} [opts] `max` the most pillars a frame (BUNNYFALL: a raid's camps and houses) */
+  /** @param {WebGL2RenderingContext} gl @param {{ max?: number }} [opts] */
   constructor(gl, { max = SMOKE_MAX } = {}) {
     this.gl = gl;
     this.max = max;
@@ -223,11 +183,6 @@ export class RiteSmokeRenderer {
     this.drawn = 0;
   }
 
-  /**
-   * Draw the pillars: `smokes` [{ origin: [x, y, z] the circle's heart on its ground, fade 0..1, scale? (1) }] (at most `max`,
-   * the faded skipped), `eye` the view's own eye, `seconds` any clock (wrapped here), `fog` the frame's fog - and its
-   * `light`, the frame's light on the smoke 0..1 (render/rainCurtains.js's: the ambient and the sun's share).
-   */
   draw(smokes, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
     const list = (Array.isArray(smokes) ? smokes : []).filter((s) => s && Array.isArray(s.origin) && s.origin.length === 3 && s.origin.every(Number.isFinite) && s.fade > SMOKE_FADE_MIN).slice(0, this.max);
@@ -247,8 +202,8 @@ export class RiteSmokeRenderer {
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye ?? ORIGIN);
-    if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);   // AUDIT DEEP R-1: under the travel view the fog is the traveller's (fogGlsl.js FOCUS_GLSL)
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1 (AUDIT BANTHA1 HAZE-3): the jungle's haze (renderer.setJungleHaze); none handed, off
+    if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
     gl.bindVertexArray(this.vao);
     for (const s of list) {
       gl.uniform3f(U.uOrigin, s.origin[0], s.origin[1], s.origin[2]);

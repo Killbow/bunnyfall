@@ -25,6 +25,7 @@ invariants:
   - "`meltable(item)` rejects items that are equipped, locked, bound, summoned, quest-flagged, artifacts, sigils, player-crafted (`provenance`), enchanted, magic, non-common, affixed, legendary, or socketed."
 traps:
   - "Ore refit tiers sit above `BASE_TIERS`; always index `ORE_TIERS` via `ORE_TIERS[tier - BASE_TIERS]` rather than the raw upgrade tier."
+  - "Saved skies store held stars by id and `heldStars` drops ids it does not know, so a star keeps its id even when its stats change."
 tags:
   - naval
   - captain

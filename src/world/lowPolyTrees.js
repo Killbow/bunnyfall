@@ -1,35 +1,12 @@
 // @ts-check
-// LPT1 (2026-10-05, the owner: "Next mod to integrate is this ... Its important we make this compatible with seasons
-// of daggerfall, ensure performance doesnt take a hit and draw distance can remain the same. A true visual overhaul with
-// no performance loss"): LOW POLY TREES 5 (SquidKamer - Kamer), 253 prefabs that stand a 3D tree where a nature flat
-// of archives 500-511 stood. bible/07-Rendering/Low-Poly-Trees.md is the design and the record.
-//
-// THIS MODULE IS PURE (no GL, no fetch): the vendored data's shape (tools/lowPolyTreesExtract.mjs writes it), the
-// atlases rebuilt from the player's own pictures, the far picture of each tree, DFU's per-tree draw (scale and turn)
-// and the near set - so a node test runs exactly what the game draws.
-//
-// THE ATLASES ARE DAGGERFALL'S OWN SPRITES. Measured against every record of TEXTURE.500-511, 75.5-90.9% of each of
-// the mod's larger atlases' drawn texels is a classic record copied texel for texel - turned or mirrored in places, cut
-// down in others - and the five small pictures are classic records whole. A render of game data IS game data
-// (01-Overview/Port-Doctrine.md), so no atlas is carried: the extractor wrote each as a list of BLITS (the record, its
-// turn, where it lands, the rectangle it may paint) and the atlas is painted here from the player's own records - or,
-// under Seasons of the Iliac Bay, from that mod's seasonal picture of the same record, which is what makes the 3D trees
-// turn with the seasons. The rest of each atlas is no exact copy of any record - the author's top-down crowns, his
-// larger repaints of a sprite, his touch-ups - so it is not carried either: each region is a FILL, the record it was
-// made from and a coarse map of where it lies, painted here as a crown folded out of the record (`synthTop`, capped
-// with snow in winter), a tiled crop of it (`tileCrop`) or the record stretched over it (`fitRecord`) - near the
-// author's, not his.
 
-/** The eight ways a record lands on an atlas: bit 0 a mirror in x (first), bits 1-2 the quarter turns after it. */
+// Orientation bit 0 mirrors in x first, then bits 1-2 give the quarter turns; the extractor writes the same
+// encoding.
 export const LPT_ORIENTATIONS = 8;
 
-/** The size a record of w x h stands at under orientation `o`. */
 export const orientedSize = (w, h, o) => (((o >> 1) & 1) ? [h, w] : [w, h]);
 
-/**
- * The record's pixel that orientation `o` puts at (x, y) of the oriented picture (top-down, both).
- * @returns {[number, number]}
- */
+/** @returns {[number, number]} */
 export function orientedSource(o, w, h, x, y) {
   const rot = (o >> 1) & 3;
   let sx, sy;
@@ -38,11 +15,7 @@ export function orientedSource(o, w, h, x, y) {
   return [sx, sy];
 }
 
-/**
- * orientedSource as an affine step, made once a blit (AUDIT LPT B7: a pair made a texel was most of a blit's cost):
- * `[sx0, sxdx, sxdy, sy0, sydx, sydy]` - the record's pixel for (x, y) is (sx0 + sxdx x + sxdy y, sy0 + sydx x + sydy y).
- * @returns {number[]}
- */
+/** @returns {number[]} */
 export function orientedStep(o, w, h) {
   const rot = (o >> 1) & 3;
   let s = rot === 0 ? [0, 1, 0, 0, 0, 1] : rot === 1 ? [0, 0, 1, h - 1, -1, 0] : rot === 2 ? [w - 1, -1, 0, h - 1, 0, -1] : [w - 1, 0, -1, 0, 1, 0];
@@ -50,15 +23,11 @@ export function orientedStep(o, w, h) {
   return s;
 }
 
-/** Snow's colour on a winter crown, before the texel's own light (a cool white). */
 export const LPT_SNOW = Object.freeze([236, 240, 247]);
 
 const hash2 = (x, y) => { let h = Math.imul(x, 374761393) + Math.imul(y, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
-/**
- * The crown's box on a side view - the rows at least `share` of the widest row wide, and the columns they span.
- * @param {{width:number,height:number,data:Uint8Array}} src top-down RGBA
- */
+/** @param {{width:number,height:number,data:Uint8Array}} src */
 export function crownBox(src, share = 0.4) {
   const { width: w, height: h, data } = src;
   const rows = new Int32Array(h);
@@ -75,10 +44,9 @@ export function crownBox(src, share = 0.4) {
 }
 
 /**
- * A TOP-DOWN CROWN folded out of a side view: the crown's box sampled straight and again turned a quarter, so the
- * crown reads round from above, a disc's worth of it; `snow` caps it white, thickest in the middle.
- * @param {{width:number,height:number,data:Uint8Array}} src the record, top-down RGBA
- * @param {number} w @param {number} h the rectangle's size
+ * @param {{width:number,height:number,data:Uint8Array}} src
+ * @param {number} w
+ * @param {number} h
  * @param {{snow?: boolean}} [opts]
  */
 export function synthTop(src, w, h, { snow = false } = {}) {
@@ -86,7 +54,7 @@ export function synthTop(src, w, h, { snow = false } = {}) {
   const box = crownBox(src);
   if (!box || w < 1 || h < 1) return { width: w, height: h, data: out };
   const bw = box.x1 - box.x0 + 1, bh = box.y1 - box.y0 + 1;
-  const at = (u, v) => {   // u, v in [-1, 1] across the crown's box
+  const at = (u, v) => {
     const x = Math.min(bw - 1, Math.max(0, Math.floor((u * 0.5 + 0.5) * bw))) + box.x0;
     const y = Math.min(bh - 1, Math.max(0, Math.floor((v * 0.5 + 0.5) * bh))) + box.y0;
     return (y * src.width + x) * 4;
@@ -115,11 +83,7 @@ export function synthTop(src, w, h, { snow = false } = {}) {
   return { width: w, height: h, data: out };
 }
 
-/**
- * A TILED CROP: the rectangle filled with the record's crop (cx, cy, cw, ch) repeated, mirrored at every other repeat so
- * no seam shows; a clear texel of the crop stays clear. Top-down RGBA w x h.
- * @param {{width:number,height:number,data:Uint8Array}} src the record, top-down RGBA
- */
+/** @param {{width:number,height:number,data:Uint8Array}} src */
 export function tileCrop(src, w, h, cx, cy, cw, ch) {
   const out = new Uint8Array(w * h * 4);
   if (cw < 1 || ch < 1) return { width: w, height: h, data: out };
@@ -139,12 +103,8 @@ export function tileCrop(src, w, h, cx, cy, cw, ch) {
   return { width: w, height: h, data: out };
 }
 
-/** A fill's region is laid out in cells this many texels square - a coarse map of where the author's region lies
- *  (a cell is the region's when a quarter of its texels are), never its picture. */
 export const LPT_FILL_CELL = 8;
 
-/** A fill's cells, row-major over its rectangle (hex, four cells a digit, the first cell the digit's high bit), or
- *  null for a fill that paints its whole rectangle. */
 export function fillCells(fill) {
   const hex = fill[0] === 'tile' ? fill[11] : fill[8];
   if (typeof hex !== 'string') return null;
@@ -154,11 +114,7 @@ export function fillCells(fill) {
   return out;
 }
 
-/**
- * A FITTED RECORD: the record's drawn box stretched over the rectangle (nearest), mirrored in x when `mirror` - an
- * author's side view drawn larger than the sprite it was made from. Top-down RGBA w x h.
- * @param {{width:number,height:number,data:Uint8Array}} src the record, top-down RGBA
- */
+/** @param {{width:number,height:number,data:Uint8Array}} src */
 export function fitRecord(src, w, h, mirror = false) {
   const out = new Uint8Array(w * h * 4);
   let x0 = src.width, y0 = src.height, x1 = -1, y1 = -1;
@@ -178,8 +134,6 @@ export function fitRecord(src, w, h, mirror = false) {
   return { width: w, height: h, data: out };
 }
 
-/** A fill's picture: `['top', a, r, x, y, w, h, snow, cells]` folds the record's crown, `['tile', a, r, x, y, w, h,
- *  cx, cy, cw, ch, cells]` tiles a crop of it, `['fit', a, r, x, y, w, h, mirror, cells]` stretches it over the region. */
 export function fillPicture(fill, src) {
   const [kind, , , , , w, h] = fill;
   if (kind === 'top') return synthTop(src, w, h, { snow: !!fill[7] });
@@ -189,10 +143,9 @@ export function fillPicture(fill, src) {
 }
 
 /**
- * A blit's erase spans, packed (tools/lowPolyTreesExtract.mjs packErase): `count` spans from `offset`, each three
- * unsigned LEB128 numbers - the row's step down from the last span's (the clip's top first), the span's start past the
- * clip's left edge, its length. Back as the flat [y, x from, x to) list, atlas texels.
- * @param {Uint8Array|null} bytes Trees/atlases.bin
+ * Format of `packErase` in tools/lowPolyTreesExtract.mjs: per span, three unsigned LEB128 numbers giving the row
+ * step from the previous span, the start past the clip left edge, and the length.
+ * @param {Uint8Array|null} bytes
  */
 export function decodeErase(bytes, offset, count, clipX0, clipY0) {
   if (!bytes) throw new Error('low poly trees: a packed erase list with no atlases.bin to read it from');
@@ -208,14 +161,8 @@ export function decodeErase(bytes, offset, count, clipX0, clipY0) {
 }
 
 /**
- * AN ATLAS, PAINTED. `spec` is the extractor's: `size`; `blits` - [archive, record, frame, orientation, x, y, clip x0,
- * y0, x1, y1, erase?]: the oriented record's top-left at x, y, painting inside the clip (half-open) every texel of the
- * record but those `erase` names (flat [y, x from, x to) spans, atlas texels - where the author cut the copy or another
- * copy holds the texel; inline, or packed in Trees/atlases.bin as [.., offset, count] - `decodeErase`); and `fills` -
- * the regions no record copies, each painted by `fillPicture` in its own cells (`fillCells`). The first paint of a
- * texel holds it (the extractor's greedy order). `recordRgba` hands a record top-down RGBA at its classic size, or null
- * for one the player's data does not hold (its texels stay clear - counted in the answer's `missing`). Returns the atlas
- * top-down.
+ * The first paint of a texel wins, matching the greedy order of the extractor, so blits and fills must run in spec
+ * order.
  * @param {{size:[number,number], blits:any[][], fills?:any[][]}} spec
  * @param {(archive:number, record:number, frame:number) => ({width:number,height:number,data:Uint8Array}|null)} recordRgba
  * @param {Uint8Array|null} [eraseBytes]
@@ -224,15 +171,11 @@ export function composeAtlas(spec, recordRgba, eraseBytes = null) {
   return runSteps(paintAtlas(spec, recordRgba, eraseBytes));
 }
 
-/**
- * composeAtlas a blit or a fill at a step - a generator, so the game paints an atlas between frames (one record's
- * worth of texels a step) and the node tests and the tool paint it whole. Its return value is the atlas.
- */
 export function* paintAtlas(spec, recordRgba, eraseBytes = null) {
   const [W, H] = spec.size;
   const data = new Uint8Array(W * H * 4);
   const erased = new Uint8Array(W * H);
-  let missing = 0;   // AUDIT LPT B9: the copies and fills a record the player's data lacks left unpainted
+  let missing = 0;
   for (const blit of spec.blits) {
     const [a, r, f, o, bx, by, x0, y0, x1, y1] = blit;
     const src = recordRgba(a, r, f);
@@ -281,28 +224,18 @@ export function* paintAtlas(spec, recordRgba, eraseBytes = null) {
   return { width: W, height: H, data, missing };
 }
 
-/** A step generator run to its end - its answer. */
 export function runSteps(steps) {
   let r = steps.next();
   while (!r.done) r = steps.next();
   return r.value;
 }
 
-/** Texels of a mip level made a step (atlasMipSteps, whole rows); texels a far picture's triangles may cover, and
- *  triangles it may set up, in a step (impostorSteps - AUDIT LPT B7: a triangle count alone let one step rasterise a
- *  whole tree's side, a texel count alone set up four thousand small ones). Each about a millisecond, warm. */
 export const LPT_MIP_TEXELS = 16384;
 export const LPT_IMPOSTOR_TEXELS = 4096;
 export const LPT_IMPOSTOR_TRIS = 256;
 
-/**
- * AN ATLAS'S MIP CHAIN, ALPHA-WEIGHTED: each level's texel the mean of the four below it, its colour taken from the
- * drawn ones alone - so a leaf's edge never darkens toward the clear texels' black at a distance (a mip the GL made
- * would average them in). Level 0 first, down to 1x1; each `{width, height, data}` in the atlas's own row order.
- */
 export const atlasMips = (pic) => runSteps(atlasMipSteps(pic));
 
-/** atlasMips a step at a time - LPT_MIP_TEXELS texels' rows a step, so the game's build breathes between them. */
 export function* atlasMipSteps(pic) {
   const levels = [pic];
   let cur = pic;
@@ -333,16 +266,12 @@ export function* atlasMipSteps(pic) {
   return levels;
 }
 
-// ---- the vendored data, read --------------------------------------------------------------------------------------
-
-/** The archives the mod stands trees in. */
 export const LPT_ARCHIVES = Object.freeze([500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511]);
 
 /**
- * THE MOD, READ: Trees/trees.json with its two binaries. Each prototype (`ARCHIVE_RECORD`) as its mesh, its root's
- * scale, its submeshes' atlas and cut, and its standing size - the widest it reaches about its root (w, across) and its
- * height above the ground (h), the mesh's box under the root's scale. An atlas named `same` is the other's spec.
- * @param {any} json @param {Uint8Array} treesBin @param {Uint8Array} atlasesBin
+ * @param {any} json
+ * @param {Uint8Array} treesBin
+ * @param {Uint8Array} atlasesBin
  */
 export function readLowPolyTrees(json, treesBin, atlasesBin) {
   const atlases = {};
@@ -356,8 +285,6 @@ export function readLowPolyTrees(json, treesBin, atlasesBin) {
     const subs = m.subs.map((sub, i) => {
       const mat = json.materials[p.materials[Math.min(i, p.materials.length - 1)]];
       const atlas = mat?.tex && atlases[mat.tex] ? mat.tex : null;
-      // AUDIT LPT C6/A4/A6: the material whole - its cut (SpeedTree's _Cutoff), the faces it draws (a CullMode: 0 both,
-      // 2 the front alone) and the colour the texture is multiplied by (_Color; white unless it says)
       return { atlas, opaque: !!atlas && !atlases[atlas].alpha, cutoff: mat?.cutoff ?? 0.5, cull: mat?.cull ?? 0, color: mat?.color ?? [1, 1, 1] };
     });
     protos.set(key, { key, archive, record, mesh: p.mesh, scale: p.scale, subs, size: { w: reach * 2, h: Math.max(0.5, m.max[1] * sy) } });
@@ -365,22 +292,15 @@ export function readLowPolyTrees(json, treesBin, atlasesBin) {
   return { json, treesBin, atlasesBin, atlases, protos, meshes: json.meshes };
 }
 
-/** The prototype standing for (archive, record), or null - a record the mod leaves a flat. */
 export const lptProto = (lpt, archive, record) => lpt?.protos.get(`${archive}_${record}`) ?? null;
 
-/** Whether a frame's `cut` holds a far picture's batch's `lptProto` - a handle, or JUNGLE-ROADSIDE: any of several (a
- *  jungle species' batch, its roadside pairs' halves with it - scenes/roadsidePairs.js). */
 export const lptCuts = (cut, proto) => (Array.isArray(proto) ? proto.some((h) => cut.has(h)) : cut.has(proto));
 
-// ---- the far picture ------------------------------------------------------------------------------------------------
-
-/** The far picture's texels a metre of the tree's height (the classic flats run about 7-14), and its bounds. */
 export const LPT_IMPOSTOR_PER_M = 8;
 export const LPT_IMPOSTOR_MIN = 24;
 export const LPT_IMPOSTOR_MAX = 256;
-/** The light the far picture is drawn under: from the viewer's side and above. BB_VS lights a 3D tree's faces by the
- *  same law (0.72 + 0.28 n.l) under this light turned to face the eye, crossfaded to the sun's own by day - so the two
- *  agree where they hand over at night and nearly by day (AUDIT LPT A2). */
+// The `BB_VS` mesh mode in renderer.js hardcodes this light turned to face the camera, so a change here needs the
+// same change there.
 export const LPT_IMPOSTOR_LIGHT = Object.freeze([0, 0.6, -0.8]);
 const lptShade = (n0, n1, n2) => {
   const l = LPT_IMPOSTOR_LIGHT, len = Math.hypot(n0, n1, n2) || 1;
@@ -388,21 +308,12 @@ const lptShade = (n0, n1, n2) => {
 };
 
 /**
- * A TREE'S FAR PICTURE: its mesh drawn from the side (looking along +z, orthographic) with its own atlases, each texel
- * nearest-sampled, cut at its material's own cut, coloured by its material, a front-only material's back faces
- * skipped, lit by LPT_IMPOSTOR_LIGHT - so where a 3D tree gives way to its flat the two are one picture. The picture
- * spans the tree's whole reach (w) and its height above the ground (h), then is TRIMMED to what it draws - clear rows
- * off the top, and clear columns off both sides alike so the root stays centred (AUDIT LPT B6: a quad is fill a flat
- * pays for) - top-down RGBA with `shareW`/`shareH`, the share of the tree's size it still spans; the flat stands it at
- * the tree's root.
  * @param {ReturnType<typeof readLowPolyTrees>} lpt
- * @param {any} proto lptProto's
- * @param {(name:string) => ({width:number,height:number,data:Uint8Array}|null)} atlasPic a painted atlas, top-down
+ * @param {any} proto
+ * @param {(name:string) => ({width:number,height:number,data:Uint8Array}|null)} atlasPic
  */
 export const renderImpostor = (lpt, proto, atlasPic) => runSteps(impostorSteps(lpt, proto, atlasPic));
 
-/** renderImpostor a step at a time - LPT_IMPOSTOR_TEXELS texels' worth of triangles, or LPT_IMPOSTOR_TRIS of them, a
- *  step. */
 export function* impostorSteps(lpt, proto, atlasPic) {
   const { w, h } = proto.size;
   const H = Math.round(Math.min(LPT_IMPOSTOR_MAX, Math.max(LPT_IMPOSTOR_MIN, h * LPT_IMPOSTOR_PER_M)));
@@ -424,15 +335,14 @@ export function* impostorSteps(lpt, proto, atlasPic) {
     for (let t = 0; t < n; t += 3) {
       if (texels >= LPT_IMPOSTOR_TEXELS || tris >= LPT_IMPOSTOR_TRIS) { texels = 0; tris = 0; yield; }
       tris++;
-      // the corners as scalars: a triangle a texel's worth of work sets up nothing to collect (AUDIT LPT B7)
       const v0 = (m.vertex + ix[m.index + at + t]) * 8, v1 = (m.vertex + ix[m.index + at + t + 1]) * 8, v2 = (m.vertex + ix[m.index + at + t + 2]) * 8;
       const ax = toX(f[v0]), ay = toY(f[v0 + 1]), az = f[v0 + 2] * sz;
       const bx = toX(f[v1]), by = toY(f[v1 + 1]), bz = f[v1 + 2] * sz;
       const qx = toX(f[v2]), qy = toY(f[v2 + 1]), qz = f[v2 + 2] * sz;
       const area = (bx - ax) * (qy - ay) - (qx - ax) * (by - ay);
       if (Math.abs(area) < 1e-9) continue;
-      // a front-only material (cull 2): Unity's front face is clockwise to the eye, which here (picture y down) is a
-      // positive area - its back faces are not drawn (AUDIT LPT A6)
+      // Unity front faces are clockwise to the camera, which gives a positive area here because picture y runs
+      // down.
       if (sub.cull === 2 && area < 0) continue;
       const x0 = Math.max(0, Math.floor(Math.min(ax, bx, qx))), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, qx)));
       const y0 = Math.max(0, Math.floor(Math.min(ay, by, qy))), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, qy)));
@@ -450,7 +360,8 @@ export function* impostorSteps(lpt, proto, atlasPic) {
           const u = b0 * f[v0 + 6] + b1 * f[v1 + 6] + b2 * f[v2 + 6];
           const vv = b0 * f[v0 + 7] + b1 * f[v1 + 7] + b2 * f[v2 + 7];
           const tx = Math.min(pic.width - 1, Math.max(0, Math.floor((u - Math.floor(u)) * pic.width)));
-          const ty = Math.min(pic.height - 1, Math.max(0, Math.floor((1 - (vv - Math.floor(vv))) * pic.height)));   // uv's v=0 is the picture's bottom
+          // UV v=0 is the bottom of the picture.
+          const ty = Math.min(pic.height - 1, Math.max(0, Math.floor((1 - (vv - Math.floor(vv))) * pic.height)));
           const s = (ty * pic.width + tx) * 4;
           if (!sub.opaque && pic.data[s + 3] < cut) continue;
           const sh = lptShade(b0 * f[v0 + 3] + b1 * f[v1 + 3] + b2 * f[v2 + 3], b0 * f[v0 + 4] + b1 * f[v1 + 4] + b2 * f[v2 + 4], b0 * f[v0 + 5] + b1 * f[v1 + 5] + b2 * f[v2 + 5]);
@@ -463,8 +374,6 @@ export function* impostorSteps(lpt, proto, atlasPic) {
   return trimImpostor({ width: W, height: H, data });
 }
 
-/** A far picture trimmed to what it draws: clear rows off the top, the same clear columns off both sides (the root
- *  stays centred), never the bottom (it stands on its root). `shareW`/`shareH` - what it still spans of the tree. */
 export function trimImpostor(pic) {
   const { width: W, height: H, data } = pic;
   let top = H, side = W >> 1;
@@ -480,12 +389,7 @@ export function trimImpostor(pic) {
   return { width: w, height: h, data: out, shareW: w / W, shareH: h / H };
 }
 
-// ---- a tree's own draw ----------------------------------------------------------------------------------------------
-
-/** DFU's terrain tree (MeshReplacement.ImportNatureGameObject's callbacks): a scale of 0.6 to 1.4; the far pictures'
- *  batch is sized for the tallest. Its tint (Color.Lerp(white, grey, Random.value) on the TreeInstance) is NOT taken:
- *  Unity hands a terrain tree's colour to its shader as _TreeInstanceColor, and none of the mod's shaders (SpeedTree,
- *  SpeedTree8, Standard) reads it - a DFU player sees every tree at its full colour (AUDIT LPT C1). */
+// The classic random tint per terrain tree is not applied, because none of the mod shaders read the instance color.
 export const LPT_SCALE_MIN = 0.6;
 export const LPT_SCALE_MAX = 1.4;
 
@@ -496,12 +400,13 @@ const unit = (a, b, c, salt) => {
 };
 
 /**
- * A TREE'S OWN DRAW - its scale and its turn (radians), a function of where it stands so every client and every
- * rebuild stands the same tree. A wilderness tree takes DFU's terrain scale; a location's takes the prefab as it is,
- * turned (ImportCustomFlatGameobject: no scale). DFU turns a location's tree by Random.InitState((int)position.x), so
- * every tree of a block's column takes one turn; the port turns each by where it stands (a translation, recorded).
- * @param {number} px @param {number} py its map pixel @param {number} x @param {number} z its place in the pixel (m)
- * @param {boolean} location a flat of a location's block
+ * Scale and turn depend only on position, so every client and rebuild draws the same tree. Each location tree turns
+ * by its own position, not by the classic per-column seed.
+ * @param {number} px
+ * @param {number} py
+ * @param {number} x
+ * @param {number} z
+ * @param {boolean} location
  */
 export function lptVariety(px, py, x, z, location) {
   const qx = Math.round(x * 16), qz = Math.round(z * 16), k = Math.imul(px, 1009) + py;
@@ -510,29 +415,14 @@ export function lptVariety(px, py, x, z, location) {
   return { scale: LPT_SCALE_MIN + (LPT_SCALE_MAX - LPT_SCALE_MIN) * unit(qx, qz, k, 2), yaw };
 }
 
-// ---- the near set ---------------------------------------------------------------------------------------------------
-
-/** The 3D trees stand within this radius of the eye (m) and crossfade with their far pictures across the band past it.
- *  The far pictures stand everywhere else, out to the land view's whole reach, one quad a tree. */
 export const LPT_NEAR_M = 140;
 export const LPT_BAND_M = 20;
-/** Floats a tree in a pixel's set: [handle index, x, y, z (pixel-local), scale, turn]. */
 export const LPT_SET_FLOATS = 6;
-/** Floats a gathered tree, as the GPU reads it (render/lowPolyTreesRender.js): [x, y, z, turn, scale]. */
 export const LPT_INSTANCE_FLOATS = 5;
 
 /**
- * A PIXEL'S TREES, made when it comes near (AUDIT LPT B10: a wooded pixel's set is a quarter of a megabyte, and only the
- * eye's 3x3 is ever read). `groups` - one a far-picture batch: `{ h, centers, wild }` - the handle's index, the
- * batch's centres (pixel-local, the flats' own arrays) and which of them are the terrain's own (a Uint8Array, 1 wild;
- * null - none: a location's flats). Answers `{ trees, centers }`: LPT_SET_FLOATS a tree and each tree's centre.
- * LPT-FIT: and `fit` - the largest each tree may be drawn (world/road/roadVerge.js lptFitCap; absent, no cap): its variety
- * is drawn under it, so its crown keeps off the roads and streets beside it.
- * BANTHA1: and `own` - each tree's scale as its layout gave it (world/terrain/jungleNature.js `js`), in place of DFU's
- * variety: the jungle's storeys are its own. Its turn is still lptVariety's.
- * JUNGLE-ROADSIDE: and `turn` - each tree's turn as its layout gave it (a roadside pair's, its axis across its road -
- * world/jungle/jungleRoadside.js standPairs), in place of lptVariety's.
- * @param {number} px @param {number} py the pixel
+ * @param {number} px
+ * @param {number} py
  * @param {{ h: number, centers: number[][], wild: Uint8Array|null, fit?: Float32Array|null, own?: Float32Array|null, turn?: Float32Array|null }[]} groups
  */
 export function buildTreeSet(px, py, groups) {
@@ -544,25 +434,18 @@ export function buildTreeSet(px, py, groups) {
     for (let i = 0; i < g.centers.length; i++) {
       const c = g.centers[i];
       const v = lptVariety(px, py, c[0], c[2], !(g.wild && g.wild[i]));
-      const sc = g.own ? g.own[i] : v.scale;   // BANTHA1: the layout's own scale
-      // AUDIT BANTHA1 PERF-8: the six floats written in place - a jungle set's 5,000 trees allocated an array each
+      const sc = g.own ? g.own[i] : v.scale;
       const o = k * LPT_SET_FLOATS;
       trees[o] = g.h; trees[o + 1] = c[0]; trees[o + 2] = c[1]; trees[o + 3] = c[2];
-      trees[o + 4] = g.fit ? Math.min(sc, g.fit[i]) : sc;   // LPT-FIT
-      trees[o + 5] = g.turn ? g.turn[i] : v.yaw;   // JUNGLE-ROADSIDE
+      trees[o + 4] = g.fit ? Math.min(sc, g.fit[i]) : sc;
+      trees[o + 5] = g.turn ? g.turn[i] : v.yaw;
       centers[k++] = c;
     }
   }
   return { trees, centers };
 }
 
-/**
- * THE NEAR SET: every standing tree within `radius + band` of the eye (x, z - scene metres), as instances grouped by
- * handle (a prototype under a source - its atlases). `sets` - the near pixels': `{ ox, oy, oz }` the pixel's translation
- * into the scene, `handles`, and `trees` (buildTreeSet's); `skip(set, i)` a tree that stands no more (a felled one).
- * Writes into `out` (grown as needed) and answers the runs.
- * @returns {{ data: Float32Array, count: number, runs: { handle: any, start: number, count: number, drawStart: number, drawCount: number }[] }}
- */
+/** @returns {{ data: Float32Array, count: number, runs: { handle: any, start: number, count: number, drawStart: number, drawCount: number }[] }} */
 export function gatherNear(sets, eyeX, eyeZ, radius, band, out = null, skip = null) {
   const reach = radius + band, r2 = reach * reach, F = LPT_SET_FLOATS, I = LPT_INSTANCE_FLOATS;
   /** @type {Map<any, number[]>} */
@@ -596,11 +479,7 @@ export function gatherNear(sets, eyeX, eyeZ, radius, band, out = null, skip = nu
 }
 
 /**
- * THE FRAME'S VISIBLE TREES (AUDIT LPT B4: a wood's near set is a thousand trees in every direction, two thirds of them
- * behind the eye): each gathered run's instances whose sphere - about the tree's middle, half its size's diagonal across,
- * at its own scale - touches the view's six planes (bounds.js spherePlanes: normalised), packed into `out` run by run,
- * each run's `drawStart`/`drawCount` set. No planes: every tree. Allocates nothing once `out` is grown.
- * @param {{ data: Float32Array, runs: any[] }} gathered gatherNear's
+ * @param {{ data: Float32Array, runs: any[] }} gathered
  * @param {Float32Array|null} planes
  * @param {Float32Array|null} out
  * @returns {{ data: Float32Array, count: number }}

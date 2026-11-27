@@ -1,5 +1,3 @@
-// Companions and retinue: the naval crew ashore, sworn revenants, and raised minions that
-// follow the player, with their packs, party panel cards, and per-frame ticks.
 import {
   applySwornStrength, devotedWithYou, forgetSwornMember, isRevenantCompanionKey, leaveRefusal, revenantIdOfKey,
   revenantParty, revenantsWithYou, sendRevenantAway, setRetinueBodies, setRetinueListener, setRetinuePlayer,
@@ -110,7 +108,6 @@ export function createRetinue(shared) {
     if (!d?.spawnLooseFoe || !d.removeLooseFoe) return null;
     return {
       key: d,
-      // The loose lane lets every player in the room see the companion as the player's ally.
       spawn: (mobile, feet, o) => d.spawnLooseFoe(mobile, feet, { yawRad: o.yaw, allied: true, gender: o.gender }),
       remove: (f) => d.removeLooseFoe(f), has: (f) => d.foes.includes(f), spot: spotOf(d.collider), fx: d.companionFx ?? null,
       turn: (r, feet, yaw) => { const so = revenantSpawnOptions(r, wildEncounterLevel(playerEntity)); return d.spawnLooseFoe(r.mobileType, feet, { yawRad: yaw, revenant: r, turned: true, gender: so.gender, level: so.level }); },
@@ -177,11 +174,10 @@ export function createRetinue(shared) {
   const courtSeatsHere = () => (_courtSeats ??= courtSeats((r) => hubOfRegion(shared.regionHubs, r)));
   setBloodlineHost({
     seatsWords: () => [...courtSeatsHere().values()].map((v) => `${v.name} (${clanName(v.clan)})`).join(', '),
-    // The bloodline's directions also open a quest box, because the HUD line fades before it can be read.
     say: (l) => {
       townTalk.say(l);
       noteFirstUse('vampire-bitten');
-      try { shared.showQuestBox?.({ rows: wrapTutorialText(l, 54) }); } catch { /* the HUD line stands */ }
+      try { shared.showQuestBox?.({ rows: wrapTutorialText(l, 54) }); } catch {}
     },
   });
   installBeastOverlay({ entity: playerEntity, now: () => playerTicker.ownMinutes });
@@ -293,7 +289,7 @@ export function createRetinue(shared) {
       const body = d.items ? `It hands you back its pack (${d.items === 1 ? 'one item' : `${d.items} items`}).` : null;
       revenantSay(revenantMomentEvent(d.kind, d.r, playerEntity?.name, body ? { body } : {}), (l) => townTalk.say(l));
     }
-    // A load can bring back more crew and sworn than the slots hold; the newest sworn one leaves.
+    // A load can restore more companions than the slots hold; the newest sworn revenant able to leave steps away.
     if (companionsWithYou() > COMPANION_SLOTS) {
       const last = revenantsWithYou().filter((r) => !leaveRefusal(r)).sort((a, b) => (b.swornAt ?? 0) - (a.swornAt ?? 0))[0];
       if (last && sendRevenantAway(last.id, { byYou: false })) townTalk.say(`Your companions are full. ${last.name} steps away to wait.`);

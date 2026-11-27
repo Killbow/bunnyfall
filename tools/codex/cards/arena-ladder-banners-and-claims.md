@@ -19,6 +19,7 @@ files:
   - server-account/migrations/0074_arena.sql
   - server-account/migrations/0082_arena_attempts.sql
   - server-account/migrations/0139_arena_board.sql
+  - src/arena/arenaReplay.js
 routes:
   - /v1/arena/claim
   - /v1/arena/board
@@ -47,6 +48,7 @@ invariants:
   - "Before opening a new online ladder bout, `arenaOnline.js` flushes all pending receipts (`claims.flush`) and waits for account-server confirmation."
   - "A ladder win row is inserted only while the count of unvoided won rows for the account equals the step key, so two concurrent claims never both advance the climb."
   - "A rated bout between two players is inserted only while both current ratings (last row by rowid, not `at`) still match the ones read, retried up to `ARENA_RATE_TRIES` (`4`) times before `busy`."
+  - "The save keeps up to `REPLAY_KEEP` (`3`) ladder replays in `arena.replays`, versioned by `v` (`REPLAY_VERSION` = `1`). Poses are stored per fighter as signed-byte deltas, with `-128` and a count marking a run of still ticks, and `arenaReplaysRestore` drops any record that fails `replayOk`."
 traps:
   - "Pre-bout attempt rows in `arena_attempts` expire after `ARENA_ATTEMPT_LIFE_S` (600 s) and enforce a unique index on `room`."
   - "`/v1/arena/board` reads replica-safe snapshots from `arena_boards`, which SQLite triggers synchronize with `arena_board_ver` on writes."

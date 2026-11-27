@@ -1,66 +1,30 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// BANTHA1 (2026-10-18, the owner: "Bantha, north of daggerfall is going to be the first region in the continent to
-// recieve a biome expansion. Using the attached file, populate the area in a dense jungle like format ... This needs to
-// be insanely detailed and not hurt performance. No band aids") - THE JUNGLE'S TREES, READ. bible/03-World/
-// Bantha-Jungle.md is the design and the record.
-//
-// The owner's five trees (src/assets/jungle/source/, their Blender 5.2 exports as they handed them over: an OBJ, its MTL and
-// one 252x164 picture each, cut out by its alpha) read into the shape Low Poly Trees' pipeline already draws
-// (world/lowPolyTrees.js readLowPolyTrees's answer): every mesh in one vertex run of f32 x 8 a vertex - position,
-// normal, uv - and one run of u16 indices, a prototype a tree with its one material, and its standing size. So the
-// near 3D tree, its far picture (impostorSteps), its instanced draw and its handover are LPT1's own code, never a copy
-// (THE ONE CONSTRUCTION SEAM): systems/jungleTreesAssets.js hands this to the same door with the pictures decoded
-// instead of painted.
-//
-// THIS MODULE IS PURE (no GL, no fetch, no DOM): the node tests read the very files the game reads.
-//
-// THE FRAME. An OBJ is right-handed (Blender's export: y up, -z forward); the port's meshes are Unity's, left-handed
-// (render/renderer.js draws them under frontFace CW). A tree is mirrored in x on the way in, as Unity's own OBJ importer
-// mirrors it, so the tree stands as the owner drew it and its picture never reads backwards; its faces are drawn on
-// both sides (each tree is crossed cards and a shell, cut by the picture's alpha - its own back is its own front).
-// Each tree stood somewhere in the owner's Blender scene (one 34 m off the origin): it is moved so its ROOT - the middle
-// of what it stands on, its lowest 2.5 m - is the origin, its ground (y 0, their ground plane) kept: the roots they sank
-// below it stay sunk.
-// ═══════════════════════════════════════════════════════════════════
+// Reads the jungle tree OBJ and MTL files into the Low Poly Trees mesh shape. OBJ is right-handed and game meshes
+// are left-handed, so each tree is mirrored in x as the Unity importer does. Its root, the middle of its lowest 2.5
+// m, becomes the origin.
 
-/** The archive a jungle tree is a flat of: the rainforest's nature archive (ClimateSwaps Nature_RainForest) - its
- *  Trees are what Logging fells, its cover what grows under them. */
 export const JUNGLE_ARCHIVE = 500;
 
-/**
- * THE FIVE TREES, in the order the layout numbers them (world/terrain/jungleNature.js `species`). `file` the OBJ's name
- * under src/assets/jungle/source/; `record` the rainforest Tree record (TREE_RECORDS[500]) the tree is a flat of - what
- * Logging, cover and the wind read it as; `key` its name in the code. The names are what the owner's pictures show.
- */
 export const JUNGLE_SPECIES = Object.freeze([
-  Object.freeze({ key: 'banyan', file: 'jungle_tree', record: 12 }),     // aerial roots hung from a wide dome
-  Object.freeze({ key: 'kapok', file: 'jungle_tree2', record: 13 }),     // a buttressed column under layered parasols
-  Object.freeze({ key: 'fig', file: 'jungle_tree3', record: 14 }),       // a strangler's braided trunk, a round crown, vines
-  Object.freeze({ key: 'flame', file: 'jungle_tree4', record: 15 }),     // the lowest: palmate leaves, red blooms, moss curtains
-  Object.freeze({ key: 'mahogany', file: 'jungle_tree5', record: 16 }),  // a twisted trunk under a dense, tall crown
+  Object.freeze({ key: 'banyan', file: 'jungle_tree', record: 12 }),
+  Object.freeze({ key: 'kapok', file: 'jungle_tree2', record: 13 }),
+  Object.freeze({ key: 'fig', file: 'jungle_tree3', record: 14 }),
+  Object.freeze({ key: 'flame', file: 'jungle_tree4', record: 15 }),
+  Object.freeze({ key: 'mahogany', file: 'jungle_tree5', record: 16 }),
 ]);
 
-/** The URL-safe paths of a species' files, relative to src/assets/jungle/source/. */
 export const jungleFiles = (s) => ({ obj: `${s.file}.obj`, mtl: `${s.file}.mtl` });
 
-/** The record a jungle tree's far picture goes up under (systems/lowPolyTreesAssets.js: `${record}#lpt${source}`). */
 export const jungleRecord = (s) => `jungle-${s.key}`;
 
-/** How high above the lowest vertex the root is read (m): the middle of what the tree stands on. */
 export const JUNGLE_ROOT_BAND = 2.5;
 
-/**
- * AN OBJ, READ: its positions, uvs and normals as written (1-based references made 0-based, a negative one counted
- * back from the end), its faces as corner lists `[v, vt, vn]` (-1 where a corner names none), and the material each
- * face was drawn with (`usemtl`). Polygons are kept whole; the mesh triangulates them.
- * @param {string} text
- */
+/** @param {string} text */
 export function parseObj(text) {
   const positions = [], uvs = [], normals = [], faces = [];
   let material = null, mtllib = null;
   for (const raw of text.split(/\r?\n/)) {
-    const line = raw.replace(/#.*/, '').trim();   // AUDIT BANTHA1 TREE-7: a comment ends any line - a face's too
+    const line = raw.replace(/#.*/, '').trim();
     if (!line) continue;
     const p = line.split(/\s+/);
     switch (p[0]) {
@@ -88,13 +52,8 @@ export function parseObj(text) {
   return { positions, uvs, normals, faces, mtllib };
 }
 
-/**
- * AN MTL, READ: each material's diffuse picture (`map_Kd`) and alpha picture (`map_d`), by name.
- * @param {string} text
- * @returns {Map<string, { mapKd: string|null, mapD: string|null }>}
- */
-/** A map statement's file: what follows its options (`-o 0 0 0`, `-clamp on`, `-bm 1` ...), spaces and all (AUDIT
- *  BANTHA1 TREE-7: the last word alone cut "bark tree.png" to "tree.png"). */
+// The file name is everything after the options, spaces included, because names such as `bark tree.png` contain
+// spaces.
 function mapName(words) {
   let i = 0;
   while (i < words.length && words[i][0] === '-') { i++; while (i < words.length && /^(?:-?[\d.]+|on|off)$/.test(words[i])) i++; }
@@ -113,16 +72,10 @@ export function parseMtl(text) {
   return out;
 }
 
-/**
- * A TREE'S MESH in the port's frame: the OBJ's polygons fanned into triangles, each distinct (position, uv, normal)
- * corner one vertex - `vertices` f32 x 8 ([x, y, z, nx, ny, nz, u, v]), `indices` u16 - mirrored in x and moved so its
- * root is the origin (the file's head). `root` where the root stood in the owner's scene, `min`/`max` the mesh's box.
- * A corner with no normal takes its face's.
- * @param {ReturnType<typeof parseObj>} obj
- */
+/** @param {ReturnType<typeof parseObj>} obj */
 export function jungleMesh(obj) {
   const materials = new Set(obj.faces.map((f) => f.material));
-  if (materials.size > 1) throw new Error(`jungle: a tree is one picture - this one names ${materials.size} materials`);   // AUDIT BANTHA1 TREE-7: never its first face's picture on all of them
+  if (materials.size > 1) throw new Error(`jungle: a tree is one picture - this one names ${materials.size} materials`);
   const P = obj.positions;
   let minY = Infinity;
   for (let i = 1; i < P.length; i += 3) minY = Math.min(minY, P[i]);
@@ -137,11 +90,9 @@ export function jungleMesh(obj) {
 }
 
 /**
- * AN OBJ'S MESH in the port's frame, moved so (rx, rz) of the owner's scene is the origin - jungleMesh's law (the mirror,
- * the fan, the winding), its faces by material: `subs` [{ material, at, count }] each a run of `indices`, in the order the
- * file first names them (JUNGLE-ROADSIDE: a pair of the owner's trees wears up to three pictures - one tree's file wears
- * one, and its run is every face in the file's order).
- * @param {ReturnType<typeof parseObj>} obj @param {number} rx @param {number} rz
+ * @param {ReturnType<typeof parseObj>} obj
+ * @param {number} rx
+ * @param {number} rz
  */
 export function objMesh(obj, rx, rz) {
   const P = obj.positions;
@@ -165,21 +116,17 @@ export function objMesh(obj, rx, rz) {
     const at = idx.length;
     for (const f of obj.faces) {
       if (f.material !== material) continue;
-      // the face's own normal, in the port's frame (mirrored x), for a corner the file gives none
       const a = f.corners[0][0] * 3, b = f.corners[1][0] * 3, c = f.corners[2][0] * 3;
       const e1 = [-(P[b] - P[a]), P[b + 1] - P[a + 1], P[b + 2] - P[a + 2]], e2 = [-(P[c] - P[a]), P[c + 1] - P[a + 1], P[c + 2] - P[a + 2]];
       const fn = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
       const fl = Math.hypot(fn[0], fn[1], fn[2]) || 1;
       fn[0] /= fl; fn[1] /= fl; fn[2] /= fl;
       const ids = f.corners.map((k) => vertexOf(k, fn));
-      // mirrored, a polygon's turn reverses: fanned the other way round so a face's front stays the face the file meant -
-      // and WOUND AS ITS NORMALS SAY: a polygon whose corners' normals (the light's word) point against its turn is fanned
-      // the other way again (the owner's kapok, jungle_tree2, is 99 of its 103 triangles so: its normals and its faces
-      // were turned apart in the export). A tree's faces are drawn on both sides, so only its light and the two words'
-      // agreement ride on this
+      // Mirroring reverses each polygon turn, so the fan runs the other way. A polygon whose corner normals point
+      // against its turn is reversed again, because some exports flip faces against their normals.
       let nx = 0, ny = 0, nz = 0;
       for (const id of ids) { nx += verts[id * 8 + 3]; ny += verts[id * 8 + 4]; nz += verts[id * 8 + 5]; }
-      const turned = -(fn[0] * nx + fn[1] * ny + fn[2] * nz) < 0;   // fn is the file's turn mirrored; the fan below reverses it
+      const turned = -(fn[0] * nx + fn[1] * ny + fn[2] * nz) < 0;
       for (let k = 1; k + 1 < ids.length; k++) {
         if (turned) idx.push(ids[0], ids[k], ids[k + 1]); else idx.push(ids[0], ids[k + 1], ids[k]);
       }
@@ -191,11 +138,12 @@ export function objMesh(obj, rx, rz) {
 }
 
 /**
- * EACH POINT A MESH DRAWS - its picture's opaque texels carried onto its faces in 3D: each triangle of the run
- * [at, at + count) of its indices sampled on a grid of `step` (m) in its own plane, and `each(x, y, z)` called at every
- * sample whose texel is drawn (alpha at least half). measureTree's samples, and a pair's (world/jungle/jungleRoadside.js).
- * @param {{vertices: Float32Array, indices: Uint16Array}} mesh @param {{width: number, height: number, data: Uint8Array}} pic
- * @param {number} step @param {(x: number, y: number, z: number) => void} each @param {number} [at] @param {number} [count]
+ * @param {{vertices: Float32Array, indices: Uint16Array}} mesh
+ * @param {{width: number, height: number, data: Uint8Array}} pic
+ * @param {number} step
+ * @param {(x: number, y: number, z: number) => void} each
+ * @param {number} [at]
+ * @param {number} [count]
  */
 export function eachDrawn(mesh, pic, step, each, at = 0, count = mesh.indices.length) {
   const V = mesh.vertices, I = mesh.indices;
@@ -211,7 +159,7 @@ export function eachDrawn(mesh, pic, step, each, at = 0, count = mesh.indices.le
         const w0 = 1 - s - r;
         const u = w0 * V[a + 6] + s * V[b + 6] + r * V[c + 6], v = w0 * V[a + 7] + s * V[b + 7] + r * V[c + 7];
         const tx = Math.min(pic.width - 1, Math.max(0, Math.floor((u - Math.floor(u)) * pic.width)));
-        const ty = Math.min(pic.height - 1, Math.max(0, Math.floor((1 - (v - Math.floor(v))) * pic.height)));   // uv's v=0 is the picture's bottom
+        const ty = Math.min(pic.height - 1, Math.max(0, Math.floor((1 - (v - Math.floor(v))) * pic.height)));
         if (pic.data[(ty * pic.width + tx) * 4 + 3] < 128) continue;
         each(w0 * V[a] + s * V[b] + r * V[c], w0 * V[a + 1] + s * V[b + 1] + r * V[c + 1], w0 * V[a + 2] + s * V[b + 2] + r * V[c + 2]);
       }
@@ -220,19 +168,9 @@ export function eachDrawn(mesh, pic, step, each, at = 0, count = mesh.indices.le
 }
 
 /**
- * A TREE AS IT STANDS, MEASURED off what it draws - its picture's opaque texels carried onto its faces in 3D, not its
- * cards' corners (a card reaches far past the leaves cut into it). Each triangle is sampled on a grid of `step` (m) in
- * its own plane; each sample whose texel is drawn (alpha at least half) lands at its height and its distance from the
- * root. Answers, in metres at the tree's own size:
- *   - `foot`: how far its drawn parts reach from the root below FOOT_TOP - its roots and buttresses (what a road must
- *     keep clear of, never its crown overhead);
- *   - `crown`: how far its drawn parts reach at all - its crown;
- *   - `crownFrom`: the lowest height its drawn width reaches half its crown's - where its crown begins;
- *   - `trunk`: the trunk's girth - a low quantile of the drawn radii between FOOT_TOP and the crown, so the hanging vines
- *     and aerial roots about it count for little.
- * @param {{vertices: Float32Array, indices: Uint16Array}} mesh jungleMesh's
- * @param {{width: number, height: number, data: Uint8Array}} pic the picture, top-down RGBA
- * @param {number} [step] the sample spacing (m)
+ * @param {{vertices: Float32Array, indices: Uint16Array}} mesh
+ * @param {{width: number, height: number, data: Uint8Array}} pic
+ * @param {number} [step]
  */
 export function measureTree(mesh, pic, step = 0.1) {
   const samples = [];
@@ -243,8 +181,6 @@ export function measureTree(mesh, pic, step = 0.1) {
     top = Math.max(top, samples[i]);
     if (samples[i] < FOOT_TOP) foot = Math.max(foot, samples[i + 1]);
   }
-  // the drawn width by half-metre band, from the ground up: the crown begins at the first band past FOOT_TOP that
-  // reaches half the crown's reach
   const bands = new Float32Array(Math.ceil(top / 0.5) + 1);
   for (let i = 0; i < samples.length; i += 2) {
     const k = Math.max(0, Math.floor(samples[i] / 0.5));
@@ -252,9 +188,6 @@ export function measureTree(mesh, pic, step = 0.1) {
   }
   let crownFrom = top;
   for (let k = Math.ceil(FOOT_TOP / 0.5); k < bands.length; k++) if (bands[k] >= crown * 0.5) { crownFrom = k * 0.5; break; }
-  // the trunk: what is drawn between the foot and the crown - or, where the crown begins at the foot's top (a banyan's
-  // roots, a flame tree's curtains hang from it), the TRUNK_BAND above the foot (AUDIT BANTHA1 TREE-5: an empty window
-  // read a default, half the banyan's drawn girth)
   const trunkTo = crownFrom > FOOT_TOP ? crownFrom : FOOT_TOP + TRUNK_BAND;
   const trunkRadii = [];
   for (let i = 0; i < samples.length; i += 2) if (samples[i] >= FOOT_TOP && samples[i] < trunkTo) trunkRadii.push(samples[i + 1]);
@@ -262,70 +195,44 @@ export function measureTree(mesh, pic, step = 0.1) {
   const trunk = trunkRadii.length ? trunkRadii[Math.floor(trunkRadii.length * TRUNK_QUANTILE)] : 0.5;
   return { foot, crown, crownFrom, trunk: Math.min(TRUNK_MAX, Math.max(TRUNK_MIN, trunk)), height: top };
 }
-/** The height (m) below which a tree's drawn parts are its foot. */
 export const FOOT_TOP = 3;
-/** Where a crown begins at the foot's top, the band (m) above it the trunk is read in. */
 export const TRUNK_BAND = 3;
-/** The quantile of the drawn radii under the crown read as the trunk's girth, and its bounds (m). */
 export const TRUNK_QUANTILE = 0.3;
 export const TRUNK_MIN = 0.35;
 export const TRUNK_MAX = 1.6;
 
-/**
- * EACH TREE AS IT STANDS, MEASURED (measureTree at its own 0.1 m, off the owner's files - test/world/
- * bantha1_jungle.test.js measures them again and holds this table to them): JUNGLE_SPECIES's order, metres at the
- * owner's size - a tree's foot (what a road keeps clear of: pixelBuild's verge), its crown, where its crown begins and its
- * trunk's girth (its cover - ai/cover.js), and its height. A constant of the files, so the stream reads it with no
- * picture decoded: a jungle tree is stood, and taken as cover, before its door has loaded.
- */
+// Precomputed `measureTree` results at 0.1 m, so the stream can place trees and cover before any picture is
+// decoded. Remeasure when a tree file changes.
 export const JUNGLE_MEASURES = Object.freeze([
-  Object.freeze({ foot: 8.3, crown: 8.73, crownFrom: 3, trunk: 1.44, height: 22.54 }),   // banyan - its aerial roots reach the ground at its crown's rim
-  Object.freeze({ foot: 8.53, crown: 9.63, crownFrom: 9, trunk: 0.99, height: 21.41 }),   // kapok - its buttresses
-  Object.freeze({ foot: 7.58, crown: 9.42, crownFrom: 8, trunk: 1.1, height: 22.53 }),   // fig
-  Object.freeze({ foot: 5.6, crown: 7.8, crownFrom: 3, trunk: 0.43, height: 16.23 }),   // flame - its moss curtains hang to the ground
-  Object.freeze({ foot: 6.37, crown: 9.48, crownFrom: 8, trunk: 1.33, height: 22.54 }),   // mahogany
+  Object.freeze({ foot: 8.3, crown: 8.73, crownFrom: 3, trunk: 1.44, height: 22.54 }),
+  Object.freeze({ foot: 8.53, crown: 9.63, crownFrom: 9, trunk: 0.99, height: 21.41 }),
+  Object.freeze({ foot: 7.58, crown: 9.42, crownFrom: 8, trunk: 1.1, height: 22.53 }),
+  Object.freeze({ foot: 5.6, crown: 7.8, crownFrom: 3, trunk: 0.43, height: 16.23 }),
+  Object.freeze({ foot: 6.37, crown: 9.48, crownFrom: 8, trunk: 1.33, height: 22.54 }),
 ]);
 
 /**
- * A JUNGLE TREE AS COVER (TACT1, ai/cover.js coverProxies' shape - AUDIT TACT B2's trunk and crown): its trunk's girth
- * up to where its crown begins, its crown's reach from there to its top - each at the tree's own scale. A jungle trunk is
- * a metre or two thick, and a body behind it is hidden; its crown is a crown, at TACT1's own share of it
- * (JUNGLE_CROWN_COVER - AUDIT BANTHA1 LAY-6: the crown's whole reach was 1.43x the rule every other tree keeps).
- * @param {number[]} base the flat's base, by reference (FELLED keys on it) @param {number} species @param {number} scale
+ * @param {number[]} base
+ * @param {number} species
+ * @param {number} scale
  */
 export function jungleCover(base, species, scale) {
   const m = JUNGLE_MEASURES[species];
   return [
-    { c: base, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, _mark: 0 },   // MEM-AUDIT: born with the cover index's mark
+    { c: base, r: m.trunk * scale, h: m.crownFrom * scale, lift: 0, _mark: 0 },
     { c: base, r: m.crown * JUNGLE_CROWN_COVER * scale, h: (m.height - m.crownFrom) * scale, lift: m.crownFrom * scale, _mark: 0 },
   ];
 }
-/** A crown's cover radius as a share of its reach - ai/cover.js COVER_RADIUS_FRAC of its whole width (0.35 x 2): a
- *  crown's edges are mostly air, as a flat's are (held equal by test/world/bantha1_jungle.test.js; ai/cover.js is not
- *  imported here - this module is the terrain worker's too). */
+// Must equal twice `COVER_RADIUS_FRAC` in `ai/cover.js`. It is not imported because this module also runs in the
+// terrain worker.
 export const JUNGLE_CROWN_COVER = 0.7;
 
-/**
- * THE JUNGLE IN LOW POLY TREES' SHAPE - what readLowPolyTrees answers for the mod, made from the five trees: `json`
- * (`vertexBytes`, `meshes` [{ vertex, vertices, index, subs: [[0, n]], min, max }], `materials`), `treesBin` (every
- * vertex, then every index), `atlases` (one a picture, cut by its alpha), and `protos` - each tree a prototype of
- * archive JUNGLE_ARCHIVE keyed `500_${jungleRecord(s)}` (so the door's `proto(archive, record)` finds it), drawn on
- * both faces, cut at a half (the picture's alpha is 0 or 255), at its own size (scale 1). `size` is LPT1's: w its
- * whole reach about the root across, h its height above the ground.
- * JUNGLE-ROADSIDE: packJungleTrees packs the owner's roadside pairs' halves after them.
- * @param {{ obj: string, mtl: string }[]} sources each species' OBJ and MTL text, JUNGLE_SPECIES's order
- */
+/** @param {{ obj: string, mtl: string }[]} sources */
 export function readJungleTrees(sources) {
   return packJungleTrees(readJungleSpecies(sources));
 }
 
-/**
- * THE FIVE TREES, READ (readJungleTrees' first half - JUNGLE-ROADSIDE: the jungle's door reads the roadside pairs after
- * these, a breath each - AUDIT JUNGLE-ROADSIDE PERF-3): each species' mesh (jungleMesh) and its picture (its MTL's
- * map_Kd) - what a pair's reader is handed (world/jungle/jungleRoadside.js readPair: the pictures, and each mesh's lowest
- * point).
- * @param {{ obj: string, mtl: string }[]} sources each species' OBJ and MTL text, JUNGLE_SPECIES's order
- */
+/** @param {{ obj: string, mtl: string }[]} sources */
 export function readJungleSpecies(sources) {
   if (sources.length !== JUNGLE_SPECIES.length) throw new Error(`jungle: ${JUNGLE_SPECIES.length} trees expected, ${sources.length} handed`);
   const meshes = sources.map((s) => jungleMesh(parseObj(s.obj)));
@@ -339,14 +246,8 @@ export function readJungleSpecies(sources) {
 }
 
 /**
- * THE JUNGLE PACKED IN LOW POLY TREES' SHAPE (readJungleTrees' second half): the five trees read (readJungleSpecies) and,
- * JUNGLE-ROADSIDE, the owner's roadside pairs' HALVES after them (world/jungle/jungleRoadside.js readPair's `halves`):
- * each `{ record, mesh }` a prototype keyed `500_${record}` with a run of faces a picture, each run the atlas of the
- * species whose picture it wears, `nearOnly` - its tree stands again as the species' own far off, so it has no far
- * picture of its own (systems/lowPolyTreesAssets.js farPicture).
  * @param {ReturnType<typeof readJungleSpecies>} species
- * @param {{ record: string, mesh: { vertices: Float32Array, indices: Uint16Array, subs: { at: number, count: number,
- *   picture: string }[], min: number[], max: number[] } }[]} [pairs]
+ * @param {{ record: string, mesh: { vertices: Float32Array, indices: Uint16Array, subs: { at: number, count: number, picture: string }[], min: number[], max: number[] } }[]} [pairs]
  */
 export function packJungleTrees({ meshes, pictures }, pairs = []) {
   const all = [...meshes.map((m) => ({ ...m, subs: [{ at: 0, count: m.indices.length, picture: '' }] })), ...pairs.map((p) => p.mesh)];

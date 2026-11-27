@@ -1,41 +1,12 @@
 // @ts-check
-// BOLT (2026-09-24, Mac: "detailed cloud and cloud to ground lighting ...
-// being able to be seen far away"): THE CHANNEL, DRAWN.
-//
-// A ground strike's channel (systems/lightning.js boltPath) as ribbons of
-// light: each segment a quad turned to face the eye, a hot core with a
-// soft halo across it, added onto the frame (ONE, ONE) so it only ever
-// brightens. It is tested against the depth the world wrote, so a hill or
-// a roof in front of a strike hides the part behind it, and it writes no
-// depth of its own.
-//
-// SEEN FAR AWAY. A channel is metres wide; at thirty kilometres a metre is
-// a hundredth of a pixel and the strike would vanish. The ribbon is never
-// narrower than BOLT_MIN_PX on the screen - at a distance it is the
-// pixel-thin line a real far strike is - and the air between thins its
-// light by its distance (BOLT_SEEN_M, shortened by the weather's own
-// visibility when the host hands one), so a far strike is a fainter line,
-// never a gone one. Past the camera's far plane (six kilometres in the
-// world) each vertex is drawn along its own sight line just inside it -
-// where it lands on the screen and how wide it is there unchanged - so a
-// strike thirty kilometres off is drawn behind everything nearer than the
-// plane, and clipped by nothing.
-//
-// Built by the enhanced lane at boot (the wisps' law): a shader fault is a
-// constructor fault the boot probe sees.
 
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
+import { buildProgram } from './glProgram.js';
 
-/** The channel's hot core, metres across (its halo is BOLT_HALO times it). */
 export const BOLT_CORE_M = 2.5;
 export const BOLT_HALO = 4;
-/** The narrowest a channel's core is drawn, in pixels - so a strike thirty kilometres off is still a line. */
 export const BOLT_MIN_PX = 1.4;
-/** The distance over which clear air thins a strike's light to 1/e. */
 export const BOLT_SEEN_M = 45000;
-/** The channel's colour, linear - a hot blue-white. */
 export const BOLT_COLOR = Object.freeze([0.85, 0.9, 1.0]);
-/** The most segments a frame draws (every burning strike's together). */
 export const BOLT_MAX_SEGS = 2048;
 
 const HEAD = `#version 300 es
@@ -100,21 +71,13 @@ function mat4Multiply(out, a, b) {
   return out;
 }
 
-/** A GL perspective matrix's far plane: proj[14] / (proj[10] + 1) (= 2fn/(n-f) over 2n/(n-f)). Pure. */
 export function farOf(proj) {
   return proj[14] / (proj[10] + 1);
 }
 
-/** Two triangles a segment: (along, across) at each corner. */
 const CORNERS = [[0, -1], [1, -1], [1, 1], [0, -1], [1, 1], [0, 1]];
-/** Floats a vertex: A xyz, B xyz, corner xy, glow. */
 export const BOLT_STRIDE = 9;
 
-/**
- * The vertices for `bolts` (`[{ segs, bright }]`, lightning.js createBoltField's), into `out` - six a segment,
- * BOLT_STRIDE floats each, glow the strike's brightness times the segment's weight. Answers the vertex count,
- * at most BOLT_MAX_SEGS segments' worth. Pure.
- */
 export function boltVertices(bolts, out) {
   let v = 0;
   for (const b of bolts) {
@@ -134,8 +97,6 @@ export function boltVertices(bolts, out) {
   return v;
 }
 
-/** EVENT1: the burning channels by their colour - `[[color, bolts]]` in first-seen order, a bolt with none in
- *  BOLT_COLOR's group. One draw a colour: a frame holds one or two (the weather's storms, the dread's). Pure. */
 export function boltGroups(bolts) {
   const groups = new Map();
   for (const b of bolts) { const c = b.color ?? BOLT_COLOR; let g = groups.get(c); if (!g) groups.set(c, g = []); g.push(b); }
@@ -163,19 +124,14 @@ export class LightningBoltsRenderer {
     gl.bindVertexArray(null);
     this.vao = vao;
     this._vp = new Float32Array(16);
-    /** the segments the last draw put up, for the stats and the tests */
     this.drawn = 0;
   }
 
-  /** Draw the burning channels. `seen` the metres over which the air thins a strike's light (the weather's
-   *  visibility; BOLT_SEEN_M in clear air). Nothing to draw, nothing touched. RETRO1: `viewH` the height in
-   *  pixels of the image the world pass draws into (Renderer.worldViewportPx) - a retro frame's is 200, and a
-   *  minimum width measured in the canvas's pixels is a fraction of one of its own; the drawing buffer's when
-   *  the host has none to give. */
+  // viewH is the height of the image the world pass draws into (200 in a retro frame), so the pixel floor holds there.
   draw(bolts, proj, view, eye, seen = BOLT_SEEN_M, viewH = 0) {
     this.drawn = 0;
     if (!bolts?.length) return;
-    for (const [color, group] of boltGroups(bolts)) this._drawGroup(group, color, proj, view, eye, seen, viewH);   // EVENT1: a colour a draw
+    for (const [color, group] of boltGroups(bolts)) this._drawGroup(group, color, proj, view, eye, seen, viewH);
   }
 
   _drawGroup(bolts, color, proj, view, eye, seen, viewH) {
@@ -186,7 +142,7 @@ export class LightningBoltsRenderer {
     gl.useProgram(this.program);
     gl.uniformMatrix4fv(U.uVP, false, this._vp);
     gl.uniform3fv(U.uEye, eye);
-    gl.uniform1f(U.uPx, 2 / (proj[5] * Math.max(1, viewH || gl.drawingBufferHeight)));   // proj[5] = 1 / tan(fov / 2)
+    gl.uniform1f(U.uPx, 2 / (proj[5] * Math.max(1, viewH || gl.drawingBufferHeight)));
     gl.uniform1f(U.uFar, farOf(proj));
     gl.uniform1f(U.uCore, BOLT_CORE_M); gl.uniform1f(U.uHalo, BOLT_HALO); gl.uniform1f(U.uMinPx, BOLT_MIN_PX);
     gl.uniform3fv(U.uColor, color); gl.uniform1f(U.uSeen, Math.max(1000, seen));

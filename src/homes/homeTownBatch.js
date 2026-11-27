@@ -2,9 +2,8 @@
 // Batches home lookups for towns that stream in at boot into one request per TOWN_BATCH_WAIT_MS.
 // Each town gets the single-town route's answer shape; a server without the batch route is asked town by town.
 
-/** How long an ask waits for others to join it, ms. */
 export const TOWN_BATCH_WAIT_MS = 40;
-/** The most towns one request carries (server-account/src/homes.js HOMES_TOWNS_MAX). */
+/** Matches HOMES_TOWNS_MAX in server-account/src/homes.js. */
 export const TOWN_BATCH_MAX = 40;
 
 /**

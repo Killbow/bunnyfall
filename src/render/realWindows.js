@@ -1,33 +1,6 @@
 // @ts-check
-// RW1 (2026-10-09, Mac: "The implementation of the real window overhaul, allowing players to see inside/outside of
-// house windows"): REAL WINDOWS - the law, the shader text and the view out's arithmetic, in one home.
-//
-// FROM THE STREET, A ROOM. Every exterior window's glass - DFU's own table (climateSwaps.isExteriorWindow), its texels
-// the palette's 0xff (getWindowColors32), the mask the R2 emission already uploads - shows a ROOM behind it: interior
-// mapping in the solid shader. The wall's texture frame comes off the screen derivatives (no tangents in the vertex
-// format), the glass's tile is one room's facade, and a ray from the eye through the texel is marched out of a box
-// behind the wall - back wall, side walls, floor, ceiling, a piece of furniture, curtains - painted from the numbers in
-// world/windowRoomArt.js. By day the room is dim behind the glass's own sky-blue (the window style's day colour, which
-// stays on top as the reflection); at night it takes the night style's amber as its lamp, and some rooms stand dark
-// (ROOM_LIT_SHARE). The room fades back into the classic glass with distance (ROOM_FADE_*), under the scene's fog.
-// The rooms are a FRAME's: an exterior host asks for them after its beginFrame (renderer.setWindowRooms), so an
-// interior, a dungeon, a panel or a map never draws one.
-//
-// FROM INSIDE, THE WORLD. While the player stands in a building, the glass of its windows shows the real exterior:
-// the street drawn from the interior camera into a target of its own (renderer.outsideViewFrame - the exterior's
-// light, fog, lanterns and window style; the exterior host decides what it draws), cropped to the screen rectangle
-// the glass covered last frame (the glass's own frustum: a small pane is a small pass), at half the world's
-// resolution, and kept while the camera is still (VIEW_MAX_AGE_MS). The interior frame paints it as its background
-// inside that rectangle (renderer.setGlassView) and the glass texels are CUT - the interior is drawn over the world
-// with normal depth, so whatever hole the room has shows the street behind it. A picture uploaded `{ cutout: true }`
-// has holes wherever its alpha is under a half, in every solid pass and in the shadows' too.
-//
-// Which interior texels are glass: an exterior window record drawn inside a building (DFU lays interiors out with the
-// same window table - DaggerfallInterior.cs:473/:517/:1270 apply WindowStyle.Disabled to them), and the panes of a
-// building interior set's window wall (world/interior/interiorGlass.js - GLASS-ALL, read off the data). A context that is not
-// ARENA2's declares its own glass with renderer.uploadGlassMask (white = glass) or with a cutout picture.
-//
-// Not a DFU member: the port's own presentation (Port-Doctrine, the renderer rebuilt on our stack).
+// Real windows: a room drawn behind exterior window glass, and the street seen from inside through cut glass.
+// Exterior hosts request rooms after beginFrame (renderer.setWindowRooms), so other frames never draw one.
 
 import { getPref } from '../ui/uiPrefs.js';
 import { isEnhanced } from '../ui/uiSkin.js';
@@ -37,82 +10,45 @@ import {
   roomColorTable,
 } from '../world/windowRoomArt.js';
 
-// ---------------------------------------------------------------------------------------------------------------
-// THE SWITCH
-// ---------------------------------------------------------------------------------------------------------------
-
-/** THE SWITCH, ONE HOME (enhancedLighting.js enhancedLightingOn's shape): the enhanced skin, the Features row
- *  (systems/features.js 'real-windows', the pref `realWindows`: 'full' the rooms and the view out, 'rooms' the rooms
- *  alone - the view out is a second pass over the street, the costly half - 'off' the classic glass), and
- *  `?windows=off|rooms|full` - the kill door, which wins over the row. The classic skin is Daggerfall's glass. */
 export function realWindowsMode(search = globalThis.location?.search ?? '') {
   if (!isEnhanced(search)) return 'off';
   const door = pageParam('windows', search);
-  const v = door === 'full' || door === 'rooms' || door === 'off' ? door : getPref('realWindows');   // RW1 (AUDIT): a door it does not know (`?windows=0`, a typo) is no door - the row's word stands
+  const v = door === 'full' || door === 'rooms' || door === 'off' ? door : getPref('realWindows');
   return v === 'rooms' || v === 'off' ? v : 'full';
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// THE SUB-MESH'S MODE
-// ---------------------------------------------------------------------------------------------------------------
-
-/** What a sub-mesh's emission unit holds: nothing of glass, an exterior window's mask (DFU's table), or an interior's
- *  declared glass (renderer.uploadGlassMask). */
 export const GLASS_NONE = 0;
 export const GLASS_EXTERIOR = 1;
 export const GLASS_INTERIOR = 2;
 
-/** uWinMode: 0 plain, 1 a room behind the glass, 2 an interior's glass (no window style - it never glows), 3 an
- *  interior's glass cut to the view out. */
 export const WIN_MODE = Object.freeze({ plain: 0, room: 1, glass: 2, cut: 3 });
 
-/** THE LAW, per sub-mesh. `rooms`: this frame asked for rooms (an exterior frame); `cut`: this frame paints the view
- *  out (an interior frame). An exterior window is a room outdoors and glass to cut indoors; an interior's declared
- *  glass never wears a window style, cut or not. */
 export function winModeFor(kind, rooms, cut) {
   if (kind === GLASS_INTERIOR) return cut ? WIN_MODE.cut : WIN_MODE.glass;
   if (kind === GLASS_EXTERIOR) return rooms ? WIN_MODE.room : cut ? WIN_MODE.cut : WIN_MODE.plain;
   return WIN_MODE.plain;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// THE ROOM'S BOX AND ITS LIGHT
-// ---------------------------------------------------------------------------------------------------------------
-
-/** The room behind one tile of window texture, in the tile's own units (u across, the height up, 0..1 the tile): two
- *  tiles wide and centred on its own, its floor a quarter tile under the tile's foot and its ceiling a tenth over the
- *  top - so a pane sees a room it stands in the middle of, not a cupboard the size of the glass. */
 export const ROOM_BOX = Object.freeze({ x0: -0.5, x1: 1.5, y0: -0.25, y1: 1.1 });
-/** The room's depth behind the wall: this much of its width, metres, held to [min, max]. */
 export const ROOM_DEPTH_PER_WIDTH = 0.9;
 export const ROOM_DEPTH_MIN = 2;
 export const ROOM_DEPTH_MAX = 7;
-/** Where a room fades back into the classic glass, metres from the eye - its texels a few pixels apiece by then. */
 export const ROOM_FADE_NEAR = 70;
 export const ROOM_FADE_FAR = 160;
-/** The glass's own reflection over the room: its share head-on by day and by night, and how much more of it a grazing
- *  look takes (Schlick's fifth power). By day the room is dim behind the sky; a lit night room shows through. */
 export const ROOM_REFLECT_DAY = 0.34;
 export const ROOM_REFLECT_NIGHT = 0.14;
 export const ROOM_FRESNEL = 0.55;
-/** The light in a room: the day outside's share (of the scene's ambient), how much of it is lost toward the back wall,
- *  and a lit night room's lamp - its gain over the night style's own amber, near the glass and its fall to the back. */
 export const ROOM_DAY_SHARE = 0.7;
 export const ROOM_DAY_FALLOFF = 0.5;
 export const ROOM_LAMP_GAIN = 1.35;
 export const ROOM_LAMP_NEAR = 1.15;
 export const ROOM_LAMP_FALLOFF = 0.45;
-/** Curtains hang this far behind the glass (of the room's depth). */
 export const ROOM_CURTAIN_Z = 0.05;
 
-/** The room's depth, metres, for a tile `tileW` metres wide. */
 export function roomDepth(tileW) {
   return Math.min(ROOM_DEPTH_MAX, Math.max(ROOM_DEPTH_MIN, ROOM_DEPTH_PER_WIDTH * (ROOM_BOX.x1 - ROOM_BOX.x0) * tileW));
 }
 
-/** THE MARCH, the shader's own (rwRoomOver): a ray from `o` (inside the box, z 0 - the glass) along `d` (u, height
- *  and depth per metre, d.z > 0) leaves the box through one face. Answers that face ('back', 'side', 'floor',
- *  'ceiling'), the distance and the point. */
 export function roomExit(o, d, box = ROOM_BOX) {
   const tx = d[0] > 0 ? (box.x1 - o[0]) / d[0] : d[0] < 0 ? (box.x0 - o[0]) / d[0] : 1e9;
   const ty = d[1] > 0 ? (box.y1 - o[1]) / d[1] : d[1] < 0 ? (box.y0 - o[1]) / d[1] : 1e9;
@@ -122,10 +58,6 @@ export function roomExit(o, d, box = ROOM_BOX) {
   return { face, t, h: [o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t] };
 }
 
-/** The room's light from the frame's window style (renderer._windowEmission - windowEmissionRGB's answer) and its
- *  ambient: `on` while the glass wears a style at all (Disabled is black - an interior's, where no room is drawn),
- *  `night` when the style is the warm one (the night style's amber: red over blue; day, fog and custom are not),
- *  the lamp the night style's own hue lifted to a lamp, and the day light the ambient's share. */
 export function roomLightFor(emission, ambient) {
   const e0 = emission?.[0] ?? 0, e1 = emission?.[1] ?? 0, e2 = emission?.[2] ?? 0;
   const on = e0 + e1 + e2 > 0;
@@ -140,21 +72,13 @@ export function roomLightFor(emission, ambient) {
   };
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// THE SHADER TEXT - interpolated INSIDE both mesh fragment shaders (the classic FS and EL_MESH_FS: a declaration is
-// visible only to its own compilation unit), so both lanes draw the same rooms and cut the same glass
-// ---------------------------------------------------------------------------------------------------------------
-
 const g = (x) => {
   const s = Number(x).toFixed(5).replace(/0+$/, '');
   return s.endsWith('.') ? `${s}0` : s;
 };
 const v3 = (c) => `vec3(${g(c[0] / 255)}, ${g(c[1] / 255)}, ${g(c[2] / 255)})`;
 
-/** WAGONS2 (FINAL AUDIT): THE ROOM'S SEED, ONE TEXT - the hash and whether a room is lit (`rwLitSeed` under
- *  ROOM_LIT_SHARE), read by the room itself and by the air pass's emission replay (render/airPass.js EMIT_MESH_FS), so
- *  the glass of a room drawn dark is never bloomed amber at night. `n` the surface normal, `wp` the world point, `origin`
- *  the model's own (uModel[3]), `uv` the picture's. */
+// Shared with the emission replay in airPass.js, so a room drawn dark never blooms amber at night.
 export const RW_SEED_GLSL = `
 float rwHash(vec3 p) {
   p = fract(p * vec3(0.1031, 0.1030, 0.0973));
@@ -170,8 +94,8 @@ float rwLitSeed(vec3 n, vec3 wp, vec3 origin, vec2 uv) {
 const float RW_LIT_SHARE = ${g(ROOM_LIT_SHARE)};
 `;
 
-/** The block: uniforms, the tables, the room. `decode` is the lane's colour decode of an sRGB constant (`c` the
- *  classic lane's, `elDecode(c)` the Enhanced Lighting lane's). Interpolated after the lane's codec. */
+// Interpolated into both mesh fragment shaders after the lane's color codec, so both lanes draw the same rooms.
+// `decode` is the lane's GLSL decode of an sRGB constant `c`.
 export function realWindowsGlsl(decode = 'c') {
   const cols = roomColorTable();
   const pats = ROOM_STYLES.map((s) => `vec4(${s.pattern.map(g).join(', ')})`);
@@ -351,10 +275,8 @@ vec3 rwRoomOver(vec3 base, float glass, vec3 dp1, vec3 dp2, vec2 duv1, vec2 duv2
 `;
 }
 
-/** main()'s four lines, interpolated at the same places in both mesh shaders. DERIVS at the head of main (the
- *  derivatives in uniform control flow, before any discard); CUTOUT after the picture's texel; GLASS between the
- *  emission and the albedo it is subtracted from (an interior's glass wears no window style); ROOM once the lighting
- *  is summed and before the fog - `lit` carries the room, so the shader's own output line stands as it was. */
+// Lines for main() in both mesh shaders. DERIVS goes first, before any discard, to keep derivatives in uniform
+// control flow. CUTOUT follows the texel, GLASS precedes any use of emission, and ROOM goes before the fog.
 export const RW_MAIN_DERIVS = '  vec3 rwDp1 = dFdx(vWorldPos), rwDp2 = dFdy(vWorldPos); vec2 rwDuv1 = dFdx(vUV), rwDuv2 = dFdy(vUV);   // RW1: the room\'s frame, in uniform control flow\n'
   + '  if (uPaneOn > 0.5 && gl_FragCoord.z <= texelFetch(uPaneDepth, ivec2(gl_FragCoord.xy), 0).r) discard;   // PANE-CLIP: the view out draws only what stands past the glass';
 export const RW_MAIN_CUTOUT = '  if (uCutout > 0.5 && tex.a < 0.5) discard;   // RW1: a cutout picture\'s hole (every other picture keeps INCIDENT 2026-09-04\'s no-clip law)';
@@ -363,16 +285,7 @@ export const RW_MAIN_GLASS = '  float rwGlass = texture(uEmissionTex, vUV).r;   
   + '  emission *= step(uWinMode, 1.5);   // RW1: an interior\'s glass wears no window style';
 export const RW_MAIN_ROOM = '  if (uWinMode > 0.5 && uWinMode < 1.5) lit = rwRoomOver(lit + emission, rwGlass, rwDp1, rwDp2, rwDuv1, rwDuv2) - emission;   // RW1: the room behind the glass';
 
-// ---------------------------------------------------------------------------------------------------------------
-// THE VIEW OUT
-// ---------------------------------------------------------------------------------------------------------------
-
-/** The view out is drawn at this share of the world's pixels, no side over the cap, in a texture sized up to the
- *  bucket (a pane that grows a pixel does not reallocate). */
 export const VIEW_SCALE = 0.5;
-/** RW1 (AUDIT): THE STREET'S AIR BY THE CLOCK - the fog colour the last street frame kept (`kept`, at the sun's scale it
- *  was kept at, `keptSun`), dimmed or brightened by the classic haze's day factor to the light the clock gives now
- *  (`nowSun`): an evening spent indoors looks out on a night sky, a night's sleep on a day's. Each channel 0..1. */
 export function clockFogColor(kept, keptSun, nowSun) {
   const day = (s) => 0.1 + 0.9 * Math.min(1, Math.max(0, (Number.isFinite(s) ? s : 0) / 0.6));
   const k = day(nowSun) / day(keptSun);
@@ -380,28 +293,15 @@ export function clockFogColor(kept, keptSun, nowSun) {
 }
 export const VIEW_MAX_SIDE = 1024;
 export const VIEW_BUCKET = 64;
-/** A still camera's view out is kept this long, then drawn again (the street's people and its clock move on). */
 export const VIEW_MAX_AGE_MS = 250;
-/** A camera moved by more than this, in any view-matrix element, draws the view again. */
 export const VIEW_MOVE_EPS = 1e-4;
-/** The glass's rectangle grows by this much (NDC) on every side - last frame's rectangle, this frame's camera. */
 export const GLASS_RECT_MARGIN = 0.06;
-/** Unwanted this long, the target is freed (EVERY ALLOCATION HAS AN OWNER). */
 export const VIEW_RELEASE_MS = 10000;
-/** The streamed world's rings the view out walks: the player's pixel and the eight round it (through a pane, a town's
- *  next street is the far distance - the fog and the sky take the rest). */
 export const VIEW_RINGS = 1;
-/** FIELD BUGS 2026-10-12g PANE-CLIP ("Wall missing through window", The Savage Goat in Fontbridge): THE VIEW OUT DRAWS
- *  ONLY WHAT STANDS PAST THE GLASS. The watched frame's glass and cutout sub-meshes are drawn again, depth alone, under the
- *  view out's own lens, and a fragment of the street at or before that depth is the room's side of a pane - it never
- *  draws. It was the building's model box (and a quarter metre round it), and every fragment in it: the building's own
- *  other wing across a notch, a second model of it, a neighbour's wall flush against it - and, its near face gone and
- *  the rest back-faced, the whole neighbour. Its own walls seen from inside are back faces; those between the eye and
- *  a pane (a room that reaches past its shell) are before the glass. The panes a frame keeps, at most: */
+// The view out redraws the frame's glass depth-only and discards street fragments at or before that depth.
 export const VIEW_PANES_MAX = 256;
-/** ...the unit the pane depth is read from in the view out's pass (none of the street's programs binds it). */
+// No street program binds this texture unit.
 export const VIEW_PANE_UNIT = 22;
-/** The panes' depth: a sub-mesh's position alone, through the view out's lens; no colour. */
 export const VIEW_PANE_VS = `#version 300 es
 layout(location=0) in vec3 aPos;
 uniform mat4 uPV;
@@ -411,26 +311,22 @@ export const VIEW_PANE_FS = `#version 300 es
 precision mediump float;
 void main() {}`;
 
-/** A sphere (world centre, radius) through a view-projection, as an NDC rectangle that holds it: [x0, y0, x1, y1] held
- *  to the screen, the whole screen when it reaches the eye's plane, null when it is wholly off screen or behind the eye.
- *  Conservative - the numerator's and the depth's ranges taken apart. `out` reused. */
 export function sphereNdcRect(pv, x, y, z, r, out = [0, 0, 0, 0]) {
   const cx = pv[0] * x + pv[4] * y + pv[8] * z + pv[12];
   const cy = pv[1] * x + pv[5] * y + pv[9] * z + pv[13];
   const w = pv[3] * x + pv[7] * y + pv[11] * z + pv[15];
   const sw = Math.hypot(pv[3], pv[7], pv[11]) * r;
-  if (w + sw <= 0) return null;                                                          // behind the eye
-  if (w - sw <= 1e-6) { out[0] = -1; out[1] = -1; out[2] = 1; out[3] = 1; return out; }  // through the eye's plane
+  if (w + sw <= 0) return null;
+  if (w - sw <= 1e-6) { out[0] = -1; out[1] = -1; out[2] = 1; out[3] = 1; return out; }
   const sx = Math.hypot(pv[0], pv[4], pv[8]) * r, sy = Math.hypot(pv[1], pv[5], pv[9]) * r;
   const n = w - sw, f = w + sw;
   const x0 = Math.min((cx - sx) / n, (cx - sx) / f), x1 = Math.max((cx + sx) / n, (cx + sx) / f);
   const y0 = Math.min((cy - sy) / n, (cy - sy) / f), y1 = Math.max((cy + sy) / n, (cy + sy) / f);
-  if (x0 >= 1 || x1 <= -1 || y0 >= 1 || y1 <= -1) return null;                          // wholly off screen
+  if (x0 >= 1 || x1 <= -1 || y0 >= 1 || y1 <= -1) return null;
   out[0] = Math.max(-1, x0); out[1] = Math.max(-1, y0); out[2] = Math.min(1, x1); out[3] = Math.min(1, y1);
   return out;
 }
 
-/** The rectangle grown by the margin and held to the screen; null when nothing of it is left. */
 export function padRect(rect, margin = GLASS_RECT_MARGIN) {
   if (!rect) return null;
   const x0 = Math.max(-1, rect[0] - margin), y0 = Math.max(-1, rect[1] - margin);
@@ -438,8 +334,6 @@ export function padRect(rect, margin = GLASS_RECT_MARGIN) {
   return x1 > x0 && y1 > y0 ? [x0, y0, x1, y1] : null;
 }
 
-/** The camera's projection cropped to an NDC rectangle: the rectangle becomes the whole of the new clip space, so the
- *  pass draws only what the glass can show, at the pixels the glass covers. Column-major, `out` reused. */
 export function cropProjection(proj, rect, out = new Float32Array(16)) {
   const sx = 2 / (rect[2] - rect[0]), sy = 2 / (rect[3] - rect[1]);
   const tx = -(rect[2] + rect[0]) / (rect[2] - rect[0]), ty = -(rect[3] + rect[1]) / (rect[3] - rect[1]);
@@ -453,9 +347,7 @@ export function cropProjection(proj, rect, out = new Float32Array(16)) {
   return out;
 }
 
-/** The view out's lens: the interior's own (the same x and y - a direction lands on the same NDC, so the crop and the
- *  background line up with the room's frame) with its depth taken out to the street's distance - the interior lens
- *  stops at 500 m, and the street's fog runs to 2400. */
+// Keeps the interior lens's x and y so the crop and background line up, with the far plane moved out to VIEW_FAR.
 export const VIEW_NEAR = 0.3;
 export const VIEW_FAR = 2400;
 export function viewOutProjection(proj, out = new Float32Array(16)) {
@@ -465,7 +357,6 @@ export function viewOutProjection(proj, out = new Float32Array(16)) {
   return out;
 }
 
-/** The view out's pixels for a rectangle of a `vw` x `vh` world: drawn `w` x `h`, in a texture `allocW` x `allocH`. */
 export function viewTargetSize(rect, vw, vh, scale = VIEW_SCALE) {
   const w = Math.max(8, Math.min(VIEW_MAX_SIDE, Math.round((rect[2] - rect[0]) / 2 * vw * scale)));
   const h = Math.max(8, Math.min(VIEW_MAX_SIDE, Math.round((rect[3] - rect[1]) / 2 * vh * scale)));
@@ -473,7 +364,6 @@ export function viewTargetSize(rect, vw, vh, scale = VIEW_SCALE) {
   return { w, h, allocW: up(w), allocH: up(h) };
 }
 
-/** Is the view out owed this frame? Never drawn, the rectangle moved, the camera moved, or the still picture aged. */
 export function viewOutDue(state, view, rect, now) {
   if (!state.drawn) return true;
   for (let i = 0; i < 4; i++) if (state.rect[i] !== rect[i]) return true;
@@ -481,18 +371,11 @@ export function viewOutDue(state, view, rect, now) {
   return now - state.at >= VIEW_MAX_AGE_MS;
 }
 
-/** A building's view out, one per interior host (scenes/worldModes.js): what was drawn, when, and from where. */
 export function createViewOut() {
   return { drawn: false, rect: [0, 0, 0, 0], view: new Float32Array(16), proj: new Float32Array(16), at: -Infinity, lastWanted: -Infinity };
 }
 
-/**
- * THE INTERIOR FRAME'S HALF, before its beginFrame: is there glass to look through (the rectangle the last frame's
- * glass and holes covered, renderer.takeGlassRect), is the street owed, and if so draw it (`draw` - the exterior
- * host's, inside renderer.outsideViewFrame). Answers what renderer.setGlassView takes after the beginFrame: null (no
- * glass on screen, or glass and no holes with the street off - the room draws as it always did), or the rectangle and
- * whether the street is in it (`view`: the glass is cut) or only the sky (a cutout's holes with the street off).
- */
+// Call before the interior frame's beginFrame, and pass the result to renderer.setGlassView after it.
 export function viewOutFrame(state, { renderer, mode, proj, view, now, scene }) {
   const seen = renderer.takeGlassRect?.() ?? null;
   const rect = padRect(seen?.rect ?? null);
@@ -501,9 +384,7 @@ export function viewOutFrame(state, { renderer, mode, proj, view, now, scene }) 
     if (state.drawn && now - state.lastWanted > VIEW_RELEASE_MS) { renderer.releaseOutsideView?.(); state.drawn = false; }
     return null;
   }
-  // WAGONS2 (FINAL AUDIT): the street off (Rooms only, or Off) and only a cutout's holes on screen - its sky alone, which
-  // the target never holds: let it go now (the holes kept it wanted, and a target drawn under Full - up to 8 MB - stood
-  // until the player left the building)
+  // With the street off, holes show only the sky and the target is never sampled, so release it now.
   if (!street) { if (state.drawn) { renderer.releaseOutsideView?.(); state.drawn = false; } return { rect, view: false }; }
   state.lastWanted = now;
   if (viewOutDue(state, view, rect, now)) {
@@ -516,15 +397,11 @@ export function viewOutFrame(state, { renderer, mode, proj, view, now, scene }) 
   return { rect, view: true };
 }
 
-/** The sky the view out stands under where it drew nothing (and the whole of a hole with the view off): the horizon
- *  is the fog's own colour (the classic distance haze the street fades into), the zenith a deeper blue of it. */
 export function viewSkyFrom(fogColor) {
   const h = [fogColor?.[0] ?? 0.53, fogColor?.[1] ?? 0.7, fogColor?.[2] ?? 0.92];
   return { horizon: h, zenith: [h[0] * 0.72, h[1] * 0.82, Math.min(1, h[2] * 1.0)] };
 }
 
-/** The background: the view out over the glass's rectangle, the sky where it drew nothing. A strip of four from
- *  gl_VertexID - no vertex buffer. The texture is the view out's premultiplied picture (cleared to nothing). */
 export const VIEW_BG_VS = `#version 300 es
 uniform vec4 uRect;
 out vec2 vT;
@@ -554,8 +431,6 @@ void main() {
   outColor = vec4(sky * (1.0 - v.a) + v.rgb, 1.0);
 }`;
 
-/** The background's ray from the camera: the rows of the view's rotation over the projection's two scales (a
- *  symmetric perspective, mirrored or not - mat4.js mirrorProjectionX negates the first scale, and the ray with it). */
 export function viewRays(proj, view) {
   const p0 = proj[0] || 1, p5 = proj[5] || 1;
   return {

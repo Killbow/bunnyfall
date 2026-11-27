@@ -243,7 +243,7 @@ export function settleRealmTrade(saveA, saveB, halfA, halfB) {
  *  kept: a piece parked on the ground while its carrier trades, then taken up again, is what the strikes are for.
  *  AUTO-HOLD (2026-10-16): that third hold is a week (a month each time after) even once the piece is gone - no staff's
  *  look - and the piece still carried past it holds as any law hold does. */
-export const TRADE_HELD_STRIKES = ' Holds add up: from the third, the freeze stays for a week even after it is gone, and for a month each time after that.';   // RPT1026-MARKET HOLD-SAID: the freeze, never "trading" alone
+export const TRADE_HELD_STRIKES = ' Holds add up: a third lasts a week even once the item is gone, and every third after that lasts a month.';   // RPT1026-MARKET HOLD-SAID: the freeze, never "trading" alone
 // RPT1026-MARKET HOLD-SAID (private reports 2026-10-26: gathering stopped overnight under a notice that named only a
 // trade freeze, with no reason and no road to anyone who could help; another found crafting and gathering counted as
 // trading, and asked for clearer messages and a clearer account state): A HOLD FREEZES MORE THAN TRADING - every
@@ -252,12 +252,12 @@ export const TRADE_HELD_STRIKES = ' Holds add up: from the third, the freeze sta
 // delivery), so each notice says the three a player meets; and staff's, which names no reason (its note is staff's own -
 // staffRealm.js), says how to reach them: the private report (/bug, net/chatCommands.js) and the game's Discord. In the
 // player's language now (they were English to every player).
-const HELD_LAW = 'The realm is reviewing this character: it carries an item the game could not have made. Its trading, gathering and crafting are frozen until it is gone.';
-const HELD_LAW_NAMED = 'The realm is reviewing this character: it carries a {name} the game could not have made. Its trading, gathering and crafting are frozen until it is gone.';
+const HELD_LAW = 'Trading, gathering, and crafting are frozen while this character carries an item the game could not have made.';
+const HELD_LAW_NAMED = 'Trading, gathering, and crafting are frozen while this character carries a {name} the game could not have made.';
 export const TRADE_HELD_NOTICES = Object.freeze({
   get law() { return t('realm.held.law', HELD_LAW + TRADE_HELD_STRIKES); },
-  get budget() { return t('realm.held.budget', 'The realm is reviewing this character: its wealth grew faster than play could earn it. Its trading, gathering and crafting are frozen until play catches up.'); },
-  get staff() { return t('realm.held.staff', 'The realm\'s staff have frozen this character\'s trading, gathering and crafting. To ask why, send them a private report with /bug, or ask on the game\'s Discord.'); },
+  get budget() { return t('realm.held.budget', 'This character is under review because their wealth grew faster than normal play allows. Trading, gathering, and crafting are frozen until their play time catches up.'); },
+  get staff() { return t('realm.held.staff', 'Staff have frozen trading, gathering, and crafting for this character. To ask why, send a private report with /bug or ask on the game\'s Discord.'); },
 });
 /** The law's hold, naming the piece it found (`name`, its template's) - systems/item/itemIds.js re-exports it. */
 export const tradeHeldLawNotice = (/** @type {string} */ name) => t('realm.held.lawNamed', HELD_LAW_NAMED + TRADE_HELD_STRIKES, { name });   // RING-WARN: the strikes said
@@ -268,8 +268,8 @@ export const heldUntilText = (/** @type {number} */ until) => new Date(until * 1
  *  still finds a piece (`name`, its template's), that the hold stands past that end until the piece is gone (AUDIT
  *  AUTO-HOLD: it said "then opens on its own" with the Ring still carried, and the hold stood on, unsaid). */
 export const tradeHeldUntilNotice = (/** @type {number} */ until, /** @type {string | null} */ name = null) => (name
-  ? t('realm.held.untilPiece', 'This character has been held 3 times, the last over a {name} it carries. Its trading, gathering and crafting are frozen until {date}, and after that until the {name} is gone.', { name, date: heldUntilText(until) })
-  : t('realm.held.until', 'This character has been held 3 times. Its trading, gathering and crafting are frozen until {date}, then reopen on their own.', { date: heldUntilText(until) }));
+  ? t('realm.held.untilPiece', 'This character has been held 3 times, most recently for carrying a {name}. Trading, gathering, and crafting are frozen until {date}, and after that until the {name} is gone.', { name, date: heldUntilText(until) })
+  : t('realm.held.until', 'This character has been held 3 times. Trading, gathering, and crafting are frozen until {date}, when they reopen automatically.', { date: heldUntilText(until) }));
 /** RPT1026-MARKET HOLD-SAID: THE STANDING HOLD'S OWN NOTICE, for a refusal elsewhere to say (net/accountClient.js
  *  `trade-held` - a harvest's, a craft's, a sale's): the host's provider over the realm session (scenes/realmHoldHost.js
  *  wireRealmHolds - systems/item/itemIds.js tradeHeldNotice as the session stands), or null. The toast had said only "the

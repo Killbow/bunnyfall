@@ -13,28 +13,18 @@
 // COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-// L10N3g (2026-09-27): THE FRENCH PACK'S GRAMMAR, PORTED. "DFU en français" writes its text with grammar tokens -
-// {.le}{.FS}épée, {Number?niveau#niveaux}, {monsieur/madame}, {#ajusté#ajustés#ajustée#ajustées} - and ships this
-// processor (FrenchGrammarRules.cs, the pack's LanguageRules mod) to resolve them wherever DFU calls
-// GrammarManager.ProcessGrammar. The pack's TEXT is its authors' work under their own terms and is never bundled; this
-// CODE is MIT, and is ported here verbatim in behaviour, its notice kept above, so the pack a player installs reads as
-// its authors wrote it. Registered for French: the text core chooses it whenever French is on the locale's chain.
-//
-// Kept from the C# as it stands, quirks included: the gender and number last defined carry over to the next text (the
-// C#'s statics); an unknown token prints " -UT: <source text> - " (the pack's own marker for a token it cannot read);
-// a DFU token ({0}, a digit first) is left in place; the "de" arm for a first name or a town sets the de-le condensing
-// flag whatever the vowel (the C#'s unbraced else). Where the C# would throw on malformed input (an empty or unclosed
-// token, a word list too short), this answers the text as it stands instead.
+// Ported from FrenchGrammarRules.cs, quirks included, so an installed French pack reads as its authors wrote it.
+// Where the C# throws on an unclosed token, this stops there and leaves the rest of the text as written.
 
 import { GrammarRules, GrammarManager, registerGrammarRules } from '../../ui/textManager.js';
 
 const GENDER_NUMS = ['MS', 'MP', 'FS', 'FP'];
 const isUpper = (c) => !!c && c !== c.toLowerCase() && c === c.toUpperCase();
 const upperFirst = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-/** The game's Genders, as the port holds them ('male'/'female', or DFU's 0/1). */
 const isMaleGender = (g) => g === 'male' || g === 'Male' || g === 0;
 
-let curGenderNum = 'MS';   // static in the C#: the last gender/number defined outlives one text
+// Module state, like the C# statics: `curGenderNum` carries over from one text to the next.
+let curGenderNum = 'MS';
 let isMale = true;
 let isSingular = true;
 let genderDefined = false;
@@ -44,14 +34,13 @@ let genderNumFound = false;
 let checkAArticle = false;
 let checkDeArticle = false;
 
-/** GetNextToken: the next {token} from `start` - { type, bPos, cursorPos, content, wordAfter }. */
 function getNextToken(text, start) {
   let from = start;
   for (;;) {
     const bPos = text.indexOf('{', from);
     if (bPos === -1) return { type: 'NotFound' };
     const close = text.indexOf('}', bPos);
-    if (close === -1) return { type: 'NotFound' };   // the C# throws on an unclosed token
+    if (close === -1) return { type: 'NotFound' };
     const cursorPos = close + 1;
     let content = text.slice(bPos + 1, close);
     if (!content) return { type: 'Unknown', bPos, cursorPos, content };
@@ -75,9 +64,9 @@ function getNextToken(text, start) {
         }
         return { type: 'Article', bPos, cursorPos, content };
       }
-      return { type: 'Unknown', bPos, cursorPos, content };   // something as {xyz}
+      return { type: 'Unknown', bPos, cursorPos, content };
     }
-    from = cursorPos;   // a DFU token as {0}: left in place
+    from = cursorPos;
   }
 }
 
@@ -87,8 +76,6 @@ function handleGenderPrefix() {
   genderDefined = true;
 }
 
-/** GetNextGenderNum: the next gender token in the sentence from `start` - it becomes the current gender - and the word
- *  behind it, lowercase. Answers the word, or null where there is none. */
 function getNextGenderNum(text, start) {
   const dotPos = text.indexOf('. ', start);
   const sentence = dotPos !== -1 ? text.slice(0, dotPos + 1) : text;
@@ -100,7 +87,7 @@ function getNextGenderNum(text, start) {
       handleGenderPrefix();
       genderNumFound = true;
       if (cp === start) {
-        adjectiveBeforeWord = false;   // the gender token just behind the article
+        adjectiveBeforeWord = false;
         if (text.length >= cp + 9 && text.substr(cp + 5, 4) === '{.h}') { hAspire = true; cp += 4; }
       } else adjectiveBeforeWord = true;
       let wordAfter = '';
@@ -115,7 +102,6 @@ function getNextGenderNum(text, start) {
   return null;
 }
 
-/** NextCharIsVowel: an h aspiré acts as a consonant, an h muet as a vowel. */
 function nextCharIsVowel(word) {
   if (!word) return false;
   const ch = word[0];
@@ -128,13 +114,12 @@ const withCase = (token, prefix) => (isUpper(token[0]) ? upperFirst(prefix) : pr
 
 function lePrefix(word, token) {
   let prefix;
-  if (word === 'le' || word === 'la' || word === 'les' || word.startsWith("l'")) prefix = '';   // the article already there
-  else if (!genderDefined) prefix = '';   // Aller vers Paris
+  if (word === 'le' || word === 'la' || word === 'les' || word.startsWith("l'")) prefix = '';
+  else if (!genderDefined) prefix = '';
   else if (!isSingular) prefix = 'les ';
   else if (!adjectiveBeforeWord && nextCharIsVowel(word)) prefix = "l'";
   else if (!isMale) prefix = 'la ';
   else prefix = 'le ';
-  // the article behind the item it stands for ("Trouver {.le}{.FP}bottes et {.le} ramener"): the space is already there
   if (word === '' && prefix.endsWith(' ')) prefix = prefix.trimEnd();
   return withCase(token, prefix);
 }
@@ -152,9 +137,10 @@ function dePrefix(word, token) {
   if (word === 'la' || word.startsWith("l'")) prefix = 'de ';
   else if (word === 'le' || word === 'les') { prefix = 'de '; checkDeArticle = true; }
   else if (!isSingular) prefix = 'des ';
-  else if (!genderDefined) {   // a first name, a town
+  else if (!genderDefined) {
     prefix = nextCharIsVowel(word) ? "d'" : 'de ';
-    checkDeArticle = true;   // the C#'s unbraced else: set on both arms
+    // Set for both vowel and consonant words, matching an unbraced else in the C# original.
+    checkDeArticle = true;
   } else if (nextCharIsVowel(word)) prefix = "de l'";
   else if (isMale) prefix = 'du ';
   else prefix = 'de la ';
@@ -173,7 +159,7 @@ function aPrefix(word, token) {
   let prefix;
   if (word === 'la' || word.startsWith("l'")) prefix = 'à ';
   else if (word === 'le' || word === 'les') { prefix = 'à '; checkAArticle = true; }
-  else if (!genderDefined) { prefix = 'à '; checkAArticle = true; }   // a town
+  else if (!genderDefined) { prefix = 'à '; checkAArticle = true; }
   else if (!isSingular) prefix = 'aux ';
   else if (nextCharIsVowel(word)) prefix = "à l'";
   else if (isMale) prefix = 'au ';
@@ -187,7 +173,6 @@ const tonPrefix = possessive('tes ', 'ton ', 'ta ');
 const sonPrefix = possessive('ses ', 'son ', 'sa ');
 const monPrefix = possessive('mes ', 'mon ', 'ma ');
 
-/** Handle_adjective: #MS#MP#FS#FP, and a fifth value for beau/vieux/nouveau/fou before a masculine vowel word. */
 function adjective(word, beforeWord, expression) {
   const v = expression.split('#');
   if (curGenderNum === 'MS') return (v.length === 6 && beforeWord && nextCharIsVowel(word)) ? v[5] : v[1];
@@ -196,7 +181,6 @@ function adjective(word, beforeWord, expression) {
   return v[4];
 }
 
-/** Handle_Number: the singular for a number under 2 before the token, else the plural ("%bdr {Number?round#rounds}"). */
 function numberWord(content, processed) {
   const v = content.slice(7).split('#');
   const words = processed.split(' ');
@@ -204,19 +188,17 @@ function numberWord(content, processed) {
   return number !== undefined && /^\s*[+-]?\d+\s*$/.test(number) && Number.parseInt(number, 10) >= 2 ? v[1] : v[0];
 }
 
-/** Handle_min_Suffix: {.min} lowercases the first capitalised word among the last three; {.Min} the sentence's words
- *  but its first. */
 function minSuffix(processed, token) {
   const words = processed.split(/[ .']/);
   let n = words.length - 1;
-  if (words[n] === '') { if (n !== 0) n -= 1; else return processed; }   // the token behind a dot
+  if (words[n] === '') { if (n !== 0) n -= 1; else return processed; }
   if (token === 'min') {
     let finished = false;
     for (let i = 1; !finished && i < 4; i++) {
       const word = words[n];
       if (word && isUpper(word[0])) {
         if (n !== 0 && words[n - 1] !== '') processed = processed.split(word).join(word.toLowerCase());
-        finished = true;   // stop at the first word with a capital
+        finished = true;
       }
       n -= 1;
       if (n < 0 || words[n] === '') finished = true;
@@ -238,7 +220,6 @@ function minSuffix(processed, token) {
   return processed;
 }
 
-/** Handle_Maj_Suffix: {.Maj} capitalises the first letter of the sentence it closes. */
 function majSuffix(processed) {
   const punc = processed.endsWith('.') ? '.' : processed.endsWith('?') ? '?' : processed.endsWith('!') ? '!' : '';
   if (punc) processed = processed.replace(/[.?!]+$/, '');
@@ -251,11 +232,11 @@ function majSuffix(processed) {
 export class FrenchGrammarRules extends GrammarRules {
   processGrammar(sourceText) {
     const text = String(sourceText ?? '');
-    if (!text.includes('{')) return text;   // no grammar token: output = input
+    if (!text.includes('{')) return text;
     hAspire = false; genderDefined = false; genderNumFound = false; isMale = true; isSingular = true;
     let processed = '';
     let start = 0;
-    let wordAfterGender = '';   // the C#'s ref local: the word behind the last gender token, across tokens
+    let wordAfterGender = '';
     let t = getNextToken(text, start);
     while (t.type !== 'NotFound') {
       processed += text.slice(start, t.bPos);
@@ -283,7 +264,7 @@ export class FrenchGrammarRules extends GrammarRules {
           processed += ` -UT: ${text} - `;
           break;
         case 'Adjective': {
-          if (!genderNumFound) wordAfterGender = getNextGenderNum(text, cursorPos) ?? wordAfterGender;   // the adjective before its word
+          if (!genderNumFound) wordAfterGender = getNextGenderNum(text, cursorPos) ?? wordAfterGender;
           processed += adjective(wordAfterGender, adjectiveBeforeWord, t.content);
           break;
         }
@@ -295,7 +276,7 @@ export class FrenchGrammarRules extends GrammarRules {
           cursorPos += wordAfterGender.length;
           break;
         case 'Article': {
-          wordAfterGender = getNextGenderNum(text, cursorPos) ?? '';   // none: the gender and number stay as last defined
+          wordAfterGender = getNextGenderNum(text, cursorPos) ?? '';
           const word = wordAfterGender;
           const token = t.content;
           checkAArticle = false; checkDeArticle = false;
@@ -312,7 +293,7 @@ export class FrenchGrammarRules extends GrammarRules {
             case 'son': processed += sonPrefix(word, token); break;
             case 'min': processed = minSuffix(processed, token); break;
             case 'maj': processed = majSuffix(processed); break;
-            default: break;   // {.h} and the like: consumed
+            default: break;
           }
           break;
         }
@@ -322,7 +303,6 @@ export class FrenchGrammarRules extends GrammarRules {
       t = getNextToken(text, start);
     }
     processed += text.slice(start);
-    // French condenses some double articles: "de le vin" -> "du vin", "à le" -> "au"
     if (checkAArticle) {
       processed = processed.split('à le ').join('au ').split('à Le ').join('au ').split('à les ').join('aux ').split('à Les ').join('aux ');
       checkAArticle = false;
@@ -335,7 +315,6 @@ export class FrenchGrammarRules extends GrammarRules {
   }
 }
 
-/** Tests: the C#'s statics back to their first values. */
 export function _resetFrenchGrammarForTests() {
   curGenderNum = 'MS'; isMale = true; isSingular = true; genderDefined = false; hAspire = false;
   adjectiveBeforeWord = false; genderNumFound = false; checkAArticle = false; checkDeArticle = false;

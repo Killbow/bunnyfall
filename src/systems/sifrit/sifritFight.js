@@ -1,42 +1,33 @@
 // @ts-check
-// SIFRIT (2026-11-13; systems/sifrit/sifritLaw.js): THE FIGHT, the game's half: what makes a foe of her kind Sifrit (`makeSifrit`,
-// at the foe's stand - hers and every peer's puppet of her), and her SUMMONS (`createSifritFight`: the mummies she calls
-// about her, without end, from her owner's machine - the foes ride to every peer as any foe does) and her BOSS BAR's reading
-// (`sifritBarOf`: the nearest of her, her name and the health she stands at). The blows are the overworld's own
-// telegraphed ones made hers (ai/blowShapes.js bossifyBlow). Not a DFU member.
 import { promoteStaffBoss } from '../../characters/eliteFoes.js';
 import {
   SIFRIT_ID, SIFRIT_NAME, SIFRIT_HP, SIFRIT_SIZE_PCT, SIFRIT_MUMMY, SIFRIT_SUMMON_EVERY_S, SIFRIT_SUMMON_N, SIFRIT_SUMMONS_MAX, SIFRIT_SUMMON_RING,
 } from './sifritLaw.js';
 
 /**
- * Make `entity` Sifrit: a staff event's mini boss (an elite - its blows, its drop - hard, unshaken), named hers, at her
- * health (a puppet's maximum is its owner's word), her outline purple. Idempotent.
- * @param {any} entity @param {{ own?: boolean }} [o]
+ * @param {any} entity
+ * @param {{ own?: boolean }} [o]
  */
 export function makeSifrit(entity, { own = true } = {}) {
   if (!entity) return false;
   promoteStaffBoss(entity, { own, sizePct: SIFRIT_SIZE_PCT, hp: own ? SIFRIT_HP : 0, name: SIFRIT_NAME, purple: true });
   entity.sifrit = true;
-  if (entity.staffBoss) entity.staffBoss.size = SIFRIT_SIZE_PCT / 100;   // a player's size (promoteStaffBoss floors it at 1.5)
+  // Set after promoteStaffBoss, which floors boss size at 1.5, so she stands at player height.
+  if (entity.staffBoss) entity.staffBoss.size = SIFRIT_SIZE_PCT / 100;
   return true;
 }
 
-/** Is `f` a living Sifrit of mine to run (mine, not a peer's puppet)? @param {any} f */
+/** @param {any} f */
 const mineAlive = (f) => f && !f.puppet && !f.dead && f.mobileType === SIFRIT_ID && f.entity?.sifrit;
 
 /**
- * HER SUMMONS. `host` - `foes()` the exterior's foes, `stand(mobileType, near)` one stood loose near a point (a promise of
- * the foe or null), `remove(foe)`, `now()` seconds. `frame(dt)` every frame: for each Sifrit of mine in a fight (a target
- * of her own), every SIFRIT_SUMMON_EVERY_S seconds (a quarter faster under half her health) SIFRIT_SUMMON_N mummies stand
- * about her at SIFRIT_SUMMON_RING metres, never more than SIFRIT_SUMMONS_MAX of hers alive; her fall takes them with her.
  * @param {{ foes: () => any[], stand: (mobileType: number, near: number[]) => any, remove: (f: any) => void, now?: () => number }} host
  */
 export function createSifritFight(host) {
   const now = host.now ?? (() => performance.now() / 1000);
   /** @type {Map<any, { next: number }>} */
   const clocks = new Map();
-  /** @type {Set<any>} the mummies of hers, by foe */
+  /** @type {Set<any>} */
   const summons = new Set();
   let _pending = 0;
   const alive = () => { for (const m of [...summons]) if (!m || m.dead) summons.delete(m); return summons.size; };
@@ -47,7 +38,7 @@ export function createSifritFight(host) {
       const all = host.foes();
       for (const f of all) {
         if (!mineAlive(f)) continue;
-        if (!f.ai?.target && !f.ai?.inSight) continue;   // asleep until a fight finds her
+        if (!f.ai?.target && !f.ai?.inSight) continue;
         const c = clocks.get(f) ?? { next: t + 3 };
         clocks.set(f, c);
         if (t < c.next || _pending > 0) continue;
@@ -62,15 +53,16 @@ export function createSifritFight(host) {
         }
       }
       for (const [f] of [...clocks]) if (!all.includes(f) || f.dead) clocks.delete(f);
-      if (summons.size && !all.some(mineAlive)) for (const m of [...summons]) { if (!m.dead) host.remove(m); summons.delete(m); }   // she fell: her mummies go back to the grave
+      if (summons.size && !all.some(mineAlive)) for (const m of [...summons]) { if (!m.dead) host.remove(m); summons.delete(m); }
     },
     summonsAlive: alive,
   };
 }
 
 /**
- * THE BOSS BAR's reading: the nearest Sifrit within `range` metres of `at` (mine or a peer's puppet), as `{ name, frac }` -
- * her health over her maximum - or null. @param {any[]} foes @param {number[]} at @param {number} [range]
+ * @param {any[]} foes
+ * @param {number[]} at
+ * @param {number} [range]
  */
 export function sifritBarOf(foes, at, range = 120) {
   let best = null, bd = range;

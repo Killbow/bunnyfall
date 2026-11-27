@@ -1,22 +1,10 @@
-// ═══════════════════════════════════════════════════════════════════
-// DW-B: DeepBathymetry.cs (Iliac Puddle No More 1.2.2, jet082) - how
-// deep the bay is at a point: a continental shelf out from the coast to
-// the climate's base depth, then macro, middle and fine relief, the
-// abyssal plain's swell, ravines, seamounts and volcanic cones, all
-// under the player's Water Depth. Every constant and every step is the
-// C#'s.
-//
-// Mathf.PerlinNoise is Unity's engine-internal noise; the port's stand-in
-// is src/world/perlin.js (Port-Ledger A, the one Perlin home - the same
-// departure every DFU GetNoise here already rides). Same shape of sea
-// floor, different concrete hills.
-// ═══════════════════════════════════════════════════════════════════
+// Constants and steps follow DeepBathymetry.cs from Iliac Puddle No More. `perlinNoise` replaces Unity's
+// Mathf.PerlinNoise, so the sea floor has the same shape as the mod's but different hills.
 
 import { perlinNoise } from './perlin.js';
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
-/** Mathf.Lerp: t clamped. */
 const lerp = (a, b, t) => a + (b - a) * clamp01(t);
 
 export const SHELF_MIN_DEPTH = 2.7;
@@ -24,24 +12,24 @@ export const SHELF_BREAK_DISTANCE = 360;
 export const SHELF_RAMP_METERS = 2700;
 export const MAX_ABSOLUTE_DEPTH = 250;
 
-/** ClimateBaseDepth: the plain's depth off each climate's coast. */
+// Climate indices: 223 Ocean, 224 Desert, 225 hot Desert, 226 Mountain, 227 Rainforest, 228 Swamp, 229 Subtropical,
+// 230 Mountain woods, 231 Woodlands, and 232 Haunted woodlands.
 export function climateBaseDepth(climateIndex) {
   switch (climateIndex) {
-    case 223: return 210;   // Ocean
-    case 229: return 175;   // Subtropical
-    case 227: return 150;   // Rainforest
-    case 228: return 28;    // Swamp
-    case 231: return 165;   // Woodlands
-    case 232: return 165;   // Haunted woodlands
-    case 230: return 185;   // Mountain woods
-    case 226: return 185;   // Mountain
-    case 224: return 90;    // Desert
-    case 225: return 90;    // Desert (hot)
+    case 223: return 210;
+    case 229: return 175;
+    case 227: return 150;
+    case 228: return 28;
+    case 231: return 165;
+    case 232: return 165;
+    case 230: return 185;
+    case 226: return 185;
+    case 224: return 90;
+    case 225: return 90;
     default: return 210;
   }
 }
 
-/** ClimateBandSignal: the floor's colour band per climate (the floor shader's vertex G). */
 export function climateBandSignal(climateIndex) {
   switch (climateIndex) {
     case 223: return 1;
@@ -58,22 +46,19 @@ export function climateBandSignal(climateIndex) {
   }
 }
 
-/** DepthBand01. */
 export const depthBand01 = (depthMeters) => clamp01(depthMeters / MAX_ABSOLUTE_DEPTH);
 
-/** ResolveUserMaxDepth: the Water Depth setting, clamped 1..250 (250 with the mod not running). */
 export function resolveUserMaxDepth(waterDepth) {
   if (waterDepth == null) return MAX_ABSOLUTE_DEPTH;
   return clamp(waterDepth, 1, MAX_ABSOLUTE_DEPTH);
 }
 
 /**
- * SampleDepthMeters: the depth below the sea's surface at a point.
- * @param {number} worldX - GetNoiseWorldCoords' x (map-global meters)
+ * @param {number} worldX
  * @param {number} worldZ
- * @param {number} baseDepth - the blended climate base depth
- * @param {number} distanceToCoastMeters - the bake's edge distance
- * @param {?number} waterDepth - the mod's WaterDepth setting (null: the mod absent - 250)
+ * @param {number} baseDepth
+ * @param {number} distanceToCoastMeters
+ * @param {?number} waterDepth
  */
 export function sampleDepthMeters(worldX, worldZ, baseDepth, distanceToCoastMeters, waterDepth) {
   const num = resolveUserMaxDepth(waterDepth);

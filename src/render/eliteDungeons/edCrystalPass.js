@@ -1,24 +1,14 @@
 // @ts-check
-// BUNNYFALL (2026-11-18, daily elite dungeons - the owner: "a big glowing crystal on top in the world, visible, and a
-// purple glow around them"): THE CRYSTAL AND ITS GLOW, DRAWN. Over each elite dungeon standing near the player a great
-// violet crystal hangs high over the entrance, turning slowly and breathing, and a ring of purple light lies on the
-// ground about it. One foreign pass, added onto the frame (ONE, ONE) as the beacons are, both faces, depth tested, no
-// depth written; the frame's fog thins it with distance but never below ED_FAR_FLOOR, so it stands on the horizon.
-// The column of light under it is the event pillar's beacon (render/superDungeon/sdOmenPass.js), drawn by the host.
-// Not a DFU member.
 import { buildProgram } from '../glProgram.js';
 import { multiply } from '../../world/mat4.js';
 
-/** The crystal (metres): its height, its girth, how high its middle hangs over the ground, its turn (rad/s). */
 export const ED_CRYSTAL_H = 46;
 export const ED_CRYSTAL_R = 9;
 export const ED_CRYSTAL_LIFT = 70;
 export const ED_CRYSTAL_SPIN = 0.25;
-/** The ground's ring of light: its outer radius (m). */
 export const ED_AURA_R = 70;
-/** The least the fog leaves of it, far off. */
 export const ED_FAR_FLOOR = 0.3;
-/** Its light (display-encoded, additive): the body's violet and its edges' near-white. */
+// Display-encoded: foreign passes draw into the 8-bit, display-encoded frame image.
 export const ED_CRYSTAL_COLOR = Object.freeze([0.62, 0.24, 1.0]);
 export const ED_CRYSTAL_EDGE = Object.freeze([0.95, 0.8, 1.0]);
 
@@ -91,8 +81,6 @@ void main() {
   frag = vec4(col * uFade * vis, 1.0);
 }`;
 
-/** The crystal's faces: a six-sided bipyramid of unit height, its girth ED_CRYSTAL_R / ED_CRYSTAL_H, its girdle a little
- *  above the middle; flat normals. */
 function crystalVertices() {
   const out = [];
   const top = [0, 0.5, 0], bot = [0, -0.5, 0], girdleY = 0.08, n = 6, rr = ED_CRYSTAL_R / ED_CRYSTAL_H;
@@ -106,7 +94,6 @@ function crystalVertices() {
   for (let i = 0; i < n; i++) { tri(top, g(i + 1), g(i)); tri(bot, g(i), g(i + 1)); }
   return new Float32Array(out);
 }
-/** The ground ring: a flat disc of radius 1 (two triangles a wedge). */
 function auraVertices() {
   const out = [], n = 48;
   for (let i = 0; i < n; i++) {
@@ -141,10 +128,6 @@ export class EdCrystalPassRenderer {
     this.drawn = 0;
   }
 
-  /**
-   * Draw each `{ origin: [x, y, z] the entrance's ground in the scene, fade 0..1, phase }`. `fog` the frame's
-   * (`{ mode, density, range }`, mode a renderer fog mode name or number). Answers how many it drew.
-   */
   draw(list, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
     const items = (Array.isArray(list) ? list : []).filter((o) => o && Array.isArray(o.origin) && o.origin.every(Number.isFinite) && o.fade > 0.001);
@@ -169,14 +152,12 @@ export class EdCrystalPassRenderer {
     gl.uniform1f(U.uFloor, ED_FAR_FLOOR);
     for (const o of items) {
       gl.uniform1f(U.uFade, Math.min(1, o.fade));
-      // the ring of light on the ground about the entrance
       gl.uniform1f(U.uMode, 1);
       gl.uniform3f(U.uOrigin, o.origin[0], o.origin[1] + 0.6, o.origin[2]);
       gl.uniform1f(U.uTurn, 0);
       gl.uniform1f(U.uScale, ED_AURA_R);
       gl.bindVertexArray(this.aura.vao);
       gl.drawArrays(gl.TRIANGLES, 0, this.aura.count);
-      // the crystal, turning and bobbing high over it
       gl.uniform1f(U.uMode, 0);
       const bob = Math.sin(t * 0.6 + (o.phase ?? 0)) * 3;
       gl.uniform3f(U.uOrigin, o.origin[0], o.origin[1] + ED_CRYSTAL_LIFT + bob, o.origin[2]);

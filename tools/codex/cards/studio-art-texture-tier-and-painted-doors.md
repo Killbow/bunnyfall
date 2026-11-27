@@ -30,6 +30,7 @@ related:
 invariants:
   - "ASYNC NEVER DROPS: a picture that arrives late through wearPainted applies only to the newest wear of its slot."
   - "A studio picture is worn as drawn; DF-LOOK grain and palette are not applied."
+  - "A texture key answers from the loose pick (only with the `AssetInjection` gate open), then the game's own vendored art (with the gate shut too, unless the entry `yields` to an open-gate pick), then attached `.dfmod` bundles (`setBundleTextures`, gate open)."
 traps:
   - "paintedReplacement defaults to bottom-up color32 order (the wagons); the yards, port and monument must pass { topDown: true }."
 dfu: []

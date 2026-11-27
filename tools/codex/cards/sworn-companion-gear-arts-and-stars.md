@@ -24,6 +24,7 @@ invariants:
   - "`gearRefusal` blocks gear edits while a companion is on an errand and rejects quest items, summoned items, tier `> 3`, non-charm pieces on unarmed kinds, broken pieces, and items exceeding `GEAR.METAL_CAP[rank]` or `GEAR.RARITY_CAP[rank]`."
   - "`swornStarsRefusal` blocks constellation edits while a companion is on an errand."
   - "Sworn companions scale by `SWORN_HEALTH_PER_RANK` (`0.25`) and `SWORN_DAMAGE_PER_RANK` (`0.1`), distinct from hunting `REVENANT_HEALTH_PER_RANK` (`0.4`) and `REVENANT_DAMAGE_PER_RANK` (`0.15`)."
+  - "`rvnLoyaltyMove` rounds a reduced loyalty loss toward zero and keeps the remainder in `companion.lossCarry` for the next loss, so the Loyal stars reduce losses by their exact share over several losses."
 traps:
   - "Broken equipped pieces remain in their slot, but `wornGear` skips them; a shield also stops counting whenever the companion's weapon is broken or two-handed (`holdsShield`)."
   - "Star keystones include negative trade-offs (such as `b_deathless` granting `+0.25` health and `-0.1` blows), and `rvnStatScale` floors combined scaling at `0.1`."

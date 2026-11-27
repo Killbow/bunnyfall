@@ -1,14 +1,4 @@
-// THE QUEST PARSER (Q1) - Parser.cs whole. Reads a quest source file
-// (DFU's decompiled .txt form, vendor/dfu-quests) and generates a new
-// Quest object: the header (quest:/displayname:), the QRC message
-// blocks (headers named in the Quests-StaticMessages table, fixed
-// types taking their id FROM the table, PeekMessageEnd's forgotten-
-// blank-line forgiveness), and the QBN (resource declarations
-// dispatched by their leading word on the RAW line - an indented
-// "clock" is a task line, not a clock - tasks by header shape, global
-// variable links by the Quests-GlobalVars table, and the FIRST
-// unrecognized block as the headless startup task; a second one
-// throws "Unknown line signature", exactly as DFU).
+// Port of the Daggerfall Unity quest parser: reads a quest source file into a Quest.
 
 import { Quest } from './quest.js';
 import { Message } from './message.js';
@@ -21,39 +11,25 @@ import { Foe } from './foe.js';
 import { staticMessagesTable, globalVarsTable } from './tables.js';
 import { getInnerSymbolName } from './symbol.js';
 
-// ---- Parser statics (Parser.cs #region Static Helpers) ----
-// The bodies live in parseUtils.js (AUDIT quest-1: a leaf module, so
-// the resource classes can use them without closing an import cycle
-// through the eval-time `extends QuestResource`); re-exported here so
-// the C# shape - they are Parser statics - stays the import surface.
-
 export { splitLine, splitField, getFieldStringValue, getFieldIntValue, parseInt } from './parseUtils.js';
 export { getInnerSymbolName };
 import { splitLine, splitField, getFieldStringValue, parseInt } from './parseUtils.js';
 
-// ---- The parser itself ----
-
 const startsWithCI = (text, prefix) => text.slice(0, prefix.length).toLowerCase() === prefix;
 
 export class Parser {
+  // Clocks and hooks go in at parse time because resources such as PlaySound and Item read them when created.
   /**
-   * @param {string[]} source lines of quest source.
-   * @param {number} factionId quest giver faction id (guilds).
-   * @param {object} [opts] partialParse skips QRC/QBN; rolls is the
-   *   quest's injectable uniform roll (THE ENGINE-PRNG RULE, Ledger A);
-   *   nowSeconds is the
-   *   world-time seam - it must ride the PARSE because PlaySound's
-   *   create stamps lastTimePlayed from the live clock (Q2b); hooks
-   *   ride the parse too since Q2b-ii - the Item mint reads player/
-   *   guild/region facts at create (DFU parses with the live world).
+   * @param {string[]} source
+   * @param {number} factionId
+   * @param {object} [opts]
    */
   parse(source, factionId = 0, { partialParse = false, rolls, actionFactory, nowSeconds, skySeconds = null, worldSeconds = null, raisedSeconds = null, hooks, questClockStepMax = null } = {}) {
-    const quest = new Quest({ rolls, actionFactory, nowSeconds, skySeconds, worldSeconds, raisedSeconds, hooks, questClockStepMax });   // WORLD7: the played step rides the parse like the clock does; TIME3: and the sky, the event clock and the raises
+    const quest = new Quest({ rolls, actionFactory, nowSeconds, skySeconds, worldSeconds, raisedSeconds, hooks, questClockStepMax });
     quest.factionId = factionId;
     let inQRC = false, inQBN = false;
     const qrcLines = [], qbnLines = [];
 
-    // First pass gathers basic structure: <Header> <QRC> <QBN>
     for (const line of source) {
       const text = line.trim();
       if (startsWithCI(text, 'quest:')) {
@@ -68,7 +44,7 @@ export class Parser {
       if (inQRC) {
         qrcLines.push(line);
       } else if (inQBN) {
-        if (text.startsWith('-')) continue;   // comments always skipped in QBN
+        if (text.startsWith('-')) continue;
         qbnLines.push(line);
       }
     }
@@ -87,10 +63,9 @@ export class Parser {
   _parseQRC(quest, lines) {
     const table = staticMessagesTable();
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith('-')) continue;         // comments (RAW line, as C#)
+      if (lines[i].startsWith('-')) continue;
       if (!lines[i].trim()) continue;
 
-      // Message block header: 'Message: 1011' or fixed 'QuestComplete: [1004]'
       const parts = splitField(lines[i]);
       if (table.hasValue(parts[0])) {
         let messageID = 0;
@@ -102,13 +77,10 @@ export class Parser {
           messageID = Number.parseInt(parts[1], 10);
         }
 
-        // Read message lines until an empty line ends the block -
-        // unless PeekMessageEnd says the author just forgot the
-        // leading space, in which case it is a line break.
         const messageLines = [];
         for (;;) {
           if (i + 1 >= lines.length) break;
-          const text = lines[++i].replace(/\r+$/, '');   // C# TrimEnd('\r') strips ALL trailing CRs (AUDIT quest-P10)
+          const text = lines[++i].replace(/\r+$/, '');
           if (!text) {
             if (!this._peekMessageEnd(lines, i)) { messageLines.push(' '); continue; }
             break;
@@ -123,8 +95,6 @@ export class Parser {
     }
   }
 
-  /** End of message if: end of stream, a header/tag line (contains ':'),
-   *  a comment, or a second empty line. */
   _peekMessageEnd(lines, line) {
     if (line + 1 >= lines.length) return true;
     const nextLine = lines[line + 1];
@@ -136,7 +106,7 @@ export class Parser {
     for (let i = 0; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
 
-      // Dispatch by the RAW line's leading word, as C# StartsWith does
+      // Dispatches on the raw line, as Daggerfall Unity does, so an indented clock line is a task, not a clock.
       if (startsWithCI(lines[i], 'clock')) {
         quest.addResource(new Clock(quest, lines[i]));
       } else if (startsWithCI(lines[i], 'item')) {
@@ -153,14 +123,13 @@ export class Parser {
         || (startsWithCI(lines[i], 'until') && lines[i].includes('performed:'))) {
         quest.addTask(new Task(quest, this._readBlock(lines, (n) => { i = n; }, i)));
       } else if (this._isGlobalReference(lines[i])) {
-        // A global variable link task; body optional
         let hasBody = false;
         if (i + 1 !== lines.length) hasBody = !this._isNewTaskOrLineBreak(lines[i + 1]);
         const globalVar = this._getGlobalReference(lines[i]);
         const taskLines = hasBody ? this._readBlock(lines, (n) => { i = n; }, i) : [lines[i]];
         quest.addTask(new Task(quest, taskLines, globalVar));
       } else if (foundHeadlessTask === false) {
-        // First unrecognized QBN block is the headless startup task
+        // The first unrecognized block is the headless startup task; a second one throws, as in Daggerfall Unity.
         quest.addTask(new Task(quest, this._readBlock(lines, (n) => { i = n; }, i)));
         foundHeadlessTask = true;
       } else {
@@ -177,8 +146,6 @@ export class Parser {
       || !line.trim();
   }
 
-  /** ReadBlock: gather lines to the next pure-whitespace line, each
-   *  trimmed of TABS only (C# Trim('\t')). */
   _readBlock(linesIn, setLine, currentLine) {
     const linesOut = [];
     for (;;) {

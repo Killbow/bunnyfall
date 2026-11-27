@@ -1,4 +1,4 @@
-// Tests the dialogue map layout (src/poi/poiDialogueMap.js) and the "Lead to a new line" edit (src/poi/poiDmEdit.js).
+// Tests the dialogue map layout (src/poi/poiDialogueMap.js) and the "Lead to new line" edit (src/poi/poiDmEdit.js).
 // It checks the Guard Captain example and a seeded 64-line dialogue for one link per "Go to" answer, arrows one column
 // right, and no overlapping boxes. Unreachable lines must match the validation rules, every run must give the same
 // output, and the document must stay unchanged.
@@ -103,7 +103,7 @@ test('an invalid draft does not throw', () => {
   assert.deepEqual(dialogueMap(null, 'x').boxes, []);
 });
 
-test('"Lead to a new line" adds one line and links the answer to it, and refuses at 64 lines', () => {
+test('"Lead to new line" adds one line and links the answer to it, and refuses at 64 lines', () => {
   const doc = poiV2Example();
   const dlg = doc.dialogues[0];
   const r = DM.addNodeFrom(dlg, 'root', 2);

@@ -16,6 +16,7 @@ files:
   - src/render/cardTableDraw.js
   - src/render/cardFaces.js
   - src/scenes/worldModes.js
+  - src/cards/cardTableSession.js
 replacesBible:
   - "11-Multiplayer/Tavern-Cards.md#tables"
   - "11-Multiplayer/Tavern-Cards.md#seating"
@@ -30,6 +31,7 @@ invariants:
   - "Table geometry measures `CARD_TABLE_W` (`1.5 m`) by `CARD_TABLE_D` (`1.0 m`) at `CARD_TABLE_TOP` (`0.8 m`) with felt `2 mm` above the top, colored green (`FELT_RGB = [31, 90, 55]`) for chips and red (`GOLD_FELT_RGB = [118, 26, 34]`, `'feltgold'`) for gold."
   - "Seated camera height drops to `SEATED_EYE_HEIGHT = 1.22 m` (`EYE_HEIGHT 1.7 - SEAT_HIP_DROP 0.48`), with stools placed `SEAT_OUT` (`0.35 m`) from the rotated local table box at `SEAT_SPACING` (`0.75 m`) for `2` to `6` valid seats."
   - "Card and chip animations (`dealMotion`, `flipMotion`, and `pushAt`) evaluate closed-form time curves seeded by `hashSeed(hand, card, table)` without calling `Math.random`."
+  - "`settleMs` builds the session's wait from `DEAL_STAGGER`, `THROW_LAND_S`, and `FLIP_S` in `src/world/cardMotion.js`, so changing those motion constants also changes the session clock."
 traps:
   - "Table placement scans a `PLACE_CELL` (`0.5 m`) grid shifted by `PLACE_GRID_OFF` from the `1/40 m` lattice and skips any candidate that blocks walk connectivity; taverns with no clear footprint get zero tables."
   - "Direct attack hits and reaching `0` HP force a seated player to leave the seat, whereas damage-over-time ticks (`tickInFlight`) do not (`src/scenes/worldModes.js`)."

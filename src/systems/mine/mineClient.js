@@ -1,18 +1,13 @@
 // @ts-check
-// The client uses the latest mine state from the relay.
-// Effects are injected so tests can exercise mine interactions without a scene.
 import { t } from '../../ui/textManager.js';
 import { MINE_WOOD_STRENGTH } from '../../net/mine/mineBrain.js';
 import { drillReading, mineOreKey, mineOreLeft, oreRunsLeft } from '../../net/mine/mineDrill.js';
-import { accountRefusalText } from '../../net/accountClient.js';   // a refusal in its own words, never the generic one
+import { accountRefusalText } from '../../net/accountClient.js';
 
-/** A claim the service could not answer is asked again after these waits (ms). */
 export const HAUL_RETRY_MS = Object.freeze([1500, 4000, 10000]);
 
-/** The shakes the warnings give, and the collapse's: how hard, and how long it lasts (s). */
 export const MINE_SHAKE = Object.freeze({ 'warn:dust': 0.02, 'warn:creak': 0.05, 'warn:rumble': 0.1, collapse: 0.3 });
 export const MINE_COLLAPSE_S = 2.5;
-/** The rich words a hole's seam is named by (its richness 1 to 3). */
 const RICH = Object.freeze(['a thin seam', 'a good seam', 'a rich seam']);
 
 export const MINE_CLIENT_TEXT = Object.freeze({
@@ -65,41 +60,30 @@ export const MINE_CLIENT_TEXT = Object.freeze({
 });
 
 const WARN_WORDS = Object.freeze({ 'warn:dust': MINE_CLIENT_TEXT.dust, 'warn:creak': MINE_CLIENT_TEXT.creak, 'warn:rumble': MINE_CLIENT_TEXT.rumble });
-/** A wood's id from a plank's key (`plank:oak` -> `oak`). */
 const woodOf = (/** @type {string} */ key) => key.slice('plank:'.length);
-/** The woods, strongest first. */
 const WOODS = Object.freeze(Object.keys(MINE_WOOD_STRENGTH).sort((a, b) => MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (b)] - MINE_WOOD_STRENGTH[/** @type {keyof typeof MINE_WOOD_STRENGTH} */ (a)]));
 
-/**
- * @param {{ layout: any, say: (text: string) => void, send: (k: string, fields?: any) => boolean, planks: (material: string) => number, spend: (material: string) => Promise<boolean>,
- *   shake: (k: number) => void, fade: (on: boolean) => void, closeWindows: () => void, leave: () => void, woodName?: (wood: string) => string, nowMs?: () => number,
- *   foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null,
- *   drillOk?: (() => boolean) | null, me?: (() => (string|null)) | null, claim?: ((receipt: string) => Promise<any>) | null,
- *   kit?: ((id: string) => number) | null, useKit?: ((id: string) => Promise<boolean>) | null, crew?: (() => string[]) | null,
- *   sound?: ((name: string) => void) | null }} deps
- */
+/** @param {{ layout: any, say: (text: string) => void, send: (k: string, fields?: any) => boolean, planks: (material: string) => number, spend: (material: string) => Promise<boolean>, shake: (k: number) => void, fade: (on: boolean) => void, closeWindows: () => void, leave: () => void, woodName?: (wood: string) => string, nowMs?: () => number, foes?: ((kind: 'wave'|'stray', s: number, c: number, n: number) => void) | null, drillOk?: (() => boolean) | null, me?: (() => (string|null)) | null, claim?: ((receipt: string) => Promise<any>) | null, kit?: ((id: string) => number) | null, useKit?: ((id: string) => Promise<boolean>) | null, crew?: (() => string[]) | null, sound?: ((name: string) => void) | null }} deps */
 export function createMineClient(deps) {
   const nowMs = deps.nowMs ?? (() => performance.now());
   const L = deps.layout;
   /** @type {any} */
   let st = null;
-  /** the collapse under way: when it began (ms), or null */
   let fall = /** @type {number|null} */ (null);
   let left = false, shoring = false;
   const chamber = (/** @type {number} */ s, /** @type {number} */ c) => L.sections[s]?.chambers[c] ?? null;
   const propped = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ w) => !!st?.props?.some((/** @type {any} */ p) => p.s === s && p.c === c && p.w === w);
   const woodName = deps.woodName ?? ((/** @type {string} */ w) => `${w[0].toUpperCase()}${w.slice(1)}`);
-  /** The strongest plank the Stores hold, or null. */
   const bestPlank = () => WOODS.map((w) => `plank:${w}`).find((k) => deps.planks(k) > 0) ?? null;
 
   let lastAsk = '';
   const nowS = () => Math.floor(Date.now() / 1000);
-  /** The drill on hole k of chamber c of section s, as the room last said it, or null. */
   const lit = (/** @type {number} */ s, /** @type {number} */ c) => !!st?.lamps?.some((/** @type {any} */ l) => l.s === s && l.c === c);
   const depleted = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) =>
     oreRunsLeft(st?.oreWork, mineOreKey(s, c, k)) <= 0;
   const drillAt = (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => st?.drills?.find((/** @type {any} */ d) => d.s === s && d.c === c && d.k === k) ?? null;
-  /** A claim the service could not answer now is asked again: the receipt is good for a day and pays once, so a retry never double-pays. */
+  // Transient claim errors are retried because a haul receipt pays at most once and stays valid for a day, so a
+  // retry never double-pays.
   const TRANSIENT = new Set(['offline', 'server', 'busy', 'maintenance', 'no-gate-key', 'seq', 'lease']);
   async function haul(/** @type {string} */ r) {
     try {
@@ -124,7 +108,6 @@ export function createMineClient(deps) {
   }
 
   return {
-    /** The mine as its room says it (`k: 'st'`), or an act refused (`k: 'no'`). */
     heard(/** @type {any} */ m) {
       if (m?.k === 'rc' && typeof m.r === 'string') { void haul(m.r); return; }
       if (m?.k === 'no') { const said = m.e === 'sealed' ? MINE_CLIENT_TEXT.sealed() : lastAsk === 'prop' && m.e === 'taken' ? MINE_CLIENT_TEXT.taken() : MINE_CLIENT_TEXT.refused(m.e); if (said) deps.say(said); return; }
@@ -132,16 +115,15 @@ export function createMineClient(deps) {
       st = m.st;
       for (const e of m.ev ?? []) {
         if (e === 'collapse') { deps.sound?.('collapse'); collapse(); continue; }
-        if (e.startsWith('drill:')) { deps.sound?.('drillStart'); continue; }   // the room's: a drill set, heard by all in it
+        if (e.startsWith('drill:')) { deps.sound?.('drillStart'); continue; }
         if (e.startsWith('lamp:')) { deps.sound?.('lamp'); continue; }
         const call = /^(wave|stray):(\d):(\d):(\d)$/.exec(e);
         if (call) { if (call[1] === 'wave') { deps.say(MINE_CLIENT_TEXT.wave()); deps.sound?.('wave'); } if (fall === null) deps.foes?.(/** @type {any} */ (call[1]), Number(call[2]), Number(call[3]), Number(call[4])); continue; }
         const shake = MINE_SHAKE[/** @type {keyof typeof MINE_SHAKE} */ (e)];
         if (shake) { deps.shake(shake); deps.say(WARN_WORDS[/** @type {keyof typeof WARN_WORDS} */ (e)]()); deps.sound?.(e); }
       }
-      if (st.sealedUntil > 0 && fall === null && !left) collapse();   // a newcomer to a mine already down is put out too
+      if (st.sealedUntil > 0 && fall === null && !left) collapse();
     },
-    /** Every frame: the collapse's shake and fade, then the way out. */
     frame() {
       if (fall === null || left) return;
       const s = (nowMs() - fall) / 1000;
@@ -149,9 +131,7 @@ export function createMineClient(deps) {
       if (s >= MINE_COLLAPSE_S * 0.6) deps.fade(true);
       if (s >= MINE_COLLAPSE_S) { left = true; deps.leave(); deps.say(MINE_CLIENT_TEXT.collapsed()); }
     },
-    /** A cave vein's strike the service answered (systems/mine/mineHost.js's node: its section `s`, its chamber `c`). */
     struck(/** @type {{ s: number, c: number }} */ node) { if (node && fall === null) deps.send('strike', { s: node.s, c: node.c }); },
-    /** What a hole or a wall slot is called on the plaque. */
     name(/** @type {string} */ key) {
       const p = parseKey(key);
       if (!p) return null;
@@ -161,18 +141,16 @@ export function createMineClient(deps) {
         const mineOrCrew = d && (d.by === me || (me && d.crew?.includes(me)));
         const drill = !deps.drillOk?.() ? null : !d ? MINE_CLIENT_TEXT.setDrill() : mineOrCrew ? (() => { const r = drillReading(d, nowS()); return d.by === me ? MINE_CLIENT_TEXT.myDrill(r.n, r.left) : `${MINE_CLIENT_TEXT.crewDrill()}: ${MINE_CLIENT_TEXT.myDrill(r.n, r.left).split(': ').slice(1).join(': ')}`; })() : MINE_CLIENT_TEXT.theirDrill();
         return { title: depleted(p.s, p.c, p.k) ? t('mine.hopperTitle', 'Drill hopper') : t('mine.holeTitle', 'Minable Ore'), ...(h ? { sub: drill ? `${oreName(h.ore)} - ${drill}` : oreName(h.ore) } : {}) };
-      }   // the owner: "turn hole in the rock into Minable Ore"
+      }
       if (p.kind === 'lamp') return chamber(p.s, p.c) ? { title: lit(p.s, p.c) ? MINE_CLIENT_TEXT.lampLit() : MINE_CLIENT_TEXT.lampSpot(), ...(lit(p.s, p.c) ? {} : { sub: MINE_CLIENT_TEXT.lampSet() }) } : null;
       const w = chamber(p.s, p.c)?.walls[p.k];
       if (!w) return null;
       if (propped(p.s, p.c, p.k)) return { title: MINE_CLIENT_TEXT.shored() };
       const plank = bestPlank();
-      // the Survey Rod reads the rock (the spec's section 3): without one, a wall is only a wall
       const rod = (deps.kit?.('rod') ?? 1) > 0;
       const title = rod ? (w.weak ? MINE_CLIENT_TEXT.weak() : MINE_CLIENT_TEXT.sound()) : MINE_CLIENT_TEXT.rockWall();
       return { title, ...(plank ? { sub: MINE_CLIENT_TEXT.shore(woodName(woodOf(plank))) } : !rod ? { sub: MINE_CLIENT_TEXT.rodHint() } : {}) };
     },
-    /** A press on a hole (examined) or a wall slot (shored). */
     async press(/** @type {string} */ key, mode = 'grab') {
       const p = parseKey(key);
       if (!p || fall !== null) return false;
@@ -181,13 +159,12 @@ export function createMineClient(deps) {
       if (p.kind === 'hole') {
         const h = ch.holes[p.k];
         if (!h) return false;
-        // Info, or a relay before drills: the hole examined. Otherwise the drill - set mine here, or empty mine
         if (mode === 'info' || !deps.drillOk?.()) { deps.say(MINE_CLIENT_TEXT.hole(oreName(h.ore), h.rich, st?.stab?.[p.s] ?? 100, st?.cap?.[p.s] ?? 100, mineOreLeft(st?.oreWork, mineOreKey(p.s, p.c, p.k), h.rich))); return true; }
         const d = drillAt(p.s, p.c, p.k), me = deps.me?.() ?? null;
         if (d && d.by !== me && !(me && d.crew?.includes(me))) { deps.say(MINE_CLIENT_TEXT.refused('not-yours') ?? ''); return true; }
         if (d) { lastAsk = 'take'; deps.send('take', { s: p.s, c: p.c, h: p.k }); return true; }
         if (depleted(p.s, p.c, p.k)) { deps.say(MINE_CLIENT_TEXT.depleted()); return true; }
-        // a new drill: its own (a Mining Drill owned), a shift's fuel spent, the mine's own refusals asked first so no fuel is lost to one
+        // Run the local refusals before `useKit('fuel')`, so a refused drill never spends fuel.
         if (st?.drills?.some((/** @type {any} */ x) => x.by === me && drillReading(x, nowS()).running)) { deps.say(MINE_CLIENT_TEXT.refused('one-each') ?? ''); return true; }
         if (deps.kit && deps.kit('drill') <= 0) { deps.say(MINE_CLIENT_TEXT.needDrill()); return true; }
         if (deps.useKit && !(await deps.useKit('fuel'))) { deps.say(MINE_CLIENT_TEXT.needFuel()); return true; }
@@ -215,25 +192,21 @@ export function createMineClient(deps) {
       } finally { shoring = false; }
       return true;
     },
-    /** The mine as last heard (probes), and whether its collapse has put the player out. */
     state: () => st,
     holeAvailable: (/** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => !depleted(s, c, k) || !!drillAt(s, c, k),
     falling: () => fall !== null,
   };
 }
 
-/** An activation key of the mine's: `mine:hole:<s>:<c>:<k>` or `mine:wall:<s>:<c>:<k>`. */
 export const mineKey = (/** @type {'hole'|'wall'|'lamp'} */ kind, /** @type {number} */ s, /** @type {number} */ c, /** @type {number} */ k) => `mine:${kind}:${s}:${c}:${k}`;
 const KEY_RE = /^mine:(hole|wall|lamp):(\d):(\d):(\d{1,2})$/;
 function parseKey(/** @type {string} */ key) {
   const m = KEY_RE.exec(String(key ?? ''));
   return m ? { kind: m[1], s: Number(m[2]), c: Number(m[3]), k: Number(m[4]) } : null;
 }
-/** A Surveyor's survey of a mine (Mining 100): every ore its holes hold, once, the deepest and rarest last. '' for none. */
 export function mineSurveyLine(/** @type {{ sections: Array<{ chambers: Array<{ holes: Array<{ ore: string }> }> }> }} */ layout) {
   const seen = [...new Set(layout.sections.flatMap((s) => s.chambers.flatMap((c) => c.holes.map((h) => h.ore))))];
   if (!seen.length) return '';
   return t('mine.survey', 'Your survey of the rock: {ores}.', { ores: seen.map(oreName).join(', ') });
 }
-/** An ore's name for a hole's words: `metal:iron` -> `Iron`. */
 const oreName = (/** @type {string} */ key) => { const id = String(key).split(':')[1] ?? key; return `${id[0].toUpperCase()}${id.slice(1)}`; };

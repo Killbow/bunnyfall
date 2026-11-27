@@ -1,361 +1,50 @@
-// THE QUEST MACHINE (Q2) - QuestMachine.cs, the engine core. Hosts
-// the live quest table, the action-template registry (the brute-force
-// GetActionTemplate scan), the scheduled-invoke queue, and the tick:
-// invoke scheduled quests, update the active ones, tombstone the
-// completed, expire tombstones after one in-game week (604800 classic
-// seconds). DFU ticks at 10Hz of REAL time while clocks ride WORLD
-// time - the host calls tick() on its own cadence (TICKS_PER_SECOND
-// is the law to pace by) and injects the world clock as nowSeconds (TIME3: online the character's, beside the sky).
-//
-// deps (all injectable, every one a routed system):
-//   nowSeconds()               - world time in EPOCH-RELATIVE seconds:
-//                                the host injects classicMinutes*60,
-//                                i.e. ToClassicDaggerfallTime scaled
-//                                to seconds, NOT ToSeconds. Clocks use
-//                                deltas so the base is invisible to
-//                                them, and CLASSIC_EPOCH_IN_SECONDS is
-//                                exactly 404 x 360-day years, so
-//                                hour/minute/day/month/season read the
-//                                same as DFU's WorldTime.Now off this
-//                                base. Only the YEAR needs the epoch
-//                                added back before the date is read
-//                                (questMacros' nowDate does it), and
-//                                only TrainPc's timeOfLastSkillTraining
-//                                wants the counter raw - and that one
-//                                now reads ownMinutes (below).
-//                                TIME3 (Online-Time-Arc.md 6.3): online
-//                                it is the CHARACTER's clock (LIVED1's
-//                                own) - every countdown, interval and
-//                                tombstone runs on it, and a rest
-//                                spends it; offline DFU's one clock.
-//   skySeconds()               - TIME3: the SKY, same base - an hour, a
-//                                date, a season (DailyFrom, a notice's
-//                                daytime, the season trigger, the
-//                                date macros). nowSeconds when absent.
-//   worldSeconds()             - TIME3: the EVENT clock, same base - the
-//                                journal's dates are stamped on it
-//                                (%qdt reads them on the sky's
-//                                calendar). nowSeconds when absent.
-//   raisedSeconds()            - TIME3: the session's raised time
-//                                (worldTick raisedMinutes x 60) - a
-//                                countdown charges it whole; null when
-//                                absent (every gap a lived one).
-//   ownMinutes()               - AUDIT LIVED1 D: the CHARACTER's clock
-//                                in classic minutes (worldTick.js
-//                                ownMinutes; the world's offline), for
-//                                the one act that stamps a marker of
-//                                theirs: TrainPc's training time.
-//   getQuestSourceLines(name, questlines) - quest source by name (the
-//                                vendored pack through the host's data
-//                                seam; the QuestListsManager stand-in
-//                                that StartQuest schedules through).
-//                                AUDIT QUESTLINES BRANCH-12/14:
-//                                `questlines` reads a flagship quest
-//                                with its branch (true) or as DFU's
-//                                (false) - a shared copy's shape and a
-//                                stamped restart; absent, the switch now
-//                                (systems/questlines/qlPatches.js)
-//   showPopup(quest, tokens)   - ONE message box: the already-
-//                              expanded token array of one chunk. The
-//                              host stacks them (PushWindow), newest
-//                              in front. (Q4 wires the
-//                                real message box; tests capture)
-//   showPrompt(quest, message, respond) - Prompt's yes/no box (Q4
-//                                wires; respond(true) = Yes)
-//   changeReputation(factionId, amount, propagate) - factionRep's
-//                                ChangeReputation (Q4 wires). The
-//                                quest lane passes propagate=TRUE
-//                                (Quest.cs:385): allies +amount/2,
-//                                enemies -amount/2 and the faction-
-//                                tree spread per PersistentFactionData
-//                                - factionRep.js carries the same
-//                                default-false flag, so dropping the
-//                                argument silently loses the spread
-//                                (Q2b-VERIFY finding)
-//   addQuestTopics(quest)      - TalkManager.AddQuestTopicWithInfoAndRumors,
-//                                fired between quest.start() and the
-//                                live table (Q4 wires; the tombstone's
-//                                removeQuestInfoTopics is its scrub)
-//   relinkQuestTopics(quest)   - TalkManager's load relink for ONE quest:
-//                                a shared-quest resync rebuilds the
-//                                resources in place (AUDIT 68 S29-share-topics)
-//
-// Q3-i, THE WORLD SEAM (deps.world - a running host wires it from its
-// MapsFile/BlocksFile instances and player state; absent = headless,
-// every Place PENDS its site (a flag - AUDIT-QUEST F1 measured that as
-// silence: 262 of 265 vendored quests start headless saying nothing) and
-// the corpus gate stands. scenes/quest/questBridge.js reports the absent seam
-// at construction, which is what "loudly" was always meant to be):
-//   maps                       - the MapsFile instance (getRegion /
-//                                getLocation / getRmbBlockName /
-//                                readLocationIdFast / regionCount)
-//   getBlock(blockName)        - BlocksFile.getBlockByName
-//   currentLocation()          - the player's loaded dfLocation | null
-//   currentRegionIndex() / currentLocationIndex()
-//   currentRegionName()        - (error text only)
-//   isPlayerInLocationRect()   - PlayerGPS.IsPlayerInLocationRect
-//   playerInside()             - { building: {buildingKey,
-//                                buildingType, factionId} } |
-//                                { dungeon: {dungeonType} } | null
-//   isHouseOwned(buildingKey)  - DaggerfallBankManager (default false)
-//   isPlayerHome(mapId, key)   - HOME1: a player's online home, which no
-//                                quest may pick (default false)
-//   buildingNameOpts()         - generateBuildingName's resolver
-//                                bundle (nameBank/ruler/faction...)
-//   playerPixel()              - the player's current MAP PIXEL
-//                                (TravelTimeCalculator.GetPlayerTravel-
-//                                Position incl. its on-ship arm; the
-//                                quest clock's travel arm starts here)
-//   discoverLocation(regionName, locationName) - PlayerGPS.DiscoverLocation
-//   addNote(text)              - the notebook (RevealLocation readmap)
-//   addNoteTokens(tokens)      - PlayerNotebook.AddNote(List<Token>),
-//                                the OTHER overload (JournalNote)
-//   respawnPlayerAtSite(place) - TeleportPc's transport: resolve the
-//                                site's location and begin the
-//                                respawn (C# GetLocation +
-//                                RespawnPlayer); false = unresolved,
-//                                the action retries (Q4-iii)
-//   isRespawning()             - PlayerEnterExit.IsRespawning
-//   setPlayerScenePosition(position) - the arrival tick's marker
-//                                landing ({x,y,z} scene units)
-//   mountCurrentSiteQuestResources() - the hot-place half: the host
-//                                runs sceneMount.addQuestResourceObjects
-//                                over the player's current interior/
-//                                dungeon (Place.AssignQuestResource's
-//                                tail drives it; absent ≙ C#'s
-//                                missing PlayerEnterExit)
-//
-// Q3-ii, the Person chain's facts (all over the PERSISTENT faction
-// store - PlayerEntity.FactionData, the mutable copy factionRep
-// owns - not the raw file):
-//   getFactionData(id)         - the store record | null
-//   findFactionsOfType(type)   - FactionData.FindFactions(type)
-//   currentRegionFaction()     - PlayerGPS.GetCurrentRegionFaction
-//                                (the Province faction of the region)
-//   currentRegionCourt()       - GetCourtOfCurrentRegion
-//   currentRegionPeople()      - GetPeopleOfCurrentRegion
-//   currentRegionVampireClan() - GetCurrentRegionVampireClan
-//   playerVampireClan()        - the vampirism racial effect's clan
-//                                (P0/$CUREVAM quests)
-//   currentRegionRace()        - GetRaceOfCurrentRegion (a
-//                                FactionRaces number)
-//   playerInside().building.name / .dungeon.name - the current
-//                                context's display name
-//                                (ConfigureFromPlayerLocation)
-//   changeLegalRep(amount)     - LegalRepute: current region's
-//                                LegalRep += amount then the clamp
-//                                (the G2 court system owns both)
-//   playerLevel()              - PlayerEntity.Level (LevelCompleted)
-//   getGoldPieces() / deductGoldPieces(n) - PlayerEntity.GoldPieces
-//                                (ClickedNpc, ClickedFoe, PayMoney's gold arm)
-//   deductGold(n)              - PlayerEntity.DeductGoldAmount
-//   getTotalGold()             - PlayerEntity.GetGoldAmount: coins
-//                                PLUS letters of credit, what
-//                                deductGold spends and what PayMoney's
-//                                `money` arm gates on
-//   playVideo(name)            - "ANIM0013.VID" (Q4 UI)
-//   playSound(soundId)         - one-shot; return truthy if it PLAYED
-//                                (C# skips while the source is busy,
-//                                and only a real play re-stamps
-//                                PlaySound's lastTimePlayed)
-//   playSong(name)             - "DUNGEON5.HMI", a MIDI.BSA RECORD
-//                                name: PlaySong resolves the SongFiles
-//                                member through songFiles.js before it
-//                                reaches the hook, because the port's
-//                                whole song layer keys on the archive's
-//                                spelling (DaggerfallSongPlayer.Play)
-//   dialogLink(uid, name, type[, name2, type2]) - TalkManager
-//                                DialogLinkForQuestInfoResource
-//   addDialog(uid, name, type, isSpecial) - AddDialogForQuestInfoResource
-//   addQuestRumor(uid, message)          - AddQuestRumorToRumorMill
-//   addProgressRumor(uid, message)       - AddOrReplaceQuestProgressRumor
-//   addQuestorPostMessage(uid, message)  - AddQuestorPostQuestMessage
-//   removeProgressRumors(uid)  - RemoveQuestProgressRumorsFromRumorMill
-//   removeQuestorPostMessage(uid) - RemoveQuestorPostQuestMessage
-//   removeQuestRumors(uid)     - RemoveQuestRumorsFromRumorMill
-//   removeQuestInfoTopics(uid) - RemoveQuestInfoTopicsForSpecificQuest
-//   addFace(resource) / dropFace(resource) - the HUD escorting faces
-//                                (AddFace/DropFace; Q4 wires)
-//   onQuestStarted(quest)      - RaiseOnQuestStartedEvent; the
-//                                QuestListsManager's one-time
-//                                recording listens (Q4 wires)
-//   onQuestEnded(quest)        - RaiseOnQuestEndedEvent (TombstoneQuest,
-//                                QuestMachine.cs:1047); the HUD escort
-//                                faces' unlike-Daggerfall sweep listens
-//                                (FE1 wires)
-//   forceTopicListsUpdate()    - TalkManager.ForceTopicListsUpdate
-//                                (PlaceNpc nudges it; Q4 wires)
-//
-// Q2b-ii, the item tranche's facts and seams (Q4 wires the real
-// inventory; tests capture):
-//   playerGender()             - 'male' | 'female' (the magic mint)
-//   getGuild(factionId)        - { guildGroup, rank, power,
-//                                isNonMember } or null (CreateGold)
-//   regionPriceAdjustment()    - RegionData[region].PriceAdjustment
-//   isPlayerInTown()           - PlayerGPS.IsPlayerInTown(true, true)
-//                                (GivePc's notify gate)
-//   onOfferPending(givePc)     - GivePc.RaiseOnOfferPendingEvent
-//                                (GivePc.cs:96, :238-244): a deferred
-//                                notify/silently offer has become
-//                                eligible and rolled its delay.
-//                                DaggerfallUI is the one subscriber
-//                                (DaggerfallUI.cs:352) and latches the
-//                                sender for the next rest / fast-travel
-//                                press (ui/pendingOffer.js)
-//   addGold(amount) / addHUDText(text) - GetItem's gold arm
-//   giveItemToPlayer(dfItem, front) - ItemCollection.AddItem
-//   removeItemFromPlayer(dfItem)    - ItemCollection.RemoveItem
-//   playerHasItem(dfItem)      - Contains(DaggerfallUnityItem)
-//   carriesQuestItem(itemResource)  - Contains(Item): uid+symbol
-//   releaseQuestItem(questUID, itemResource) - the ReleaseQuestItem-
-//                                ForReoffer player-side sweep
-//                                (unequip + remove held matches)
-//   makeHeldQuestItemsPermanent(questUID, symbol) - MakePermanent's
-//                                held-copy sync
-//   offerReward(quest, dfItem) - GivePc's QuestComplete loot window
-//
-// Q3-iii, the foe-spawn seam on deps.world (Q4 mounts the scene
-// halves through the host's buildFoeAt chain; tests mock):
-//   createFoeGameObjects(foeResource, count)
-//                              - GameObjectHelper.CreateFoeGameObjects:
-//                                mint `count` inactive enemy handles
-//                                for the Foe resource (opaque to the
-//                                machine); null/short = creation
-//                                failure, CreateFoe error-terminates
-//   tryPlaceFoe(handle)        - TryPlacement + PlaceFoeFreely: the
-//                                raycast placement just outside the
-//                                player's view; true = THIS handle
-//                                stood, false = retry next tick
-//   raiseOnEncounterEvent()    - GameManager.RaiseOnEncounterEvent,
-//                                once per pending tick (optional)
-//   ABSENT createFoeGameObjects = the spawn law idles (headless
-//   charter); Foe name halves pend via foe.namePending. DEFERRED to
-//   Q4's host mount: the exterior-transition/init-world pending-wave
-//   invalidation (CreateFoe.cs:366-378) and the save envelope.
-//
-// Q3-iv, the remainder sweep's seams:
-//   deps makePcDiseased(diseaseType) - PlayerEffectManager
-//                                CreateDisease + AssignBundle
-//                                (BypassSavingThrows); cureDisease
-//                                (diseaseType), endVampirism(),
-//                                endLycanthropy() (Q4 wires the S18
-//                                system; tests capture)
-//   deps.world getClassicSpellEffects(spellID) - the classic
-//                                SPELLS.STD record's effects array
-//                                (headless null: CastSpellDo idles,
-//                                exactly C#'s missing-record arm);
-//                                spellHasMatchForClassicEffect
-//                                (bundle, effect) - the BUNDLE's own
-//                                HasMatchForClassicEffect. The readied
-//                                bundle itself is NOT polled: the host
-//                                pushes it through
-//                                notifyNewReadySpell/notifyCastReadySpell
-//                                and CastSpellDo latches it, as C# does
-//   the machine's factionListeners map + addFactionListener/
-//   removeFactionListener/activeFactionPersons ride the hooks for
-//   WhenNpcIsAvailable (PlayerActivate.StaticNPCClick reads the map)
-//
-// Q4-i, the macro engine's seams (questMacros.js; every one optional
-// - a missing seam surfaces C#'s own error shapes LOUDLY):
-//   deps playerName()          - PlayerEntity.Name (%pcn/%pcf, and
-//                                %pct's null-MCP fall-through)
-//   deps playerRaceName()      - BirthRaceTemplate.Name (%ra)
-//   deps.world getRandomText(id) - TEXT.RSC random records (%jok 200,
-//                                %oth 201+oathId)
-//   deps.world flatCaption(archive, record) - FLATS.CFG caption
-//                                ("young lady in green"; =person_)
-//   deps.world playerVampireClanName() - %vam (null = the C# error
-//                                literal); regionVampireClanName(
-//                                regionIndex) - %vcn
-//   (AUDIT 24: divineOfTempleFaction is gone - QuestMCP.God resolves
-//    the region temple and Temple.GetDivine itself, off REGION_TEMPLES
-//    and the faction store, exactly as the C# does)
-//   deps.world locationCompassDirection(place) /
-//              buildingCompassDirection(buildingKey) - %di through
-//                                TalkManager's compass
-//   deps.world findFactionByTypeAndRegion(type, regionIndex) - the
-//                                %rn/%rt/%t Province walk
-//   deps.world showClocksAsCountdown() - the journal clock setting
-//                                (=clock_; DFU default false)
-//
-// Q4-ii, the offer flow (offerFlow.js drives; QuestMachine.cs's own
-// halves live HERE): setLastNPCClicked + getLastNPCClicked +
-// isNPCDataEqual + isLastNPCClickedAnActiveQuestor (the questor
-// click law) and createMessagePrompt (the Yes/No offer descriptor).
-// The TalkManager scrubs and player facts the flow reads already
-// ride the deps above; the flow's OWN seams (the castle gate,
-// RemoveNpcQuestor, GetGuildFactionId, the picker setting) live on
-// offerFlow.js.
-//
-// The 64 global variables (classic SAVEVARS.DAT state) live here and
-// reach tasks through quest.hooks.globalVars.
+// Port of the Daggerfall Unity quest machine; the host paces tick() by TICKS_PER_SECOND. Without deps.world, every
+// Place leaves its site pending. deps.nowSeconds is classic minutes times 60 from the classic epoch, so only the
+// year needs the epoch added back (questMacros nowDate).
 
 import { Parser } from './parser.js';
-import { globalVarsTable } from './tables.js';   // STORY-AGAIN (AUDIT QA3): a step's globals, by name
-import { spineOwed, spineRecord, openersOwed, SPINE, SPINE_OPENER, SPINE_CURSE, SPINE_CHECK_TICKS } from './mainSpine.js';   // MAIN-SPINE: the main quest's backbone kept
-import { defaultActionTemplates, heldPromptPlaces } from './actions.js';   // AUDIT QA3 A1: a box up here, asked in the envelope
-import { receivedState, mergeSharedState, freshState, QL_STAMP } from '../questlines/qlState.js';   // QL1: a shared copy's questline state (decision 7); AUDIT QUESTLINES BRANCH-14: a restart's stamp
+import { globalVarsTable } from './tables.js';
+import { spineOwed, spineRecord, openersOwed, SPINE, SPINE_OPENER, SPINE_CURSE, SPINE_CHECK_TICKS } from './mainSpine.js';
+import { defaultActionTemplates, heldPromptPlaces } from './actions.js';
+import { receivedState, mergeSharedState, freshState, QL_STAMP } from '../questlines/qlState.js';
 import { QuestResourceBehaviour } from './resourceBehaviour.js';
 import { FACTION_TYPES } from '../../formats/factionFile.js';
 import { SECONDS_PER_WEEK } from '../../world/gameDate.js';
-import { Quest, nextUid, isShelved } from './quest.js';   // QUEST-SHELF: a quest set aside
-import { localizedQuestDisplayName } from './localizedQuest.js';   // L10N3c: ParseQuest's -LOC DisplayName
-import { Task, TaskType } from './task.js';   // QUEST-AUDIT III PROGRESS-KEPT: a copy's own tasks set, by kind
-import { isGoldPieces } from '../../items/inventory.js';   // QUEST-AUDIT III RESTART-PAID: a quest's gold, paid
+import { Quest, nextUid, isShelved } from './quest.js';
+import { localizedQuestDisplayName } from './localizedQuest.js';
+import { Task, TaskType } from './task.js';
+import { isGoldPieces } from '../../items/inventory.js';
 import { Person } from './person.js';
-import { Place, SITE_TYPES } from './place.js';   // QUEST-HOME: a building site, reached
+import { Place, SITE_TYPES } from './place.js';
 import { Item } from './item.js';
 import { Foe } from './foe.js';
 import { Clock } from './clock.js';
-import { questDataOnThisClock, shiftQuestStamps } from './questStamps.js';   // TIME3: a party member's copy, on this character's clock; QUEST-SHELF: a reclaimed quest's, by the time it was set aside
-import { BUILDING_TYPES } from '../../world/buildingNames.js';   // DISC28-I: IsActiveQuestBuilding's House1-House6
-import { adoptLinkedDungeonSize } from '../../world/smallerDungeons.js';   // AUDIT DELVE E5: the size a quest's markers were chosen on
+import { questDataOnThisClock, shiftQuestStamps } from './questStamps.js';
+import { BUILDING_TYPES } from '../../world/buildingNames.js';
+import { adoptLinkedDungeonSize } from '../../world/smallerDungeons.js';
 
 const HOUSE1 = BUILDING_TYPES.House1, HOUSE6 = BUILDING_TYPES.House6;
 
-/** The restore registry (Q4-iv): the envelope's type strings map to
- *  ctors here instead of C#'s reflection walk. */
 const RESOURCE_TYPES = Object.freeze({ Person, Place, Item, Foe, Clock });
 
-export { QUEST_MESSAGES } from './quest.js';   // QuestMachine.cs:260's enum, defined leaf-side
+export { QUEST_MESSAGES } from './quest.js';
 
-/** QuestMachine.cs:45 - how often DFU ticks quest logic per second
- *  of real time. The host paces tick() by this. */
 export const TICKS_PER_SECOND = 10;
-/** AUDIT STAR8 S1: how many of the machine's ticks a quest foe's behaviour may go undriven and still stand (questFoeStands)
- *  - five minutes of play. A body stands while its pool drives its behaviour (resourceBehaviour.js update, each frame it
- *  lives); a cull, a teleport's sweep or a load that did not bring it back stops that, and none of them says so to the
- *  behaviour (exteriorFoes.js clearLive drops its records whole). Long enough for a load's revived foe to come back
- *  behind its art, and for a pool its mode does not drive (an exterior foe while the player stands in a building). */
+// A cull, teleport, or load stops driving a behavior without telling it, so a quest enemy counts as present only
+// while driven within this many ticks.
 export const FOE_STANDS_TICKS = 5 * 60 * TICKS_PER_SECOND;
-/** DaggerfallDateTime: tombstoned quests expire after one week. One
- *  home in systems/gameDate.js since V1 - re-exported here because
- *  the quest lane reads it by this name. */
 export { SECONDS_PER_WEEK };
-/** QuestMachine.IsProtectedQuest: the main-quest spine never
- *  error-terminates (case-insensitive, as C#). */
-/** DISC22-F: a shared copy's identity - unique across every machine in a room, so a receiver can tell the copy it
- *  already finished from a new one of the same quest. */
+// Unique across every machine in a room, so a receiver can tell a finished copy from a new one.
 export function mintShareId() {
   const r = globalThis.crypto?.randomUUID?.();
   return r ?? `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
 export const PROTECTED_QUESTS = Object.freeze(['S0000999', 'S0000977', '_BRISIEN']);
-/** IsProtectedQuest's name test, one home (AUDIT CURSE-SYNC, the review's reuse finding): `name` in `list`,
- *  case-insensitive as C#'s. scenes/quest/questFoeHost.js's WORLD_QUESTS reads the same test. */
 export const questNameIn = (list, name) => { const n = (name ?? '').toLowerCase(); return list.some((x) => x.toLowerCase() === n); };
 const isProtectedQuest = (quest) => questNameIn(PROTECTED_QUESTS, quest.questName);
-/** STORY-AGAIN (#982, "Add way to reset a failed mandatory main quest"): the main story's own quests - Daggerfall's S
- *  group by number (`start quest 12 12` starts S0000012), the world's backbone (PROTECTED_QUESTS) apart. AUDIT QA3 B5/B6:
- *  and never the story's aftermath (S00001xx: the Totem's revenge and its powers, which carry no step) nor the guilds'
- *  own series filed under the S group (S00005xx: the Fighters Guild's Lord K'avar, the Mages Guild's Former Student). */
+// S group main story quests, without the protected quests, the S00001xx aftermath, or the S00005xx guild series.
 export const isMainStoryQuest = (name) => /^S\d{7}$/i.test(name ?? '') && !/^S0000[15]\d\d$/i.test(name) && !questNameIn(PROTECTED_QUESTS, name);
-/** QUEST-AUDIT III RESTART-PAID: has the quest paid its player something a restart cannot take back - a trainer's
- *  lesson, or an item handed over (`give pc`, `get item`) that is the player's for good (made permanent: the
- *  QuestComplete box's reward, a `make _x_ permanent`)? AUDIT QA3 A2/B3: nothing else is - a quest item handed over the
- *  restart takes back (removeQuest), gold rides to the new copy as paid (restartQuest: the advance A0C00Y11, K0C00Y08
- *  and A0C41Y18 pay at start-up is never paid twice), standing is not a purse (P0B00L01's errand), `give pc nothing` is
- *  an empty box, and a permanent item nobody handed over (M0B00Y16's giant's loot) is not the player's yet. */
+// Only a trainer lesson or an item handed over for good counts as paid; quest items, gold, and standing do not.
 export function questPaidOut(quest) {
   for (const task of quest?.tasks?.values?.() ?? []) {
     for (const a of task.actions ?? []) {
@@ -369,17 +58,9 @@ export function questPaidOut(quest) {
   }
   return false;
 }
-/** QUEST-AUDIT III END-GRACE: has the quest's `end quest` run (EndQuest never re-arms - questShare.js shareEnvelopeEnding's
- *  mark, on a live quest)? */
 const endQuestRan = (quest) => [...quest.tasks.values()].some((t) => t.actions?.some((a) => a?.typeName === 'EndQuest' && a.isComplete));
-/** STORY-AGAIN: a Person whose questor is the NPC the player clicked (Person.setupQuestorNPC copies the click into its
- *  questorData; `add _x_ as questor` leaves C#'s zero struct). */
 const boundByClick = (person) => { const d = person.questorData; return !!(d && (d.hash || d.nameSeed || d.mapID || d.buildingKey)); };
-/** RPT1026-QUESTS ABANDON-ALWAYS: whether a running quest holds the door of a questor the player met - a Person its
- *  questor by the click (boundByClick) - the one the guild's and the giver's door ask of it (lastNPCClickedQuestorOf).
- *  The journal lists such a quest whether or not it has written anything (scenes/quest/questBridge.js questLog). */
 export const holdsQuestorDoor = (quest) => [...(quest?.resources?.values?.() ?? [])].some((r) => r?.isPerson && r.isQuestor && boundByClick(r));
-/** STORY-AGAIN: the quests a script's `start quest` lines start, by name (StartQuest's own law, actions.js), upper case. */
 export function storySuccessors(lines) {
   const out = new Set();
   for (const line of lines ?? []) {
@@ -388,11 +69,6 @@ export function storySuccessors(lines) {
   }
   return [...out];
 }
-/** STORY-AGAIN (AUDIT QA3 B2-B6): what a step's script says of the story, read from its QBN - `next`, the story steps its
- *  `start quest` lines start; `sets`, the global variables it sets itself (a link task its own `start task` or `setvar`
- *  names, or one its own trigger sets - S0000021's KingOfWormsSatisfied, S0000016's endings); `replays`, the globals whose
- *  link task, once its global is set, would do the step's work again or end it at once (a reward, a `start quest`, an
- *  `end quest` - S0000008's totem rewards and its `start quest 106 106`, S0000009's and S0000988's FinishedMantellanCrux). */
 const LINK_TRIGGER = /^(when|toting|clicked|have|pc at|repute with|killed|injured|daily from|level)\b/i;
 const LINK_WORK = /^(start quest|give pc|get item|train pc|end quest|make \S+ permanent|change repute with \S+ by \+?\d)/i;
 export function storyShape(lines) {
@@ -414,60 +90,22 @@ export function storyShape(lines) {
   for (const { id, symbol } of links) if (started.has(symbol)) sets.add(id);
   return { next: storySuccessors(qbn).filter(isMainStoryQuest), sets: [...sets], replays: [...replays] };
 }
-/** QUEST-SHELF (its audit): a partner's envelope never carries a shelf - THE ENVELOPE IS NOT TRUSTED (AUDIT DROPS A1), and
- *  a copy set aside is never handed on (getShareableQuestData), so the fields are the receiver's alone. */
+// A partner envelope is never trusted with a shelf, and a copy set aside is never handed on.
 const NO_SHELF = Object.freeze({ shelvedAt: null, shelvedSites: null });
-/** INSTANCES: a party member's copy of a quest is this player's own quest - its instance its own, minted when one first
- *  opens (systems/instancePlaces.js questInstanceEpoch), never the sender's epoch. */
 const NO_INSTANCE = Object.freeze({ instanceEpoch: null });
 
-/** QUEST1 "COUNTS AS ACCEPT/ADVANCE": restoreSaveData deliberately
- *  never replays an action - a LOAD must not refire a reward, reset a
- *  timer, or repeat dialogue. Correct for almost everything, but not
- *  from a RECEIVER's own point of view for the handful of one-time
- *  actions that actually DO something to the local player the moment
- *  they complete - a teleport that moves nobody, or a reward that
- *  hands nobody an item, defeats the point of sharing a quest that has
- *  already progressed. Each of these three is individually verified
- *  self-contained (reads/writes only THIS quest's own hooks - the
- *  receiver's own inventory, own entity, own world - never a
- *  cross-player reference), which is exactly why the set is this
- *  short: PayMoney (a FEE the player pays to proceed, not a reward -
- *  rearming it would silently charge the receiver gold they never
- *  agreed to spend) and GiveItem (its target can be an arbitrary
- *  resource, not necessarily the player, and was not confidently
- *  verified) are both deliberately left OUT rather than guessed at. */
-//
-// DISC28-I: and GetItem - `get item _x_` hands the Item resource's own item to the player, and a shared quest's items
-// are the RECEIVER's own roll (questShare takeLocalItems, relinked to this quest): self-contained as the three above.
-// Without it The Courier, shared after the sharer took the package, left the receiver with no package - and its
-// `toting _X_` finish could never be true on their side.
-// SHARE-REVEAL (FIELD BUGS 2026-10-13e, "Shared Guild quest doesn't give me map location after friend talked to the quest
-// npc"): and RevealLocation - `reveal _place_` marks THE HOLDER'S OWN MAP (PlayerGPS.DiscoverLocation, RevealLocation.cs
-// :59; discoverLocation is idempotent) with this quest's own Place, and the receiver's copy holds the same Places. The
-// envelope carried the reveal complete and never ran it: the partner who clicked the scholar had The Nest of Aneloth on
-// their map and the receiver had "Not on your map yet" - and no one to ask, since the quest's people take the click
-// and DFU's talk names no remote quest dungeon. A `readmap` reveal files its note once here, as it did there.
+// A load never replays actions, but a receiver must run these self-contained one-time actions again.
+// PayMoney and GiveItem stay out: a fee would charge the receiver, and a GiveItem target may not be the player.
 const REPLAYABLE_ONE_TIME_ACTIONS = new Set(['TeleportPc', 'GivePc', 'TrainPc', 'GetItem', 'RevealLocation']);
 
-/** AUDIT 68 S29-behaviour-registry-leak: the behaviour registry's first prune size; each prune doubles what is
- *  left, so the set stays within twice the live behaviours at an amortised O(1) per registration. */
 const BEHAVIOUR_SWEEP_MIN = 64;
 
-/** L10N3c: ParseQuest's tail (QuestMachine.cs:676-678) - a quest the current language has a -LOC file for takes that
- *  file's DisplayName (ParseLocalizedQuestText, GetLocalizedQuestDisplayName). Answers the quest. */
 function localizeDisplayName(quest) {
-  if (quest) quest.localizeDisplayName(localizedQuestDisplayName(quest.questName));   // L10N5: its own name kept for the save
+  if (quest) quest.localizeDisplayName(localizedQuestDisplayName(quest.questName));
   return quest;
 }
 
-/** FIELD BUGS 2026-10-12g QUEST-TOWN ("'Open a Chest' quest doesn't record the town you need to go to": "The town is
- *  mentioned in the first message you get ... but not in the text in the quest list, and it doesn't show up as a quest
- *  location on the map either"). In DFU a `local` place is always the town the quest was given in - N0B00Y16's log names
- *  "a local merchant" and no town - but where the town mods took a kind away the port takes the site in the nearest
- *  town that has one (place.js NEAR-SITE), and only the offer's popup said which. That town is on the travel map from
- *  the quest's start, as a `reveal` would put it, so the lens's where-line, the map and the compass can point at it.
- *  A best-effort reveal (RevealLocation's own seam): a name the world will not resolve is passed over. */
+// A local site taken in another town is revealed at quest start, so the lens, map, and compass can point at it.
 export function revealNearSites(quest) {
   const world = quest?.hooks?.world;
   if (!world?.discoverLocation) return 0;
@@ -475,7 +113,7 @@ export function revealNearSites(quest) {
   for (const r of quest.resources?.values?.() ?? []) {
     const sd = r?.isPlace ? r.siteDetails : null;
     if (!sd?.nearSite) continue;
-    try { world.discoverLocation(sd.regionName, sd.locationName); n++; } catch { /* the reveal is the map's, best-effort */ }
+    try { world.discoverLocation(sd.regionName, sd.locationName); n++; } catch { }
   }
   return n;
 }
@@ -483,55 +121,32 @@ export function revealNearSites(quest) {
 export class QuestMachine {
   constructor(deps = {}) {
     this.deps = deps;
-    this.quests = new Map();          // uid -> Quest
-    this.mountByName = false;         // QREPAIR: set only for the repair's own pass (quest/questRepair.js) - its mounts match a standing resource by quest and name (sceneMount.js)
-    // AUDIT DISC7 C2: every QuestResourceBehaviour made over this machine, WEAKLY (a host dropped without a destroy
-    // must not be kept alive here) - a shared-quest resync relinks the ones standing on the quest it rebuilds
+    this.quests = new Map();
+    this.mountByName = false;
     this._behaviourRefs = new Set();
-    this._behaviourSweepAt = BEHAVIOUR_SWEEP_MIN;   // AUDIT 68 S29-behaviour-registry-leak: the size that prunes it next
-    this.beat = 0;   // AUDIT STAR8 S1: the ticks this machine has run - a behaviour's own `beat` is the last it was driven at
+    this._behaviourSweepAt = BEHAVIOUR_SWEEP_MIN;
+    this.beat = 0;
     this.questsToInvoke = [];
-    this.unrestored = [];   // quests whose saved data would not restore: kept as saved and written back, never dropped (restoreSaveData)
-    // QUEST1: quest names currently kept in LIVE sync with a party -
-    // set on both a fresh receive AND on a manual share (bidirectional:
-    // either side's later progress should resync the other), read by
-    // updateSharedQuest's own gate so a resync can never overwrite a
-    // quest the player got independently and never shared at all.
+    this.unrestored = [];
+    // Only names in sharedQuestNames take a resync, so a quest the player got on their own is never overwritten.
     this.sharedQuestNames = new Set();
-    // AUDIT DROPS A2: the shared quests this player FINISHED (tombstoned while in sharedQuestNames) - a later
-    // resync or a fresh receipt of the same name is refused, so a partner who is behind can neither drag a
-    // finished quest back into play nor pay its rewards a second time.
+    // Finished shared copies refuse a later share or resync, so a partner who is behind cannot replay them.
     this.finishedSharedQuestNames = new Set();
-    // DISC22-F (2026-09-24, Skibbster: "Unable to share quests with players if you've previously completed the same
-    // quest"): the finished shared COPIES, by their share identity (Quest.shareId, stamped the first time a quest is
-    // shared and carried in its envelope). A2's guard is against one copy paying twice - a partner who is behind
-    // re-sending THAT quest - and a name cannot tell that copy from a new one: a repeatable quest done under a share
-    // refused every later share of the same name as "done". The name set stays for an envelope from a client that
-    // stamps no identity.
     this.finishedShareIds = new Set();
-    // DISC28-I: the shared copies this player FINISHED, as their final envelopes (getShareableQuestData, taken before
-    // the tombstone disposes anything) - the host sends each to the party (nextFinishedShare, then settleFinishedShare
-    // once it has left - AUDIT DISC28 QS-1), so a partner's copy ends with this one. Nothing else carried the finish:
-    // the tombstone takes the quest out of sharedQuestNames in the very tick `end quest` completes it, and the sync
-    // walks that set alone.
+    // Final envelopes of finished shared copies wait here for the host, because the tombstone removes the name from
+    // sharedQuestNames in the same tick.
     this._finishedShares = [];
-    // STORY-AGAIN (#982): the main story's quests this game has started, and those that have ended (each by its
-    // upper-case name) - saved, so a step that failed can be taken up again long after its tombstone has gone. AUDIT QA3
-    // B2/B3: an end is an end, paid or not - whether the story went on past it is the scripts' own word (storyAgainRefusal)
     this.storyStarted = new Set();
     this.storyEnded = new Set();
-    this.storyLegacy = false;   // a load of an envelope from before the record (seedStory reads the journal's archive once)
-    this.spine = { opened: false, ran: false, cursed: false };   // MAIN-SPINE (mainSpine.js): this game's opener begun, its backbone begun
+    this.storyLegacy = false;
+    this.spine = { opened: false, ran: false, cursed: false };
     this.actionTemplates = [];
-    this.globalVars = new Map();      // link id -> bool
-    this.siteLinks = [];              // QuestMachine.cs siteLinks - the world<->marker bridge (Q3-i)
-    this.factionListeners = new Map();  // factionID -> action (Q3-iv; StaticNPCClick's shut-down signal)
-    this.lastNPCClicked = null;       // QuestMachine.lastNPCClicked - the questor click (Q4-ii)
+    this.globalVars = new Map();
+    this.siteLinks = [];
+    this.factionListeners = new Map();
+    this.lastNPCClicked = null;
     this.parser = new Parser();
     for (const template of defaultActionTemplates()) this.registerAction(template);
-    // AUDIT quest-2: the action factory travels PER QUEST (parse opt ->
-    // quest.actionFactory -> Task), never a module global - two machines
-    // can coexist and a machineless parse still pends every line.
     this._actionFactory = (line, quest) => {
       const template = this.getActionTemplate(line);
       return template ? template.createNew(line, quest) : null;
@@ -540,7 +155,6 @@ export class QuestMachine {
 
   registerAction(actionTemplate) { this.actionTemplates.push(actionTemplate); }
 
-  /** The brute-force scan (QuestMachine.cs:751-763). */
   getActionTemplate(source) {
     for (const action of this.actionTemplates) {
       if (action.test(source)) return action;
@@ -548,21 +162,10 @@ export class QuestMachine {
     return null;
   }
 
-  /** ST1: a quest-SHAPED context for expanding CONTEXT macros in
-   *  non-quest text - the record-22 status box is DFU's
-   *  SetTextTokens(22), whose macros resolve through MacroHelper's
-   *  STATIC handlers reaching GameManager singletons; the port's
-   *  equivalents are the questMacros HANDLERS reading these hooks.
-   *  Only nowSeconds and hooks are read by that path
-   *  (getContextValue builds its mcp from them). */
   macroContext() {
     return { nowSeconds: () => this.deps.nowSeconds?.() ?? 0, hooks: this._buildHooks() };
   }
 
-  /** TIME3: the clocks a quest reads, one set for every door a live quest is born through - the character's (nowSeconds:
-   *  the countdowns, intervals and tombstones), the sky (skySeconds: an hour, a date, a season), the event clock
-   *  (worldSeconds: the journal's dates) and the session's raises (raisedSeconds: charged nothing online - QCLOCK-WORLD). A host that names
-   *  none of the last three is offline or headless: the one clock, and every gap a lived one. */
   _questClocks() {
     const nowSeconds = () => this.deps.nowSeconds?.() ?? 0;
     return {
@@ -573,29 +176,19 @@ export class QuestMachine {
     };
   }
 
-  /** The per-quest hook surface over the machine deps. Built BEFORE
-   *  the parse since Q2b-ii: the Item mint reads player/guild/region
-   *  facts at create time, exactly as DFU parses with the live
-   *  world (PlaySound's nowSeconds went through this door first). */
+  // Built before the parse, because the Item mint reads player, guild, and region facts when it is created.
   _buildHooks() {
     return {
       showPopup: (q, tokens) => this.deps.showPopup?.(q, tokens),
-      questFoeKilled: (q, foe, n) => this.deps.questFoeKilled?.(q, foe, n),   // QUEST-NOTE: a quest's foe fell
-      // AUDIT STAR8 S1 (the questlines' `ql gone`, systems/questlines/qlActions.js QlGone): whether any of a quest's Foe
-      // stands in a scene now - a behaviour on it (resourceBehaviour.js, one a body: a wave minted and still placing, a
-      // load's foe revived before its art), not destroyed, not fallen, and driven by its pool within FOE_STANDS_TICKS
+      questFoeKilled: (q, foe, n) => this.deps.questFoeKilled?.(q, foe, n),
       questFoeStands: (q, foe) => this._liveBehaviours(q?.uid).some((b) => b.targetSymbol?.name === foe?.symbol?.name && !b.isFoeDead && this.beat - (b.beat ?? 0) <= FOE_STANDS_TICKS),
-      showPrompt: (q, message, respond) => (this.deps.showPrompt ? this.deps.showPrompt(q, message, respond) ?? true : false),   // PROMPT-HELD (actions.js): false - no box shown
-      // QG1: PromptMulti's 2-4 button box - BUTTONS.RCI record
-      // numbers out, the clicked record number back
-      showPromptMulti: (q, message, buttons, respond) => (this.deps.showPromptMulti ? this.deps.showPromptMulti(q, message, buttons, respond) ?? true : false),   // PROMPT-HELD
-      // QL4: the questlines' `ask` - a question's message and 2-4 choices' messages, the index taken answered back
+      showPrompt: (q, message, respond) => (this.deps.showPrompt ? this.deps.showPrompt(q, message, respond) ?? true : false),
+      showPromptMulti: (q, message, buttons, respond) => (this.deps.showPromptMulti ? this.deps.showPromptMulti(q, message, buttons, respond) ?? true : false),
       showChoice: (q, message, choices, respond) => this.deps.showChoice?.(q, message, choices, respond),
       changeReputation: (fid, amount, propagate) => this.deps.changeReputation?.(fid, amount, propagate),
       changeLegalRep: (amount) => this.deps.changeLegalRep?.(amount),
       playerLevel: () => this.deps.playerLevel?.() ?? 0,
       playerGender: () => this.deps.playerGender?.() ?? 'male',
-      // PlayerEntity.GetGoldAmount - the quantity deductGold spends.
       getTotalGold: () => this.deps.getTotalGold?.() ?? 0,
       deductGold: (amount) => this.deps.deductGold?.(amount),
       addGold: (amount) => this.deps.addGold?.(amount),
@@ -612,36 +205,13 @@ export class QuestMachine {
       removeQuestorPostMessage: (uid) => this.deps.removeQuestorPostMessage?.(uid),
       removeQuestRumors: (uid) => this.deps.removeQuestRumors?.(uid),
       removeQuestInfoTopics: (uid) => this.deps.removeQuestInfoTopics?.(uid),
-      // AUDIT 63 F1: ActiveGameObjectDatabase.GetActiveStaticNPC
-      // QuestResourceBehaviours (ActiveGameObjectDatabase.cs:307-311),
-      // which AddQuestor walks to relink an individual's standing
-      // behaviour (Quest.cs:483-496). GetActiveComponents<T> is over
-      // GetActiveObjects, which keeps only `activeInHierarchy` objects
-      // (:32-46, :61-68), so the host composes the ACTIVE list.
       staticNpcQuestBehaviours: () => this.deps.world?.staticNpcQuestBehaviours?.() ?? [],
-      // AUDIT 63 F0: PlayerGPS.UndiscoverBuilding, the tombstone's own
-      // caller (Quest.cs:655). The talk seam's caller
-      // (TalkManager.cs:2958) has always been wired; this is the
-      // second of DFU's three, in the same (key, buildingName) shape.
       undiscoverBuilding: (buildingKey, buildingName) => this.deps.undiscoverBuilding?.(buildingKey, buildingName),
       addFace: (resource) => this.deps.addFace?.(resource),
       dropFace: (resource) => this.deps.dropFace?.(resource),
-      // Q4-iv: EndQuest's notebook filing - the host wires
-      // PlayerNotebook.addFinishedQuest (systems/notebook.js).
       addFinishedQuest: (messages) => this.deps.addFinishedQuest?.(messages),
-      // The item-mint facts (Q2b-ii): the guild record for the quest's
-      // faction ({ guildGroup, rank, power, isNonMember } or null) and
-      // the current region's PriceAdjustment.
       getGuild: (factionId) => this.deps.getGuild?.(factionId) ?? null,
       regionPriceAdjustment: () => this.deps.regionPriceAdjustment?.() ?? 0,
-      // The player-inventory seams (Q2b-ii; Q4 wires the real
-      // inventory): give/remove take the minted item OBJECT;
-      // carriesQuestItem answers ItemCollection.Contains(Item)'s
-      // uid+symbol match; playerHasItem answers Contains(dfItem);
-      // releaseQuestItem is PlayerEntity.ReleaseQuestItemForReoffer's
-      // player-side sweep (unequip + remove every matching held item);
-      // makeHeldQuestItemsPermanent syncs MakePermanent over held
-      // matches; offerReward opens the QuestComplete loot window.
       giveItemToPlayer: (dfItem, front) => this.deps.giveItemToPlayer?.(dfItem, front),
       removeItemFromPlayer: (dfItem) => this.deps.removeItemFromPlayer?.(dfItem),
       playerHasItem: (dfItem) => this.deps.playerHasItem?.(dfItem) ?? false,
@@ -649,73 +219,36 @@ export class QuestMachine {
       releaseQuestItem: (questUID, itemResource) => this.deps.releaseQuestItem?.(questUID, itemResource),
       makeHeldQuestItemsPermanent: (questUID, symbol) => this.deps.makeHeldQuestItemsPermanent?.(questUID, symbol),
       offerReward: (q, dfItem) => this.deps.offerReward?.(q, dfItem),
-      // QL3: a stamped quest's reward, at GivePc's moment - the layer's (scenes/quest/questBridge.js); absent, DFU's alone
       questReward: (q, dfItem, resource) => this.deps.questReward?.(q, dfItem, resource),
-      questEnding: (q) => this.deps.questEnding?.(q),   // QL3: a stamped quest's outcome, at its `end quest`
-      // REALM P0.4: the shares a quest's gold reward is paid in - the party's, for a quest kept in step with it. VERMIN-SHARED: `sharedCopy` - `quest` is a copy kept in step (its name shared, and it that name's live copy - AUDIT Q7: never a later private instance), so its `pick one of` draws the share's roll (actions.js PickOneOf)
-      // QUEST-AUDIT III GOLD-HOLDERS: the shares are the copies that pay - this one and each partner heard holding it
-      // (noteShareHolder), never more than the party: a share three members refused paid its one holder a quarter
+      questEnding: (q) => this.deps.questEnding?.(q),
       rewardShares: (quest) => (this.sharedQuestNames.has(quest?.questName) ? Math.max(1, Math.min(Math.trunc(this.deps.partySize?.() ?? 1) || 1, 1 + (quest?._holdersHeard?.size ?? 0))) : 1), sharedCopy: (quest) => !!quest && this.sharedQuestNames.has(quest.questName) && this.sharedCandidateNamed(quest.questName) === quest,
-      // QUEST-AUDIT III SHARER-GONE (AUDIT QA3 E1): is the player who shared this copy still in the party - the receipt's
-      // sender (questShare.js receiveSharedQuest `_sentBy`); a copy whose sharer is unknown, or a host with no party, waits
       sharerHere: (quest) => !quest?._sentBy || (this.deps.partyHas?.(quest._sentBy) ?? true),
-      partySize: () => Math.max(1, Math.trunc(this.deps.partySize?.() ?? 1) || 1),   // the party, whoever holds the copy (GOLD-HOLDERS's shares are the holders')
+      partySize: () => Math.max(1, Math.trunc(this.deps.partySize?.() ?? 1) || 1),
       isPlayerInTown: () => this.deps.isPlayerInTown?.() ?? false,
-      // GivePc.cs:96's static event, through the deps to the UI latch.
       onOfferPending: (givePc) => this.deps.onOfferPending?.(givePc),
-      // StartQuest schedules child quests through the machine's own
-      // data seam (QuestListsManager.GetQuest -> ScheduleQuest).
       startQuest: (questName) => this.scheduleQuestByName(questName),
       globalVars: this.globalVars,
-      // The Q3-i world seam + site machinery. deps.world is the
-      // world-data/player-state surface a running host wires (contract
-      // below); the SiteLink halves are the machine's own.
       world: this.deps.world ?? null,
-      sharedClock: () => !!this.deps.sharedClock?.(),   // GUARD-ONLINE: the world's clock is the shared one (online)
-      // Q3-ii: the questor click context (QuestMachine.LastNPCClicked
-      // - { factionID, nameSeed, gender } | null) and factionRep's
-      // GetReputation (ReputeExceedsDo reads it; an unknown faction
-      // reads 0, factionRep's own law).
+      sharedClock: () => !!this.deps.sharedClock?.(),
       lastNPCClicked: () => this.getLastNPCClicked(),
-      // AUDIT 24 (the seven-slice sweep): StaticNPC identity. C#'s
-      // `lastClicked == clickMemory` is a REFERENCE compare on a scene
-      // MonoBehaviour, and one NPC has exactly one of those - so it
-      // means "the same NPC". The port's hosts mint a FRESH NPCData
-      // literal on every click, which no reference compare can ever
-      // match, so the consumer needs the identity compare the machine
-      // already owns (IsNPCDataEqual's four fields).
+      // Hosts create a fresh NPCData for every click, so identity uses the four isNPCDataEqual fields.
       isNPCDataEqual: (a, b) => this.isNPCDataEqual(a, b),
       playerName: () => this.deps.playerName?.() ?? null,
       playerRaceName: () => this.deps.playerRaceName?.() ?? null,
-      // M-X: the macro table's remaining globals - the live entity
-      // (vitals, %ski, the biography modifiers) and the clock the
-      // date/time block reads.
       playerEntity: () => this.deps.playerEntity ?? null,
       nowSeconds: () => this.deps.nowSeconds?.() ?? null,
-      // TIME3: the sky the date/time block, the season trigger and QAE's "until" read - the quest's clock where no host
-      // gives one (offline, headless: the one clock)
       skySeconds: () => this.deps.skySeconds?.() ?? this.deps.nowSeconds?.() ?? null,
-      // AUDIT LIVED1 D: the CHARACTER's clock in classic minutes, for a quest act that stamps a marker of theirs
-      // (TrainPc's training time) - TIME3: nowSeconds is theirs too now, in seconds; null where no host says
       ownMinutes: () => this.deps.ownMinutes?.() ?? null,
-      // Q5: the fourteen un-pended actions' doors
       setPlayerCrime: (crime) => this.deps.setPlayerCrime?.(crime),
       getGoldPieces: () => this.deps.getGoldPieces?.() ?? 0,
       deductGoldPieces: (n) => this.deps.deductGoldPieces?.(n),
       raiseTime: (seconds) => this.deps.raiseTime?.(seconds),
-      waitOnline: (seconds, quest) => this.deps.waitOnline?.(seconds, quest),   // FORAGE4: QAE's raise time, online - the host's wait
+      waitOnline: (seconds, quest) => this.deps.waitOnline?.(seconds, quest),
       spawnCityGuards: (immediate) => this.deps.spawnCityGuards?.(immediate),
       makeEnemiesHostile: () => this.deps.makeEnemiesHostile?.(),
       clearEnemies: () => this.deps.clearEnemies?.(),
-      // MT-iii: every LIVE spawned instance of a quest Foe symbol -
-      // DFU's ActiveGameObjectDatabase walk, QuestSpawn-filtered and
-      // TargetSymbol-matched (ChangeFoeInfighting.cs:44-56 /
-      // ChangeFoeTeam.cs:77-92). Answers [] with no host, which idles
-      // both actions exactly as C# does with no enemy standing.
       questFoeInstances: (symbol) => this.deps.questFoeInstances?.(symbol) ?? [],
       getQuest: (uid) => this.getQuest(uid),
-      // RunQuest.Dispose's teardown of a child quest still running
-      // when the parent ends (QuestMachine.TombstoneQuest).
       tombstoneQuest: (quest) => this.tombstoneQuest(quest),
       addFactionListener: (factionID, owner) => this.addFactionListener(factionID, owner),
       removeFactionListener: (factionID) => this.removeFactionListener(factionID),
@@ -733,24 +266,15 @@ export class QuestMachine {
     };
   }
 
-  /** Parse a quest from source lines and schedule it to start on the
-   *  next tick (DFU's InstantiateQuest -> ScheduleQuest shape).
-   *  nowSeconds and hooks ride the PARSE opts - PlaySound's create
-   *  stamps the live clock, the Item mint reads the live world. */
   scheduleQuest(sourceLines, factionId = 0, { rolls } = {}) {
-    const { nowSeconds, skySeconds, worldSeconds, raisedSeconds } = this._questClocks();   // TIME3
+    const { nowSeconds, skySeconds, worldSeconds, raisedSeconds } = this._questClocks();
     const quest = this.parser.parse(sourceLines, factionId,
-      { rolls, actionFactory: this._actionFactory, nowSeconds, skySeconds, worldSeconds, raisedSeconds, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });   // WORLD7
-    localizeDisplayName(quest);   // L10N3c
+      { rolls, actionFactory: this._actionFactory, nowSeconds, skySeconds, worldSeconds, raisedSeconds, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });
+    localizeDisplayName(quest);
     this.questsToInvoke.push(quest);
     return quest;
   }
 
-  /** StartQuest(questName, factionId) (QuestMachine.cs:705-713): parse
-   *  by name and start IMMEDIATELY - the arm StartGameBehaviour uses
-   *  for the two hard-coded main-quest starts. A quest that will not
-   *  parse answers null and nothing starts, which is ParseQuest's own
-   *  swallow-all contract. AUDIT 24 (the seven-slice sweep). */
   startQuestByName(questName, factionId = 0, opts = {}) {
     const lines = this.deps.getQuestSourceLines?.(questName);
     if (!lines) { console.warn(`[quest] no source for quest ${questName}`); return null; }
@@ -760,19 +284,10 @@ export class QuestMachine {
     return quest;
   }
 
-  /** Schedule by quest name through the data seam. */
   scheduleQuestByName(questName, factionId = 0, opts = {}) {
     const lines = this.deps.getQuestSourceLines?.(questName);
     if (!lines) { console.warn(`[quest] no source for quest ${questName}`); return null; }
-    // CRUX1 (2026-09-22): UNDER ParseQuest's CATCH, as the lists arm is
-    // (parseQuestForLists above, AUDIT 24). This is the `start quest`
-    // action's door (StartQuest.cs:58-72 -> QuestMachine.StartQuest ->
-    // ParseQuest, whose try/catch at :670-687 answers null), and it had
-    // no catch: a child quest whose set-up throws - S0000016's fixed
-    // Place into the Mantellan Crux, whose marker enumeration has no
-    // second chance - threw out of the PARENT's update, and the Tick
-    // loop error-terminated the parent (S0000008, the Totem quest)
-    // for it. DFU logs the child's failure and the parent lives.
+    // Under the ParseQuest catch, as in Daggerfall Unity, so a child quest whose setup throws spares the parent.
     try {
       return this.scheduleQuest(lines, factionId, opts);
     } catch (ex) {
@@ -781,75 +296,35 @@ export class QuestMachine {
     }
   }
 
-  /** StartQuest(quest) (QuestMachine.cs:719-735) - the IMMEDIATE arm:
-   *  Start, the talk-topic registration, the live table, then
-   *  OnQuestStarted, synchronously; exceptions PROPAGATE to the
-   *  caller (the Tick invoke loop wraps its own try). InitAtGameStart
-   *  quests come through here, as C#'s do (Q2b-ii VERIFY: the first
-   *  draft only scheduled them, so they were absent from the live
-   *  table until the next tick).
-   *
-   *  AUDIT 24 (wave 25): and the TAIL (:729-734), which the port waved
-   *  off as "scene work (Q3)" and never came back for:
-   *
-   *      // Assign QuestResourceBehaviour to questor NPC - this will
-   *      // be last NPC clicked. This will ensure quests actions like
-   *      // "hide npc" will operate on questor at quest startup
-   *      if (LastNPCClicked != null)
-   *          LastNPCClicked.AssignQuestResourceBehaviour();
-   *
-   *  Without it, the questor you have just accepted a quest from
-   *  carries no behaviour until the next layout, so every action that
-   *  reaches a Person through one - hide npc first among them, which
-   *  the corpus fires at startup all over - operated on nothing. */
+  // Assigns the questor behavior at the tail, as C# does, so actions such as hide npc reach the questor.
   startQuestImmediate(quest) {
     quest.start();
-    adoptLinkedDungeonSize(quest, this);   // AUDIT DELVE E5: where the medium size is either side, the size its markers know
+    adoptLinkedDungeonSize(quest, this);
     this.deps.addQuestTopics?.(quest);
-    // QL1 (bible/06-Systems/Questlines-Arc.md decision 1): THE STAMP, at the one door every new quest starts through - a
-    // scheduled one, a list's, a start's, a restart's. A quest that already carries one (none does here: a shared copy
-    // and a load restore theirs, and never pass this door) keeps it. The layer answers (scenes/quest/questBridge.js).
     if (quest.ql == null) quest.ql = this.deps.questlinesStamp?.(quest) ?? null;
-    if (quest.qlv == null) quest.qlv = this.deps.questLevel?.() ?? null;   // ENCOUNTER-LEVEL: the level its foes are built at, fixed at acceptance
-    // QUEST-UID1 (2026-09-24, found tracing "two letters from the queen"): `quests.Add(quest.UID, quest)` (:725) is a
-    // Dictionary.Add - a UID already on the live table THROWS, and the quest standing there stays. `set` replaced it
-    // in silence, so a quest minted before a load and started after it (the offer popup a quickload runs under - see
-    // the bridge's restore) overwrote whatever restored quest had drawn the same number: a quest that vanished with
-    // no word. The same refusal restoreSaveData already makes, in the same words.
+    if (quest.qlv == null) quest.qlv = this.deps.questLevel?.() ?? null;
+    // A uid already on the live table throws, as Dictionary.Add does, so no later quest replaces a restored one.
     if (this.quests.has(quest.uid)) throw new Error('An item with the same key has already been added.');
     this.quests.set(quest.uid, quest);
-    if (isMainStoryQuest(quest.questName)) { const n = quest.questName.toUpperCase(); this.storyStarted.add(n); this.storyEnded.delete(n); }   // STORY-AGAIN
-    if (questNameIn([SPINE], quest.questName)) this.spine.ran = true; else if (questNameIn([SPINE_OPENER], quest.questName)) this.spine.opened = true;   // MAIN-SPINE: the record the law reads
-    if (questNameIn([SPINE_CURSE], quest.questName)) this.spine.cursed = true;   // MAIN-RETURN: the Curse begun
+    if (isMainStoryQuest(quest.questName)) { const n = quest.questName.toUpperCase(); this.storyStarted.add(n); this.storyEnded.delete(n); }
+    if (questNameIn([SPINE], quest.questName)) this.spine.ran = true; else if (questNameIn([SPINE_OPENER], quest.questName)) this.spine.opened = true;
+    if (questNameIn([SPINE_CURSE], quest.questName)) this.spine.cursed = true;
     this.deps.onQuestStarted?.(quest);
-    revealNearSites(quest);   // FIELD BUGS 2026-10-12g QUEST-TOWN: its town on the map, once the quest is the machine's
+    revealNearSites(quest);
     if (this.lastNPCClicked != null) {
       this.assignQuestResourceBehaviour(this.lastNPCClickedHost ?? null, this.lastNPCClicked);
     }
     return quest;
   }
 
-  /** The QuestListsManager's parseQuest dep: parse with THIS
-   *  machine's registry, clock and hooks, without scheduling. The
-   *  lists dep is positional - parseQuest(lines, factionId,
-   *  partialParse) - so a host wires
-   *  `(l, f, p) => machine.parseQuestForLists(l, f, { partialParse: p })`. */
   parseQuestForLists(lines, factionId = 0, { rolls, partialParse = false, headless = false } = {}) {
-    const { nowSeconds, skySeconds, worldSeconds, raisedSeconds } = this._questClocks();   // TIME3
-    // SHARE-COPY: `headless` parses with NO world - the Person, Place and Foe set-ups skip, the headless charter
-    // their own constructors already keep - so the quest is its SCRIPT's shape alone (parseQuestShape, below).
+    const { nowSeconds, skySeconds, worldSeconds, raisedSeconds } = this._questClocks();
+    // headless parses with no world, so the quest has only the shape of its script.
     const hooks = headless ? { ...this._buildHooks(), world: null } : this._buildHooks();
-    // AUDIT 24 (the seven-slice sweep): ParseQuest wraps the WHOLE
-    // parse in `try { ... } catch (Exception ex) { LogFormat("Parsing
-    // quest {0} FAILED!..."); return null; }` (:670-687). The port had
-    // no catch, so a quest whose source the parser chokes on threw out
-    // of the picker instead of answering null - and questLists.loadQuest
-    // already had the `if (!quest) return null;` arm C# feeds, sitting
-    // unreachable. One broken row took the whole guild quest list with
-    // it where DFU drops that row and offers the rest.
+    // Wrapped in a catch like ParseQuest, so one broken row drops only itself from a guild quest list.
     try {
       return localizeDisplayName(this.parser.parse(lines, factionId,
-        { partialParse, rolls, actionFactory: this._actionFactory, nowSeconds, skySeconds, worldSeconds, raisedSeconds, hooks, questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity }));   // WORLD7; L10N3c
+        { partialParse, rolls, actionFactory: this._actionFactory, nowSeconds, skySeconds, worldSeconds, raisedSeconds, hooks, questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity }));
     } catch (ex) {
       console.warn(`[quest] Parsing quest FAILED!\r\n${ex?.message ?? ex}`);
       return null;
@@ -858,31 +333,13 @@ export class QuestMachine {
 
   getQuest(uid) { return this.quests.get(uid) ?? null; }
 
-  // ---- Q4-ii: the questor click + the offer prompt ----
-  // (QuestMachine.cs:888-985; offerFlow.js drives these.)
-
-  /** LastNPCClicked: the machine's own field once setLastNPCClicked
-   *  ran; the deps seam stays for hosts/tests that inject the click
-   *  context directly (Q3-ii's door). */
   getLastNPCClicked() { return this.lastNPCClicked ?? this.deps.lastNPCClicked?.() ?? null; }
 
-  /** SetLastNPCClicked (:948-966): stores the click, then sweeps
-   *  EVERY quest's Persons for a QuestorData match and marks them
-   *  clicked. No IsQuestor gate and no QuestComplete skip here - both
-   *  are IsLastNPCClickedAnActiveQuestor's filters, not this sweep's,
-   *  verbatim. npcData is StaticNPC.NPCData's identity: { hash,
-   *  mapID, nameSeed, buildingKey, factionID, gender } (equality
-   *  reads the first four; the offer flow reads the last three). */
   setLastNPCClicked(npcData, host = null) {
     this.lastNPCClicked = npcData;
-    // AUDIT 24 (wave 25): C#'s LastNPCClicked is the StaticNPC
-    // COMPONENT, so it still has its GameObject when StartQuest's tail
-    // reaches for AssignQuestResourceBehaviour (:729-734). The port
-    // stored the bare NPCData, so there was nothing to attach to; the
-    // scene half rides alongside now.
     this.lastNPCClickedHost = host;
     for (const quest of this.quests.values()) {
-      if (isShelved(quest)) continue;   // QUEST-SHELF: a quest set aside hears no click
+      if (isShelved(quest)) continue;
       for (const resource of quest.resources.values()) {
         if (resource.isPerson && this.isNPCDataEqual(resource.questorData, npcData)) {
           resource.setPlayerClicked();
@@ -891,17 +348,11 @@ export class QuestMachine {
     }
   }
 
-  /** ActiveQuestor (:1145-1169): the Person that a clicked StaticNPC
-   *  is the questor for, over the LIVE quests.
-   *
-   *  C# QUIRK KEPT: the inner loop breaks on a match but the OUTER one
-   *  does not, so a later quest's questor OVERWRITES an earlier match.
-   *  With two quests from the same NPC in flight, the one that
-   *  iterates last wins. */
+  // As in C#, a later quest's questor overwrites an earlier match.
   activeQuestor(npcData) {
     let found = null;
     for (const quest of this.quests.values()) {
-      if (isShelved(quest)) continue;   // QUEST-SHELF: its questor is nobody's while it is set aside
+      if (isShelved(quest)) continue;
       const questorSymbols = quest.getQuestors();
       if (!questorSymbols || questorSymbols.length === 0) continue;
       for (const symbol of questorSymbols) {
@@ -913,33 +364,12 @@ export class QuestMachine {
     return found;
   }
 
-  /** AssignQuestResourceBehaviour (StaticNPC.cs:261-278): stand a
-   *  behaviour on the clicked NPC's host and point it at the questor
-   *  Person. A host that already carries one is left alone ("Can only
-   *  have a single QuestResourceBehaviour"), and an NPC who is nobody's
-   *  questor gets nothing.
-   *
-   *  Unlike SetupIndividualStaticNPC, C# does NOT write the back-link
-   *  `person.QuestResourceBehaviour` here - only AssignResource runs
-   *  (QuestResourceBehaviour.cs:217-224 stamps questUID/targetSymbol
-   *  and nothing else). C# fills the link from Update's FIRST clause
-   *  instead ("Ensure target resource has this behaviour assigned",
-   *  :132-141), which is where the port fills it too.
-   *
-   *  AUDIT 63 F2 corrected the note that used to stand here - "the
-   *  port's assignResource fills that link exactly when it is empty",
-   *  which it never did - and, more to the point, gave that Update its
-   *  CALLER: the hosts ticked update() on the interior and dungeon
-   *  quest flats alone, never on a static NPC's behaviour, so the link
-   *  was in fact never filled and DropQuestor's
-   *  `personResource.QuestResourceBehaviour != null` test
-   *  (Quest.cs:522) could not be reached. */
   assignQuestResourceBehaviour(host, npcData) {
     const questorPerson = this.activeQuestor(npcData);
     if (questorPerson == null) return null;
     if (host?.questBehaviour) return null;
     const behaviour = new QuestResourceBehaviour(this, host ?? null);
-    behaviour.questorHost = true;   // AUDIT QA3 D2: the clicked NPC's own body - never put away with its quest
+    behaviour.questorHost = true;
     behaviour.assignResource(questorPerson);
     behaviour.start();
     if (host) host.questBehaviour = behaviour;
@@ -947,10 +377,6 @@ export class QuestMachine {
     return behaviour;
   }
 
-  /** IsNPCDataEqual (:973-985): the four-field identity. C#'s NPCData
-   *  is a STRUCT - a never-assigned QuestorData is the default struct
-   *  (all zeros), so null reads as zero fields here to keep the
-   *  struct semantics (two unassigned sides ARE equal). */
   isNPCDataEqual(person1, person2) {
     return (person1?.hash ?? 0) === (person2?.hash ?? 0)
       && (person1?.mapID ?? 0) === (person2?.mapID ?? 0)
@@ -958,14 +384,6 @@ export class QuestMachine {
       && (person1?.buildingKey ?? 0) === (person2?.buildingKey ?? 0);
   }
 
-  /** IsLastNPCClickedAnActiveQuestor (:918-941): scans INCOMPLETE
-   *  quests for a questor Person matching the last click; a match
-   *  stamps quest.externalMCP with the passed provider (the offer
-   *  window hands the guild in - %pct's context) and answers true.
-   *  C#'s log line formats only its {1} arg, dropping the UID.
-   *  DELTA (recorded): a never-clicked machine compares the zero
-   *  struct here where C# NREs on lastNPCClicked.Data - unreachable
-   *  through the windows, which only open off a click. */
   isLastNPCClickedAnActiveQuestor(mcp = null) {
     const hit = this.lastNPCClickedQuestorOf();
     if (!hit) return false;
@@ -974,16 +392,10 @@ export class QuestMachine {
     return true;
   }
 
-  /** The scan IsLastNPCClickedAnActiveQuestor makes (:918-941), answering what it found: `{ quest, person }` - the open
-   *  quest whose questor Person the last click was, the first in the machine's order - or null. QUESTOR-SAID (FIELD
-   *  BUGS 2026-10-19f): one scan, two readers - the DFU member above, and the offer flow's close, which names the quest
-   *  (offerFlow.js questorBusy). It stamps nothing. */
   lastNPCClickedQuestorOf() {
     const clicked = this.getLastNPCClicked();
     for (const quest of this.quests.values()) {
       if (quest.questComplete) continue;
-      // QUEST-SHELF (Themicles' K'avar, the guild's door shut while a quest stood stuck): a quest set aside opens its
-      // questor's door - the guild offers work again
       if (isShelved(quest)) continue;
       for (const resource of quest.resources.values()) {
         if (!resource.isPerson || !resource.isQuestor) continue;
@@ -993,15 +405,6 @@ export class QuestMachine {
     return null;
   }
 
-  /** CreateMessagePrompt (:888-910): a Yes/No prompt descriptor from
-   *  a quest message - tokens at DEFAULT expansion (the macro pass AND
-   *  the dialog reveal, which GetTextTokens does unconditionally; the
-   *  earlier "no dialog reveal" here was written against a
-   *  fourth-parameter the port had invented and AUDIT 24 removed. The
-   *  variant draw rides quest.rolls, Ledger A),
-   *  YesNo buttons, no click-anywhere, no cancel. The UI host draws
-   *  it and routes the answer; a missing message answers null and
-   *  the offer silently shows nothing, verbatim. */
   createMessagePrompt(quest, id) {
     const message = quest.getMessage(id);
     if (!message) return null;
@@ -1013,22 +416,11 @@ export class QuestMachine {
     };
   }
 
-  // ---- Q4-iii: the individual-NPC scene halves + the world signals ----
-  // (QuestMachine.cs:1310-1421; sceneMount.js drives the marker walk.)
-
-  /** IsIndividualNPC (:1310-1321): the faction record's type is
-   *  Individual. C#'s PlayerEntity-null guard maps to the absent
-   *  world seam - both answer false. */
   isIndividualNPC(factionID) {
     const factionData = this.deps.world?.getFactionData?.(factionID) ?? null;
     return factionData != null && factionData.type === FACTION_TYPES.Individual;
   }
 
-  /** IsIndividualQuestNPCAtSiteLink (:1368-1421): walks SiteLink >
-   *  Quest > Place > selectedMarker targets for an individual Person
-   *  placed AWAY from home - layout builders disable the home copy
-   *  when true. A link whose selected marker carries no targets logs
-   *  and walks on, verbatim. */
   isIndividualQuestNPCAtSiteLink(factionID) {
     if (!this.isIndividualNPC(factionID)) return false;
     for (const link of this.siteLinks) {
@@ -1052,14 +444,6 @@ export class QuestMachine {
     return false;
   }
 
-  /** SetupIndividualStaticNPC (:1331-1358): the layout builders call
-   *  this for every individual StaticNPC they stand. Placed elsewhere
-   *  on a quest -> the home copy deactivates, answers false. Else an
-   *  individual ALWAYS gets a behaviour - the follow-up-quest
-   *  bootstrap click needs one even before any quest uses the NPC -
-   *  assigned to the first active Person of that faction when one
-   *  exists; answers the behaviour. A non-individual answers true
-   *  with nothing attached, C#'s own shape. */
   setupIndividualStaticNPC(host, factionID) {
     if (this.isIndividualNPC(factionID)) {
       if (this.isIndividualQuestNPCAtSiteLink(factionID)) {
@@ -1067,56 +451,31 @@ export class QuestMachine {
         return false;
       }
       const behaviour = new QuestResourceBehaviour(this, host);
-      behaviour.individualHome = true;   // QUEST-SHELF (its audit): the home copy - a quest set aside never hides it
+      behaviour.individualHome = true;
       const activePersonResources = this.activeFactionPersons(factionID);
       if (activePersonResources && activePersonResources.length > 0) {
         const person = activePersonResources[0];
         behaviour.assignResource(person);
         person.questResourceBehaviour = behaviour;
       }
-      // AUDIT 24 (the seven-slice sweep): C# gets Start() for free -
-      // AddComponent schedules it and Unity runs it on the next frame,
-      // AFTER the AssignResource above, which is exactly why
-      // QuestResourceBehaviour.Start warns "This will fail if
-      // targetQuest and targetSymbol are not set before Start()"
-      // (:127). The port's stand-in for that lifecycle is an explicit
-      // start(), which sceneMount calls at all three of its mints and
-      // this one did not - so the bootstrap behaviour came back
-      // permanently uncached, with targetResource null. Its own guard
-      // handles the no-person case (questUID 0 returns false), which
-      // is what C#'s deferred Start does there too.
       behaviour.start();
       return behaviour;
     }
     return true;
   }
 
-  /** PlayerEnterExit.OnTransitionExterior + OnTransitionDungeonExterior
-   *  (CreateFoe.cs:56-57): every action holding pending scene state
-   *  drops it - foes pending placement into an interior are invalid
-   *  outside. The port walks live AND scheduled quests where C#
-   *  subscribes each action instance; same population, one door. */
   notifyExteriorTransition() {
     this._forEachAction((action) => action.onTransitionExterior?.());
   }
 
-  /** StreamingWorld.OnInitWorld (CreateFoe.cs:58): a world rebuild
-   *  invalidates pending placements the same way. */
   notifyInitWorld() {
     this._forEachAction((action) => action.onInitWorld?.());
   }
 
-  /** PlayerEffectManager.OnNewReadySpell (CastSpellDo.cs:44): the
-   *  player readied a bundle. AUDIT 24 (the seven-slice sweep): C#
-   *  LATCHES this on the action, and the latch is not the same thing
-   *  as the host's live readied state - an abort clears the host and
-   *  leaves the latch standing. Same door as the transitions. */
   notifyNewReadySpell(spell) {
     this._forEachAction((action) => action.onNewReadySpell?.(spell));
   }
 
-  /** PlayerEffectManager.OnCastReadySpell (CastSpellDo.cs:45): the
-   *  readied bundle was CAST - the one event that clears the latch. */
   notifyCastReadySpell(spell) {
     this._forEachAction((action) => action.onCastReadySpell?.(spell));
   }
@@ -1124,7 +483,7 @@ export class QuestMachine {
   _forEachAction(fn) {
     for (const list of [this.quests.values(), this.questsToInvoke]) {
       for (const quest of list) {
-        if (isShelved(quest)) continue;   // QUEST-SHELF: its actions arm on nothing while it is set aside
+        if (isShelved(quest)) continue;
         for (const task of quest.tasks?.values?.() ?? []) {
           for (const action of task.actions) fn(action);
         }
@@ -1132,16 +491,10 @@ export class QuestMachine {
     }
   }
 
-  // ---- Q4-iv: the journal walk + the save envelope ----
-
-  /** GetAllQuestLogMessages (QuestMachine.cs:616-635): the journal's
-   *  ACTIVE page - every live quest's log entries resolved to their
-   *  Message objects. Insertion order, NO sort; a completed quest's
-   *  null log skips whole. */
   getAllQuestLogMessages() {
     const questMessages = [];
     for (const quest of this.quests.values()) {
-      if (isShelved(quest)) continue;   // QUEST-SHELF: the journal's active page holds what runs; the Abandoned list the rest
+      if (isShelved(quest)) continue;
       const logEntries = quest.getLogMessages();
       if (!logEntries || logEntries.length === 0) continue;
       for (const logEntry of logEntries) {
@@ -1152,131 +505,70 @@ export class QuestMachine {
     return questMessages;
   }
 
-  /** GetSaveData (QuestMachine.cs:1900-1916): SiteLinks + every live
-   *  quest. SiteLink placeSymbols round-trip as plain {original,
-   *  name} data - the shape C#'s serializer writes for Symbol, and
-   *  every consumer reads by .name. */
   getSaveData() {
     return {
       siteLinks: this.siteLinks.map((l) => structuredClone(l)),
       quests: [...this.quests.values()].map((q) => q.getSaveData()),
-      // AUDIT 24 (the seven-slice sweep): THE 64 GLOBALS WERE IN NO
-      // ENVELOPE AT ALL. DFU keeps them on PlayerEntity.GlobalVars and
-      // serialises them with the PLAYER
-      // (SerializablePlayer.cs:134, :303 -
-      // SerializeGlobalVars/DeserializeGlobalVars); the port homed
-      // them on the machine, where getSaveData wrote two keys and
-      // clearState wiped four, and this store was in neither. Every
-      // SAVEVARS.DAT flag a quest had set - the main quest's own
-      // progress among them - was lost on save and reset on load. They
-      // ride this envelope rather than the player's because that is
-      // where the port's store lives; the same file carries both.
       globalVars: [...this.globalVars.entries()],
-      // STORY-AGAIN (#982): the port's own two fields - the main story's steps begun, and those that have ended
       storyStarted: [...this.storyStarted],
       storyEnded: [...this.storyEnded],
-      // QUEST-AUDIT III START-HELD: the quests a `start quest` scheduled that the next tick has not started yet - a box
-      // up holds the tick (S0000012's hand-in: its reward box, then `start quest 20 20`), and a save then lost the child
-      // for good, its `start quest` spent. Written only when one waits, so a save with none is the shape it always was
+      // Scheduled child quests not yet started are saved, so a box that holds the tick cannot lose them.
       ...(this.questsToInvoke.length ? { toInvoke: this.questsToInvoke.map((q) => q.getSaveData()) } : {}),
-      ...(this.unrestored.length ? { unrestored: this.unrestored.map((q) => structuredClone(q)) } : {}),   // a quest that would not restore keeps its saved data, tried again at the next load
-      ...this._spineData(),   // MAIN-SPINE: written once the opener begins
+      ...(this.unrestored.length ? { unrestored: this.unrestored.map((q) => structuredClone(q)) } : {}),
+      ...this._spineData(),
       ...this._shareMemoryData(),
     };
   }
 
-  /** AUDIT QA3 A6/E2/E6: THE SHARE MEMORY RIDES THE SAVE - which copies are kept in step with the party (a copy set aside
-   *  and reclaimed left it, and its share identity alone put it back), the finished copies by identity and by name (a
-   *  tombstone's week was the memory's whole life: after it a partner still on the quest handed it over fresh and paid it
-   *  again), and each copy's holders heard and its sharer (the purse's shares, the questline wait - transient, a reload
-   *  paid a copy whole and kept a received copy waiting on nobody). The port's own field, written only when it has
-   *  something to say; an envelope without it is read from its quests (restoreSaveData). */
   _shareMemoryData() {
     const holders = [], sharers = [];
     for (const q of this.quests.values()) {
       if (q._holdersHeard?.size) holders.push([q.uid, [...q._holdersHeard]]);
       if (q._sentBy != null) sharers.push([q.uid, q._sentBy]);
     }
-    // a copy that was ever shared writes it too, empty or not: an empty memory read from its identity put a copy set aside
-    // and reclaimed back in step (the sharer's own, nobody heard; a receipt with no sender)
     if (!this.sharedQuestNames.size && !this.finishedShareIds.size && !this.finishedSharedQuestNames.size && !holders.length && !sharers.length
       && ![...this.quests.values()].some((q) => typeof q.shareId === 'string' && q.shareId)) return {};
     return { shareMemory: { inStep: [...this.sharedQuestNames], finishedIds: [...this.finishedShareIds], finishedNames: [...this.finishedSharedQuestNames], holders, sharers } };
   }
 
-  /** RestoreSaveData (QuestMachine.cs:1918-1944): each quest restores
-   *  under a per-quest catch - a quest that cannot reconstruct (the
-   *  removed-mod law: an unknown action or resource type) warns, adds
-   *  the HUD line, and the load continues; a duplicate UID throws
-   *  into the same catch, as Dictionary.Add does. Restored quests
-   *  ride THIS machine's hooks and clock (C#'s ambient singletons
-   *  re-injected). ReassignLegacyQuestMarkers is legacy-save marker
-   *  migration with no port-side legacy saves (recorded). Stale
-   *  SiteLinks scrub after. */
-  /** ClearState (QuestMachine.cs:533-546): the load path wipes the
-   *  live state before RestoreSaveData lands the envelope. C#'s
-   *  questsToTombstone/questsToRemove queues are the port's inline
-   *  sweeps (nothing standing to clear), and the HUD place-marker
-   *  debugger has no port surface; factionListeners survive exactly as
-   *  C#'s dictionary does. Q4-v: the host's quickload calls this
-   *  through the bridge. */
+  // Each quest restores under its own catch; one that fails is kept as saved and tried again at the next load.
   clearState() {
-    // AUDIT 24: the globals are NOT cleared here, and that is C#'s
-    // shape - ClearState (:533-546) wipes the machine's own four
-    // collections, while the globals live on PlayerEntity and are
-    // replaced wholesale by the player restore that follows.
     this.quests.clear();
     this.siteLinks = [];
-    // DISC22-F: the share memory is this session's game's - a load starts another, so it goes with the quests it
-    // spoke of (carried over, a name finished in one game refused the next game's share); the loaded game's own comes
-    // back from its save (AUDIT QA3 A6/E6, restoreSaveData)
     this.sharedQuestNames.clear();
     this.finishedSharedQuestNames.clear();
     this.finishedShareIds.clear();
-    this._finishedShares = [];   // DISC28-I
-    this.storyStarted.clear();   // STORY-AGAIN: the loaded game's story is its own
+    this._finishedShares = [];
+    this.storyStarted.clear();
     this.storyEnded.clear();
     this.questsToInvoke = [];
     this.unrestored = [];
     this.lastNPCClicked = null;
-    this.lastNPCClickedHost = null;   // AUDIT 68 S29-behaviour-registry-leak: the click's scene half goes with it
+    this.lastNPCClickedHost = null;
   }
 
   restoreSaveData(data) {
     this.siteLinks = (data.siteLinks ?? []).map((l) => structuredClone(l));
-    // AUDIT 24: the globals ride the envelope now. A pre-AUDIT-24 save
-    // carries none, which leaves whatever the fresh machine holds -
-    // the all-false start, which is the additive-field shape DFU's own
-    // serializer gives a missing member.
     if (data.globalVars) this.globalVars = new Map(data.globalVars);
-    // MAIN-SPINE: the record as saved, and what the saved table says - a backbone that will not rebuild below ran all the same
     this.spine = spineRecord(data.spine, (data.quests ?? []).map((q) => q?.questName));
-    const clocks = this._questClocks();   // TIME3
+    const clocks = this._questClocks();
     this.unrestored = [];
-    // a quest set aside by an earlier load is tried again first: whatever stopped it may be fixed now
     for (const questData of [...(Array.isArray(data.unrestored) ? data.unrestored : []), ...(data.quests ?? [])]) {
       try {
-        const quest = new Quest({ ...clocks, actionFactory: this._actionFactory, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });   // WORLD7: the clocks charge played time online
+        const quest = new Quest({ ...clocks, actionFactory: this._actionFactory, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });
         quest.restoreSaveData(questData, this._saveResolvers());
-        // QUEST-AUDIT III END-GRACE (FIELD BUGS 2026-09-28's "a copy saved inside EndQuest's two ticks of grace never ends
-        // on reload"): the envelope carries no ticksToEnd, and EndQuest never re-arms - a save taken while the reward's
-        // window held the tick loaded a quest that ran for ever, its questor refusing all work. An `end quest` that has
-        // run (its action complete, the quest not) enters its grace again
+        // The envelope has no ticksToEnd, so a quest saved inside the end quest grace enters its grace again.
         if (!quest.questComplete && endQuestRan(quest)) quest.ticksToEnd = 2;
-        localizeDisplayName(quest);   // L10N5: the save holds the quest's own name; the language names it again
+        localizeDisplayName(quest);
         if (this.quests.has(quest.uid)) throw new Error('An item with the same key has already been added.');
         this.quests.set(quest.uid, quest);
       } catch (e) {
-        // QuestMachine.cs:1935-1938 uses LogWarningFormat / string.Format,
-        // which render a null argument as EMPTY; a bare `${null}` in JS
-        // is the four-letter string "null" (wave 26).
         const dn = questData.displayName ?? '';
         console.warn(`[quest] Failed to load quest data for '${dn} [${questData.questName}]' with UID ${questData.uid}. This is expected after removing a mod with custom quest actions. Exception message is '${e?.message ?? e}'`);
-        this.unrestored.push(structuredClone(questData));   // kept as saved, so no progress is lost
+        this.unrestored.push(structuredClone(questData));
         this.deps.addHUDText?.(`Quest '${dn} [${questData.questName}]' could not be loaded and was set aside with its progress kept. It is tried again at the next load.`);
       }
     }
-    // QUEST-AUDIT III START-HELD: the scheduled children, each started by the next tick as it would have been
     for (const questData of Array.isArray(data.toInvoke) ? data.toInvoke : []) {
       try {
         const quest = new Quest({ ...clocks, actionFactory: this._actionFactory, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });
@@ -1288,12 +580,8 @@ export class QuestMachine {
       }
     }
     this.removeStaleSiteLinks();
-    // QUEST-AUDIT III SHARE-MEMORY: the share memory is the loaded game's (clearState's own word) - and its quests say it.
-    // A copy with a share identity still running is kept in step with its party again (every partner's sync and their
-    // final were refused 'active' after a reload, and this copy's progress never left); one finished is remembered as
-    // finished, so a partner still on it cannot hand it over fresh and pay it again
     const memory = data.shareMemory && typeof data.shareMemory === 'object' ? data.shareMemory : null;
-    if (memory) {   // AUDIT QA3 A6/E6: the memory as it was saved (_shareMemoryData)
+    if (memory) {
       for (const id of Array.isArray(memory.finishedIds) ? memory.finishedIds : []) if (typeof id === 'string' && id) this.finishedShareIds.add(id);
       for (const n of Array.isArray(memory.finishedNames) ? memory.finishedNames : []) if (typeof n === 'string') this.finishedSharedQuestNames.add(n);
       for (const n of Array.isArray(memory.inStep) ? memory.inStep : []) if (typeof n === 'string' && this.sharedCandidateNamed(n) && !isShelved(this.sharedCandidateNamed(n))) this.sharedQuestNames.add(n);
@@ -1303,16 +591,12 @@ export class QuestMachine {
       if (typeof q.shareId !== 'string' || !q.shareId) continue;
       if (q.questComplete || q.questTombstoned) this.finishedShareIds.add(q.shareId);
       else if (!isShelved(q)) this.sharedQuestNames.add(q.questName);
-      // AUDIT QA3 E1: an older save names no sharer - its received copy is its holder's to answer, as it was after a load
-      // (AUDIT QUESTLINES BRANCH-1), never one waiting on nobody at its questline's choice
       if (q.ql?.received) q.ql.received = false;
     }
-    // STORY-AGAIN (#982): the story's record as saved, and what the quests restored say of it - an envelope from before
-    // the record (`storyLegacy`) knows only these, and the bridge reads the journal's archive for the rest (seedStory)
     for (const n of data.storyStarted ?? []) if (isMainStoryQuest(n)) this.storyStarted.add(String(n).toUpperCase());
     for (const n of data.storyEnded ?? []) if (isMainStoryQuest(n)) this.storyEnded.add(String(n).toUpperCase());
     this.storyLegacy = !Array.isArray(data.storyStarted);
-    if (!this.storyLegacy) return;   // the record is whole: every start and every end wrote it
+    if (!this.storyLegacy) return;
     for (const q of this.quests.values()) {
       if (!isMainStoryQuest(q.questName)) continue;
       const n = q.questName.toUpperCase();
@@ -1322,7 +606,6 @@ export class QuestMachine {
     for (const q of this.quests.values()) if (!q.questTombstoned && isMainStoryQuest(q.questName)) this.storyEnded.delete(q.questName.toUpperCase());
   }
 
-  /** RemoveStaleSiteLinks (:1946-1970). */
   removeStaleSiteLinks() {
     const stale = this.siteLinks.filter((link) => !this.getQuest(link.questUID));
     for (const link of stale) {
@@ -1331,25 +614,9 @@ export class QuestMachine {
     }
   }
 
-  // ── OURS, not DFU's: quest sharing (systems/quest/questShare.js is the ──
-  // orchestration; these three are the machine-level moves it needs,
-  // kept here because they touch the same private bits restoreSaveData
-  // does (the constructor args, the resolvers, siteLinks). Nothing
-  // below runs unless questShare.js's own three gates already passed.
-
-  /** Is a quest by this NAME already active for this player - the
-   *  "receiver already has this exact quest" gate. Answers on the
-   *  quest's questName (what a shared copy would carry), not identity,
-   *  since a fresh local accept and an incoming share are never the
-   *  same object. */
   hasActiveQuestNamed(questName) { return this.sharedCandidateNamed(questName) !== null; }
 
-  /** AUDIT 68 S29-share-name-tombstoned: THE quest a share by this name speaks to - the one not yet tombstoned.
-   *  A tombstoned copy stays on the table for a week and a repeatable quest can be taken again inside it, so the
-   *  first by name was the dead one: every resync was refused as 'gone' and a fresh share as 'active'. */
   sharedCandidateNamed(questName) {
-    // QUEST-SHELF (its audit): and a copy RUNNING before one set aside - the questor's door opens on abandon, so the same
-    // quest may be taken again, and the older copy set aside shadowed it (its syncs, a partner's step, the share's reward)
     let away = null;
     for (const quest of this.quests.values()) {
       if (quest.questName !== questName || quest.questTombstoned) continue;
@@ -1359,25 +626,12 @@ export class QuestMachine {
     return away;
   }
 
-  /** SENDER side: one quest's own envelope, in the exact shape
-   *  restoreSaveData already reads (getSaveData(), unchanged) - a
-   *  quest that isn't this machine's answers null rather than
-   *  throwing, so a stale Share button (the quest just completed, the
-   *  window closed) fails quietly. `uid` is coerced to a Number - the
-   *  Map is keyed by the raw numeric uid, but questBridge.js's own
-   *  questLog() stringifies it for the UI's `key`/`id` fields
-   *  (`String(q.uid)`, ui/quest/questRail.js's own `id`), and Map.get uses
-   *  strict identity: a caller handing this the UI's own id (a string)
-   *  would otherwise miss every time, silently. */
   getShareableQuestData(uid) {
     const quest = this.quests.get(Number(uid));
-    if (!quest || isShelved(quest)) return null;   // QUEST-SHELF: a quest set aside is not handed on
-    quest.shareId ??= mintShareId();   // DISC22-F: the copy's identity, stamped the first time it is shared out, then carried
+    if (!quest || isShelved(quest)) return null;
+    quest.shareId ??= mintShareId();
     const data = quest.getSaveData();
-    // AUDIT QA3 A1: A QUESTION ASKED HERE IS ASKED - a prompt whose box is up (PROMPT-HELD) is written complete in the
-    // envelope, as it was before the hold: the sync goes out under the box, and a partner's copy reading it open asked
-    // the same question, both answers kept (A0C00Y10's `no _S.05_`: one No ended both copies). This copy's own save
-    // keeps it open, so a load asks again; the answer's sync carries what was chosen.
+    // A prompt whose box is up goes out complete, so a partner's copy does not ask the same question again.
     const order = [...quest.tasks.values()].map((t) => t.symbol?.name);
     for (const place of heldPromptPlaces(quest)) {
       const at = place.lastIndexOf('#');
@@ -1387,9 +641,6 @@ export class QuestMachine {
     return data;
   }
 
-  /** A questName:index -> isComplete snapshot of every action this
-   *  quest currently carries, task order preserved - updateSharedQuest's
-   *  own "what changed" read, taken BEFORE a resync overwrites anything. */
   _snapshotActionCompletion(quest) {
     const map = new Map();
     let t = 0;
@@ -1401,22 +652,8 @@ export class QuestMachine {
     return map;
   }
 
-  /** Rearms whichever REPLAYABLE_ONE_TIME_ACTIONS action NEWLY became
-   *  complete since `before` (a fresh receive passes `before: null`,
-   *  meaning everything already complete counts as "just happened" -
-   *  there is no earlier local copy to compare against). An action
-   *  already complete on a PRIOR sync (present as `true` in `before`
-   *  too) is left alone, so a reward can never fire twice for the same
-   *  receiver. Same task/action ORDER as the snapshot - restoreSaveData
-   *  rebuilds the actions array from the SAME quest source, so position
-   *  is a stable identity across one restore even though the action
-   *  OBJECTS themselves are new instances each time.
-   *
-   *  AUDIT DROPS A2's ONCE IS THE FIRING'S: an action that has run here reads complete in `before`, and completion is
-   *  monotonic across a resync (updateSharedQuest), so it is never armed again. AUDIT DISC28 QS-4 retired the per-key
-   *  gate beside it (`_rearmed`), which the ARMING spent: an envelope that landed before this copy's next tick (a window
-   *  up, a second member's final) carried the reward complete, the gate refused to arm it again, and it never ran
-   *  here. Armed and not yet fired, it reads incomplete in `before` - and stays armed. */
+  // Only actions that newly turned complete since before are armed, so a reward never fires twice.
+  // Position is a stable identity because one restore rebuilds the actions from the same quest source.
   _rearmNewlyCompletedEffects(quest, before) {
     let t = 0;
     for (const task of quest.tasks.values()) {
@@ -1430,41 +667,19 @@ export class QuestMachine {
     }
   }
 
-  /** RECEIVER side: the SAME reconstruction restoreSaveData's own loop
-   *  runs for one quest out of a save file, fed a network envelope
-   *  instead - same constructor args, same resolvers, so this cannot
-   *  drift from what loading a save already does correctly. The UID is
-   *  NOT the sender's: two independent machines mint UIDs from their
-   *  own counters, so keeping the sender's risks colliding with an
-   *  unrelated quest this player already has. A fresh local one is
-   *  minted instead (nextUid bumps ensureUidAtLeast too, so the two
-   *  counters need no further reconciling). Only cosmetic fallout: a
-   *  handful of %macro tokens seed their random pick off quest.uid
-   *  (questMacros.js) and so may read a different pick than the
-   *  sender's - never a mechanic, always flavour text.
-   *
-   *  Site links are not copied - they cannot be, verbatim, across two
-   *  machines that mint their own UIDs - but do not need to be either:
-   *  createSiteLink reads a Place resource's OWN already-restored
-   *  siteDetails, so re-running it once per Place resource, now that
-   *  this quest has its final local UID, reaches the exact link a
-   *  fresh accept would have made. */
+  // The uid is minted here, never the sender's, and site links are made again from each Place's own siteDetails.
   receiveSharedQuest(questData) {
-    questData = { ...this._onThisClock(questData), ...NO_SHELF, ...NO_INSTANCE, ql: receivedState(questData.ql) };   // TIME3: the sender's countdowns, on this character's clock; QL1: the party's progress, this holder's reward unpaid
+    questData = { ...this._onThisClock(questData), ...NO_SHELF, ...NO_INSTANCE, ql: receivedState(questData.ql) };
     const quest = this._newQuest();
     const uid = nextUid();
-    // AUDIT DROPS A3: an envelope the restore chokes on is REFUSED (null), never half a quest on the live table
+    // An envelope the restore cannot read is refused, never left as half a quest on the live table.
     try { quest.restoreSaveData({ ...questData, uid }, this._saveResolvers()); } catch (e) { console.warn(`[quest] shared quest refused: ${e?.message ?? e}`); return null; }
-    // AUDIT QUESTLINES REWARD-1: a stamped copy's tier is the HOLDER's, read as the layer's stamp reads it at a start (the
-    // holder's level, or the quest's own row - deps.questlinesStamp), never the envelope's (qlState.js receivedState)
     if (quest.ql) quest.ql.tier = this.deps.questlinesStamp?.(quest)?.tier ?? 1;
-    for (const r of quest.resources.values()) if (r.isItem) r.goldPaid = false;   // QUEST-AUDIT III GOLD-ONCE: the holder's own - this copy has paid nothing
+    for (const r of quest.resources.values()) if (r.isItem) r.goldPaid = false;
     this._relinkQuestItems(quest);
-    // AUDIT 68 S29-share-topics: StartQuest's talk registration, in its place (before the live table) - a received
-    // quest's people and places had no 'tell me about'/'where is', and its `dialog link` actions found no quest
     this.deps.addQuestTopics?.(quest);
-    this.sharedQuestNames.add(quest.questName);   // AUDIT QA2: a shared copy from its arrival on - the arrival's re-seat draws the share's die (Place.reseatMovedSite)
-    this.quests.set(quest.uid, quest); this._reseatArrived(quest);   // QUESTOR-MOVED: a copy from before the town mods, mended on arrival (its links made after)
+    this.sharedQuestNames.add(quest.questName);
+    this.quests.set(quest.uid, quest); this._reseatArrived(quest);
     for (const resource of quest.resources.values()) {
       if (resource.isPlace && resource.siteDetails) this.createSiteLink(quest, resource.symbol);
     }
@@ -1472,52 +687,27 @@ export class QuestMachine {
     return quest;
   }
 
-  /** Is this quest name one this player either shared out or received via
-   *  a share - the gate updateSharedQuest reads, and the one thing that
-   *  makes a resync safe: a quest the player got independently (never
-   *  shared, either direction) is never in this set, so an incoming
-   *  update can never silently overwrite THEIR progress with someone
-   *  else's under the same name. */
   hasSharedQuestNamed(questName) { return this.sharedQuestNames.has(questName); }
 
-  /** QUEST-AUDIT III GOLD-HOLDERS: a partner (`account`) holds the copy this name speaks to - their envelope of it came. */
   noteShareHolder(questName, account) {
     const quest = this.sharedCandidateNamed(questName);
     if (!quest || account == null || account === '') return;
     (quest._holdersHeard ??= new Set()).add(String(account));
   }
 
-  /** SENDER side: marks a quest this player is manually sharing OUT as
-   *  now kept in live sync too - the bidirectional half of the design
-   *  (receiveSharedQuest already marks the RECEIVED half). Idempotent;
-   *  a quest already in the set (an earlier share, or one received from
-   *  someone else under the same name) is untouched. */
   markQuestShared(questName) {
     this.sharedQuestNames.add(questName);
   }
 
-  /** DISC28-I: the oldest finished shared copy's final envelope still to be sent, or null. AUDIT DISC28 QS-1: it STAYS
-   *  here until the host has sent it (settleFinishedShare) - the client's floor between two quest frames
-   *  (QUEST_SEND_MS), a closed socket or a refusal leaves it for the next frame. Handed over whole and then drained,
-   *  every final the floor refused was lost: a kill or a reward synced a few seconds before the end, and the partner's
-   *  copy never ended. */
   nextFinishedShare() { return this._finishedShares[0] ?? null; }
-  /** AUDIT DISC28 QS-1: that envelope has left (or can never leave - nobody to tell, or not shareable at all). */
   settleFinishedShare(data) {
     const i = this._finishedShares.indexOf(data);
     if (i >= 0) this._finishedShares.splice(i, 1);
   }
-  /** AUDIT DISC28 QS-1: a final that left and was refused as 'busy' by the hub (net/online.js onQuestBusy) - back at the
-   *  head of the pending finals, to go again when the client's floor opens; a final of this game's alone (DISC22-F: a
-   *  load forgets the finished names with the pending finals, and a refusal that lands after one brings nothing back). */
   pendFinishedShare(data) {
     if (data && this.finishedSharedQuestNames.has(data.questName) && !this._finishedShares.includes(data)) this._finishedShares.unshift(data);
   }
 
-
-  /** AUDIT DISC7 C2: a behaviour made over this machine (resourceBehaviour.js's constructor). AUDIT 68
-   *  S29-behaviour-registry-leak: only a resync pruned the set, so every foe of every wave stayed in it for the
-   *  session - it prunes itself as it grows now. */
   _registerBehaviour(b) {
     if (typeof WeakRef !== 'function') return;
     if (this._behaviourRefs.size >= this._behaviourSweepAt) {
@@ -1526,14 +716,12 @@ export class QuestMachine {
     }
     this._behaviourRefs.add(new WeakRef(b));
   }
-  /** The collected and the destroyed leave the registry. */
   _pruneBehaviours() {
     for (const ref of this._behaviourRefs) {
       const b = ref.deref();
       if (!b || b.isComponentDestroyed) this._behaviourRefs.delete(ref);
     }
   }
-  /** AUDIT DISC7 C2: the live behaviours standing on quest `uid`. */
   _liveBehaviours(uid) {
     this._pruneBehaviours();
     const out = [];
@@ -1543,9 +731,6 @@ export class QuestMachine {
     }
     return out;
   }
-  /** AUDIT 68 S29-share-item-questuid: a shared quest's Item resources name THIS quest. The envelope's items are a
-   *  throwaway parse's (questShare takeLocalItems), stamped with that parse's uid - no quest here - so the item a
-   *  player was handed read as orphaned: the save sweep deleted it, `toting` never matched, dispose never removed it. */
   _relinkQuestItems(quest) {
     for (const r of quest.resources.values()) {
       const it = r.isItem ? r.daggerfallUnityItem : null;
@@ -1554,117 +739,57 @@ export class QuestMachine {
       it.questSymbol = r.symbol?.clone() ?? null;
     }
   }
-  /** RECEIVER side, the RESYNC arm: the SAME quest (by name, already in
-   *  sharedQuestNames) getting a fresher copy of someone else's progress -
-   *  updates the EXISTING local Quest object in place, keeping THIS
-   *  machine's own uid (never the sender's, same reasoning
-   *  receiveSharedQuest's own note gives - and doubly so here, since
-   *  overwriting an uid a live quest is already running under would
-   *  orphan every reference to it: site links, the UI's own selection).
-   *  Answers null - a no-op, not an error - for a quest name this
-   *  machine has no live copy of at all (the fresh-share path is
-   *  receiveSharedQuest's, not this one's).
-   *
-   *  Also runs the SAME "counts as advance" rearm receiveSharedQuest
-   *  does - completion (and whatever it hands out - GivePc, TrainPc)
-   *  most often arrives THIS way, as a later resync of an
-   *  already-shared quest, not as the very first receipt. The
-   *  before/after diff is what keeps this safe run after run: only an
-   *  action that JUST turned complete in THIS update fires again: one
-   *  already complete from an earlier sync is left alone. */
   updateSharedQuest(questName, questData, { from = null } = {}) {
     from = from == null ? '' : String(from);
     const quest = this.sharedCandidateNamed(questName);
     if (!quest) return null;
-    if (isShelved(quest)) return null;   // QUEST-SHELF: a copy set aside takes no partner's state - reclaimed, it is as it was
-    // AUDIT DROPS A2: a quest this player has FINISHED is never dragged back into play by a partner who is behind
+    if (isShelved(quest)) return null;
     if (quest.questComplete || quest.questTombstoned) return null;
-    // AUDIT DISC28 QS-4: A COPY ALREADY ENDING TAKES NO ENVELOPE. Quest.EndQuest's two ticks of grace (ticksToEnd, no
-    // save state) leave questComplete false, so the guard above let a second envelope in: a second member's final ran
-    // endQuest again - the reputation and the notebook entry paid twice - and one from a member still behind put the
-    // reward's task back to untriggered, so the re-armed `give pc` never ran before the end. The end is under way; the
-    // copy is left as it stands (answered, not refused - there is nothing to say).
+    // A copy already inside the end quest grace takes no envelope, or the end would pay twice.
     if (quest.ticksToEnd > 0) return quest;
-    // AUDIT DROPS A3: DRY RUN first - restoreSaveData clears as it goes, so an envelope it chokes on halfway
-    // (`{tasks: 7}`) left the LIVE quest with no resources and no tasks. A scratch Quest takes the fall instead.
-    // DISC28-I (Discord: a quest shared by a friend who then finished it "does not complete"): A PARTNER'S FINISH ENDS
-    // THIS COPY TOO. The envelope of a finished quest is restored as the running quest it was a tick before its end -
-    // so the rewards that turned complete in it are re-armed below as any resync's are - and then ended here by the
-    // quest's own EndQuest: its two ticks of grace run the re-armed `give pc` once, its reputation and its notebook
-    // entry are this player's, and the machine tombstones it. Restored as complete instead, it was tombstoned with
-    // every reward still unpaid (a complete quest never updates).
+    // Dry run on a scratch Quest first, because restoreSaveData clears as it goes.
+    // A finished envelope restores as running and then ends here, so its re-armed rewards run once.
     const finishing = questData.questComplete === true;
     if (finishing) questData = { ...questData, questComplete: false, questTombstoned: false };
-    questData = { ...this._onThisClock(questData), ...NO_SHELF };   // TIME3: the sender's countdowns, on this character's clock
+    questData = { ...this._onThisClock(questData), ...NO_SHELF };
     const scratch = this._newQuest();
     const uid = quest.uid;
     try { scratch.restoreSaveData({ ...questData, uid }, this._saveResolvers()); } catch (e) { console.warn(`[quest] shared quest resync refused: ${e?.message ?? e}`); return null; }
     const before = this._snapshotActionCompletion(quest);
-    // QUEST-AUDIT III PROGRESS-KEPT: and this copy's own progress - its tasks set (a `start task`, a click's task) and its
-    // journal's steps - from before the envelope, kept below unless the partner's copy has since cleared them
+    // State from this world survives a resync: task flags, journal steps, enemy counters, queues, and items.
     const tasksBefore = new Map(), logsBefore = [...quest.activeLogMessages.values()].map((e) => ({ ...e }));
     for (const task of quest.tasks.values()) {
       if (task.type === TaskType.Standard || task.type === TaskType.Variable) tasksBefore.set(task.symbol?.name, { triggered: !!task.triggered, prev: !!task.prevTriggered });
     }
-    // DISC6: a Foe's counters are THIS world's - the foes this player killed or hurt stand in their
-    // own world, and the partner's copy counts the partner's. The resync kept its copy (a kill made before it was
-    // wiped back to the partner's number, and the `killed N` trigger never saw the last of them); each kept Foe keeps
-    // the most either copy has seen, as action completion is kept monotonic below.
     const foesBefore = new Map();
-    // AUDIT DISC7 C3: and its QUEUES - a standing foe's behaviour keeps a cursor into the spells and items queued on
-    // it (castSpellQueue / addItemQueue), and a partner's shorter queue under that cursor re-added the whole item
-    // queue to the foe (or its corpse) and re-cast the spells past it. The longer queue is this world's superset.
     for (const r of quest.resources.values()) if (r.isFoe) foesBefore.set(r.symbol?.name ?? String(r.symbol), { killCount: r.killCount | 0, injured: !!r.injuredTrigger, dying: !!r.deathTrigger, spellQueue: r.spellQueue ?? null, itemQueue: r.itemQueue ?? null, learned: new Map(r.learnedKills ?? []) });
-    // AUDIT 68 S29-share-item-questuid: an Item's ITEM is this world's too - the receiver's own roll, the object the
-    // player may already hold. The envelope's is a fresh throwaway parse every time, so each resync re-rolled it.
     const itemsBefore = new Map();
     for (const r of quest.resources.values()) if (r.isItem && r.daggerfallUnityItem) itemsBefore.set(r.symbol?.name, r.daggerfallUnityItem);
-    const paidBefore = new Map([...quest.resources.values()].filter((r) => r.isItem).map((r) => [r.symbol?.name, !!r.goldPaid]));   // QUEST-AUDIT III GOLD-ONCE: the holder's own
-    // WHERE-ROBES (FIELD BUGS 2026-10-04c): and an Item's CLICK and PICKUP are this world's too - the player's own act on
-    // the stand or the loot row (QuestResourceBehaviour.DoClick's SetPlayerClicked and IsHidden, the remote list's
-    // click). The envelope carried the partner's (false), so a resync landing between a pickup and the next tick took
-    // the click back - `clicked item` never fired, O0A0AL00's note never came - and showed the stand again over robes
-    // already in the pack. Both are kept as the foes' flags are: an Item is hidden only by that pickup (no action
-    // un-hides one), and the click is spent by the tick's own PostTick, never by a partner.
-    // AUDIT WHERE-ROBES S1: and a click is this world's whatever it clicked - a quest Person's or Foe's too (ClickedNpc,
-    // ClickedFoe); a resync between the click and the tick lost O0A0AL00's own hand-in (`toting _clothing_ and
-    // _thiefmember_ clicked`). Restored through setPlayerClicked, so a Person the partner's copy has since muted or
-    // destroyed refuses it, as DFU's guard does.
+    const paidBefore = new Map([...quest.resources.values()].filter((r) => r.isItem).map((r) => [r.symbol?.name, !!r.goldPaid]));
     const actsBefore = new Map();
     for (const r of quest.resources.values()) {
       const hidden = !!(r.isItem && r.isHidden);
       if (r.hasPlayerClicked || hidden) actsBefore.set(r.symbol?.name, { clicked: !!r.hasPlayerClicked, hidden });
     }
-    // AUDIT DISC7 C2: the behaviours standing on this quest - relinked below, at once, not on their next update
-    // (a person's or an item's never ticks, and a Place mount may come first)
     const standing = this._liveBehaviours(uid);
-    // TIME3 (Online-Time-Arc.md 6.3): EACH COPY'S CLOCKS ARE ITS HOLDER'S. A Clock running in both copies keeps this
-    // copy's remainder and samples - the days this character spent on it, not the partner's: a member's rest spends
-    // their own copy's days. A clock the partner's copy started, stopped or ran out takes the envelope's state, and the
-    // task it fired rides the resync like any other - a clock that runs out on one copy has run out for the party.
-    // AUDIT TIME: and a clock THIS copy has run out stays run out, its task as it fired - a partner behind on it (their
-    // copy still counting) brought it back running and un-fired the task, a finish that is monotonic like an action's.
-    // A wave's interval is the holder's too (CreateFoe's timing, by task and action), or every resync restarted it.
+    // Each copy's clocks belong to its holder: a clock running in both keeps this copy's remainder.
+    // A clock that ran out here stays run out.
     const clocksBefore = new Map(), finishedBefore = new Map(), wavesBefore = new Map();
     for (const r of quest.resources.values()) {
       if (r.isClock && r.clockEnabled && !r.clockFinished) clocksBefore.set(r.symbol?.name, { remaining: r.remainingTimeInSeconds, sample: r._lastWorldTimeSample, raised: r._lastRaisedSample });
       if (r.isClock && r.clockFinished) { const tk = quest.getTask?.(r.symbol); finishedBefore.set(r.symbol?.name, tk ? { triggered: tk.triggered, prev: tk.prevTriggered } : null); }
     }
     { let t = 0; for (const task of quest.tasks.values()) { let a = 0; for (const action of task.actions) { if (action.typeName === 'CreateFoe') wavesBefore.set(`${t}:${a}`, { last: action.lastSpawnTime, tick: action._lastTick, raised: action._lastRaised, count: action.spawnCounter }); a++; } t++; } }
-    // QUEST-AUDIT II SHARED-SEAT: and a Place's BUILDING is this world's where the partner's names none here (their town
-    // stood in another layout) - kept below, the partner's assignments carried onto it (Place.keepOwnSite)
     const sitesBefore = new Map();
     for (const r of quest.resources.values()) if (r.isPlace && r.siteDetails) sitesBefore.set(r.symbol?.name, structuredClone(r.siteDetails));
-    const qlBefore = quest.ql;   // QL1: this copy's questline state, merged with the partner's below
-    quest.restoreSaveData({ ...questData, uid, instanceEpoch: quest.instanceEpoch ?? null }, this._saveResolvers());   // INSTANCES: and its instance - this copy's own (NO_INSTANCE)
-    quest.ql = mergeSharedState(qlBefore, questData.ql);   // QL1 (decision 7): the party's progress monotonic, the holder's reward its own
+    const qlBefore = quest.ql;
+    quest.restoreSaveData({ ...questData, uid, instanceEpoch: quest.instanceEpoch ?? null }, this._saveResolvers());
+    quest.ql = mergeSharedState(qlBefore, questData.ql);
     for (const r of quest.resources.values()) if (r.isPlace && sitesBefore.has(r.symbol?.name)) r.keepOwnSite?.(sitesBefore.get(r.symbol?.name));
     for (const r of quest.resources.values()) {
       if (r.isClock && !r.clockFinished && finishedBefore.has(r.symbol?.name)) {
         r.clockEnabled = false; r.clockFinished = true; r.remainingTimeInSeconds = 0;
         const task = quest.getTask?.(r.symbol), was = finishedBefore.get(r.symbol?.name);
-        // AUDIT TIME (second round): the task's EDGE as well - prevTriggered from the envelope (false) made the next tick
-        // a fresh trigger, which re-initialised its actions (a wave's count and timing back to nought)
         if (task && was?.triggered) { task.triggered = true; task.prevTriggered = was.prev; }
         continue;
       }
@@ -1674,10 +799,10 @@ export class QuestMachine {
       r._lastWorldTimeSample = was.sample;
       r._lastRaisedSample = was.raised;
     }
-    { let t = 0; for (const task of quest.tasks.values()) { let a = 0; for (const action of task.actions) { const w = action.typeName === 'CreateFoe' ? wavesBefore.get(`${t}:${a}`) : null; if (w && w.last) { action.lastSpawnTime = w.last; action._lastTick = w.tick; action._lastRaised = w.raised; action.spawnCounter = w.count | 0; } a++; } t++; } }   // the count is the holder's too: the waves spawn in this world, N of them here
+    { let t = 0; for (const task of quest.tasks.values()) { let a = 0; for (const action of task.actions) { const w = action.typeName === 'CreateFoe' ? wavesBefore.get(`${t}:${a}`) : null; if (w && w.last) { action.lastSpawnTime = w.last; action._lastTick = w.tick; action._lastRaised = w.raised; action.spawnCounter = w.count | 0; } a++; } t++; } }
     for (const r of quest.resources.values()) if (r.isItem && itemsBefore.has(r.symbol?.name)) r.daggerfallUnityItem = itemsBefore.get(r.symbol?.name);
-    for (const r of quest.resources.values()) if (r.isItem) r.goldPaid = paidBefore.get(r.symbol?.name) ?? false;   // GOLD-ONCE: never the partner's
-    for (const r of quest.resources.values()) {   // WHERE-ROBES: this world's clicks and pickups, kept
+    for (const r of quest.resources.values()) if (r.isItem) r.goldPaid = paidBefore.get(r.symbol?.name) ?? false;
+    for (const r of quest.resources.values()) {
       const was = actsBefore.get(r.symbol?.name);
       if (was?.clicked && !r.hasPlayerClicked) r.setPlayerClicked();
       if (was?.hidden && r.isItem) r.isHidden = true;
@@ -1686,35 +811,23 @@ export class QuestMachine {
     for (const r of quest.resources.values()) {
       const was = r.isFoe ? foesBefore.get(r.symbol?.name ?? String(r.symbol)) : null;
       if (!was) continue;
-      // QUEST-AUDIT III KILL-ONCE: what the envelope brought past this copy's own count is the partner's kills, learned -
-      // their credit, when it comes, is not counted again (Foe.creditPartnerKill)
       const brought = r.killCount | 0;
       r.killCount = Math.max(brought, was.killCount);
-      r.learnedKills = was.learned;   // AUDIT QA3 E3: by the envelope's sender (Foe.creditPartnerKill)
+      r.learnedKills = was.learned;
       if (brought > was.killCount) r.learnedKills.set(from, (r.learnedKills.get(from) ?? 0) + brought - was.killCount);
-      // AUDIT DISC7 D7: the two flags THIS world's events set - an injury here (the behaviour's own check; the wave's
-      // mount re-arms it, here too) and a `kill` pending on a foe standing here (deathTrigger is no save state, so the
-      // partner's copy never carries it) - are kept. `restrained` is NOT: `restrain foe` / `clear restraint` are quest
-      // actions, so the copy the partner sends is as much the quest's word as ours, and ORing it back brought a
-      // restraint the partner's `clear` had lifted.
+      // restrained is not kept, because restraint is set and cleared by quest actions the partner's copy carries.
       if (was.injured) r.injuredTrigger = true;
       if (was.dying) r.deathTrigger = true;
       if ((was.spellQueue?.length ?? 0) > (r.spellQueue?.length ?? 0)) r.spellQueue = was.spellQueue;
       if ((was.itemQueue?.length ?? 0) > (r.itemQueue?.length ?? 0)) r.itemQueue = was.itemQueue;
     }
-    // AUDIT DROPS A2: completion is MONOTONIC - an action this player already saw complete never reads false
-    // again off a partner's older copy (it would run a second time, reward and all, when its task next ticked)
+    // Completion is monotonic, so an action already seen complete never runs again from an older copy.
     let t = 0;
     for (const task of quest.tasks.values()) {
       let a = 0;
       for (const action of task.actions) { if (before.get(`${t}:${a}`) === true && !action.isComplete) action.isComplete = true; a++; }
       t++;
     }
-    // QUEST-AUDIT III PROGRESS-KEPT (two members' deeds at about the same moment): the envelope's task flags and journal
-    // replaced this copy's, while the `start task` that set a flag here stayed complete (the monotonic law above) and never
-    // ran again - a deed made in the ten seconds the client's floor held this copy's own sync was gone from both copies,
-    // and a `when _a_ and _b_` end never came. A task set here stays set, and a journal step stays, unless the partner's
-    // copy newly ran a `clear`/`unset` of it or a `remove log step` of it; `_keptLocal` tells the host to send the merge
     const cleared = new Set(), unlogged = new Set();
     t = 0;
     for (const task of quest.tasks.values()) {
@@ -1732,7 +845,8 @@ export class QuestMachine {
     for (const task of quest.tasks.values()) {
       const was = tasksBefore.get(task.symbol?.name);
       if (!was?.triggered || task.triggered || task.dropped || cleared.has(task.symbol?.name)) continue;
-      task.triggered = true; task.prevTriggered = was.prev;   // set directly: setTriggerValue would rearm
+      // Set directly, because setTriggerValue would rearm the task.
+      task.triggered = true; task.prevTriggered = was.prev;
       kept++;
     }
     for (const log of logsBefore) {
@@ -1741,64 +855,40 @@ export class QuestMachine {
       kept++;
     }
     quest._keptLocal = kept;
-    this._reseatArrived(quest);   // QUESTOR-MOVED: a partner's copy from before the town mods, mended as it lands
-    // QUEST-AUDIT II SITE-LINKS: each Place's link made AGAIN, never once more - the copy's own link from its accept (or
-    // the last resync) went on standing beside a new one at every resync, so a quest shared for an evening carried
-    // dozens of links per Place in the save, and every mount of its building walked them all
+    this._reseatArrived(quest);
+    // Each Place link is made again, never added again, so links do not pile up across resyncs.
     this.siteLinks = this.siteLinks.filter((link) => link.questUID !== quest.uid);
     for (const resource of quest.resources.values()) {
       if (resource.isPlace && resource.siteDetails) this.createSiteLink(quest, resource.symbol);
     }
-    for (const b of standing) b.relinkToLiveQuest?.();   // AUDIT DISC7 C2: not on their next update - a Place mount may come first
-    // AUDIT 68 S29-share-topics: and the talk topics - 'where is' read the discarded Person, never a later `place npc`
+    for (const b of standing) b.relinkToLiveQuest?.();
     this.deps.relinkQuestTopics?.(quest);
     this._rearmNewlyCompletedEffects(quest, before);
-    if (finishing) { quest._finishedBySync = true; quest.endQuest(); }   // DISC28-I: the partner's word, not an echo to send back
+    if (finishing) { quest._finishedBySync = true; quest.endQuest(); }
     return quest;
   }
 
-  /** TIME3: a party member's envelope on THIS machine's clocks - its countdowns moved from the sender's own clock to
-   *  this character's (quest/questStamps.js questDataOnThisClock); the journal's dates are the event clock's, shared. */
   _onThisClock(questData) {
     const { nowSeconds, worldSeconds } = this._questClocks();
     return questDataOnThisClock(questData, nowSeconds(), worldSeconds());
   }
 
-  /** QUEST1: a Quest with THIS machine's registry, clock, hooks and played step - the one door a shared quest is born
-   *  through (receiveSharedQuest) and the scratch a resync is dry-run on (updateSharedQuest, AUDIT DROPS A3). */
   _newQuest() {
-    return new Quest({ ...this._questClocks(), actionFactory: this._actionFactory, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });   // TIME3: the four clocks
+    return new Quest({ ...this._questClocks(), actionFactory: this._actionFactory, hooks: this._buildHooks(), questClockStepMax: () => this.deps.questClockStepMax?.() ?? Infinity });
   }
 
-  /** AUDIT DROPS A1: the receiver's OWN parse of a quest by name - the reference an incoming envelope's shape is
-   *  held against (systems/quest/questShare.js shapeMismatch) and the source of its Item resources' items. Not
-   *  scheduled, not started; null when this machine has no source for the name or the parse fails.
-   *  SHARE-COPY (2026-09-26, "Shared Quest did not match copy"): HEADLESS. This parse ran over the receiver's own
-   *  world, so the SCRIPT's shape depended on where the receiver stood: a `local` Place throws in the wilderness
-   *  or in a town without that building, and the receiver was told they "do not know this quest". The shape is
-   *  the script's; the world's half (the sites, the NPCs, the homes) comes from the sender's envelope, as a save
-   *  file's does.
-   *  AUDIT QUESTLINES BRANCH-12: AND THE SCRIPT IS THE ONE THE COPY WAS READ WITH. `questlines` is the envelope's stamp
-   *  (questShare.js receiveSharedQuest): a stamped copy was read with its branch, an unstamped one as DFU's (begun before
-   *  the deploy, or offline with the switch off) - and the read followed the RECEIVER's switch, forced on online, so every
-   *  share and every resync of a copy begun on DFU's script was refused as a forgery ('mismatch'). Absent: the switch now. */
+  // Parses headless with the script the copy was read with, so the shape is the script's, not the receiver's world.
   parseQuestShape(questName, factionId = 0, { questlines = undefined } = {}) {
     const lines = this.deps.getQuestSourceLines?.(questName, questlines);
     if (!lines) return null;
     return this.parseQuestForLists(lines, Number(factionId) || 0, { headless: true });
   }
 
-  /** AUDIT DROPS A2: was a quest by this name finished (tombstoned) while kept in sync with the party? */
   hasFinishedSharedQuestNamed(questName) { return this.finishedSharedQuestNames.has(questName); }
-  /** DISC22-F: was THIS shared copy (its envelope's shareId) finished here? A copy with no identity (an older
-   *  client's envelope) is answered by name, A2's original reading. */
   hasFinishedSharedCopy(questName, shareId) {
     return typeof shareId === 'string' && shareId ? this.finishedShareIds.has(shareId) : this.finishedSharedQuestNames.has(questName);
   }
 
-  /** The reflection stand-in: the resource registry and the ACTION
-   *  registry keyed by each template's explicit typeName (built
-   *  fresh so late registerAction calls are honored). */
   _saveResolvers() {
     const actionTypeMap = new Map(this.actionTemplates.map((t) => [t.typeName, t.constructor]));
     return {
@@ -1808,26 +898,15 @@ export class QuestMachine {
     };
   }
 
-  /** One machine tick (QuestMachine.cs Tick). */
   tick() {
-    this.beat++;   // AUDIT STAR8 S1 (questFoeStands)
-    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepSpine();   // MAIN-SPINE: before the invoke loop, so a start lands this tick
-    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepOpeners();   // MAIN-RETURN: the letter and the Curse a game made without them is owed
-    // Invoke scheduled quests (QuestMachine.cs StartQuest:719-725):
-    // Start, then the talk-topic registration, then the live table.
-    // The questor-behaviour relink that follows in C# is scene work
-    // (Q3). Q2b-VERIFY: the addQuestTopics half was silently absent
-    // while its tombstone-side removal was wired - the scrub would
-    // have deleted topics no one ever added.
+    this.beat++;
+    // Before the invoke loop, so a start lands this tick.
+    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepSpine();
+    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepOpeners();
     for (const quest of this.questsToInvoke) {
       try {
         this.startQuestImmediate(quest);
-        // QUIRK KEPT (QuestMachine.cs:450-451): Tick raises
-        // OnQuestStarted AGAIN after StartQuest already raised it -
-        // every SCHEDULED quest fires the event twice, and a one-time
-        // quest is recorded twice in the lists' accepted array (a
-        // Contains gate, so offers are unaffected - but the recorded
-        // list is save state). Direct starts raise once.
+        // As in C#, Tick raises OnQuestStarted again for every scheduled quest, so it fires twice.
         this.deps.onQuestStarted?.(quest);
       } catch (e) {
         console.warn(`[quest] QuestMachine failed to start quest ${quest.questName}: ${e?.message ?? e}`);
@@ -1835,20 +914,11 @@ export class QuestMachine {
     }
     this.questsToInvoke.length = 0;
 
-    // Update quests; collect completed for tombstoning and expired or
-    // faulting for removal. AUDIT quest-P3: an exception in a quest's
-    // update ERROR-TERMINATES it unless the quest is protected (the
-    // main-quest spine) - C# removes faulting quests rather than
-    // letting them throw every tick forever. Q2b-VERIFY: the catch
-    // only COLLECTS (QuestMachine.cs:486) - the faulting quest is
-    // tombstoned by removeQuest AFTER every other quest's update and
-    // after the regular tombstone pass, so its tombstone talk hooks
-    // fire in C#'s order. The tombstone/expiry checks sit OUTSIDE the
-    // try, as in C#.
+    // A faulting quest is collected here and removed after the other updates and the tombstone pass, as in C#.
     const questsToTombstone = [], questsToRemove = [];
     for (const quest of this.quests.values()) {
       try {
-        if (!quest.questComplete && !isShelved(quest)) quest.update();   // QUEST-SHELF: a quest set aside does not run
+        if (!quest.questComplete && !isShelved(quest)) quest.update();
       } catch (e) {
         console.warn(`[quest] QuestMachine encountered an exception in quest ${quest.questName}: ${e?.message ?? e}`);
         if (!isProtectedQuest(quest)) questsToRemove.push(quest);
@@ -1864,22 +934,17 @@ export class QuestMachine {
     for (const quest of questsToRemove) this.removeQuest(quest);
   }
 
-  /** MAIN-SPINE (systems/quest/mainSpine.js): a game owed its backbone has it started - a parse that fails again (the
-   *  world's faction records still away) is asked again at the next check. Answers whether one was scheduled. */
   keepSpine() {
     if (!spineOwed(this)) return false;
-    // AUDIT FB1026d A6: said once a page that it is owed and failed, and once that it started - never every check
     const lines = this.deps.getQuestSourceLines?.(SPINE);
     let quest = null, why = 'no source';
     if (lines) try { quest = this.scheduleQuest(lines); } catch (ex) { why = ex?.message ?? String(ex); }
     this.spineTries = (this.spineTries ?? 0) + 1;
-    if (quest && !this.spineSaid) { this.spineSaid = true; console.warn(`[quest] ${SPINE} (the main quest's backbone) was owed - scheduled (try ${this.spineTries})`); }   // AUDIT FB1026d II A3: scheduled - its start is the invoke loop's - and said once
+    if (quest && !this.spineSaid) { this.spineSaid = true; console.warn(`[quest] ${SPINE} (the main quest's backbone) was owed - scheduled (try ${this.spineTries})`); }
     else if (this.spineTries === 1) console.warn(`[quest] ${SPINE} (the main quest's backbone) is owed and did not start (${why}) - asked again every ${SPINE_CHECK_TICKS} quest ticks`);
     return !!quest;
   }
 
-  /** MAIN-RETURN (mainSpine.js openersOwed): a game made while the main quest and the Curse were off is given them, once -
-   *  each recorded as begun when it starts, so a start that fails is asked again at the next check. Answers how many. */
   keepOpeners() {
     let n = 0;
     for (const name of openersOwed(this)) {
@@ -1888,40 +953,25 @@ export class QuestMachine {
     return n;
   }
 
-  /** MAIN-SPINE: an opener the journal's archive files began in this game - a load's word, beside seedStory's. */
   seedSpine(entries) {
     if ((entries ?? []).some((e) => e?.kind === 'quest' && questNameIn([SPINE_OPENER], String(e.quest ?? '')))) this.spine.opened = true;
   }
 
-  /** MAIN-SPINE: the record as the save writes it - the machine's, and its table's word, as a load reads it (spineRecord). */
   _spineData() {
     const spine = spineRecord(this.spine, [...this.quests.values()].map((q) => q.questName));
     return spine.opened || spine.ran || spine.cursed ? { spine } : {};
   }
 
-  /**
-   * QUEST-SHELF (2026-10-08, Mac: "All quests should be able to be abandoned and reclaimed"): ABANDON - THE QUEST SET
-   * ASIDE, KEPT WHOLE. Never a tombstone: its items stay in the pack (the load's orphan sweep keeps a quest it still
-   * holds), its topics and journal stay its own, its clocks stop where they stand. It stops running (tick, clicks,
-   * actions), its questor's door opens (isLastNPCClickedAnActiveQuestor - a guild offers work again), a named NPC it
-   * held is home again, its site links are set aside by Place (what it stood in a scene no longer stands; reclaimed,
-   * they stand again), a wave in flight is let go, its faction listeners go (its task asks again once it runs), and a
-   * shared copy leaves the party's step (Share it again once reclaimed). Its sites stay reserved (getAllActiveQuestSites
-   * still answers them), so the building or dungeon is its own when it comes back. Refused: a quest gone, ending or
-   * already set aside; the world's own quests (PROTECTED_QUESTS - the main quest's backbone, the curse, the tutorial);
-   * and whatever the host's `refuse` names. Answers `{ ok, reason?, quest? }`.
-   */
+  // Abandon sets the quest aside whole, never a tombstone, and its sites stay reserved until it is reclaimed.
   shelveQuest(uid, { refuse = null } = {}) {
     const why = this.shelveRefusal(uid, { refuse });
     if (why) return { ok: false, reason: why };
     const quest = this.quests.get(Number(uid));
-    // the party's step is this copy's only where this copy is the one a share by its name speaks to
     if (this.sharedCandidateNamed(quest.questName) === quest) this.sharedQuestNames.delete(quest.questName);
     const now = Math.floor(this.deps.nowSeconds?.() ?? 0);
-    quest.shelvedAt = now !== 0 ? now : 1;   // 0 reads as never set aside
+    // 0 reads as never set aside.
+    quest.shelvedAt = now !== 0 ? now : 1;
     quest.shelvedSites = [...new Set(this.siteLinks.filter((l) => l.questUID === quest.uid).map((l) => l.placeSymbol?.name).filter(Boolean))];
-    // QUEST-SHELF-DROP: the items the pack holds now - set aside, the quest holds none, and the player may throw them
-    // away (itemTransfer.js questTransferRefused); reclaimed, each that is gone is handed back
     quest.shelvedItems = [...quest.resources.values()].filter((r) => r?.isItem && !r.madePermanent && this.deps.carriesQuestItem?.(r)).map((r) => r.symbol.name);
     this.siteLinks = this.siteLinks.filter((l) => l.questUID !== quest.uid);
     for (const [factionID, owner] of [...this.factionListeners]) if (owner?.parentQuest === quest) this.factionListeners.delete(factionID);
@@ -1932,8 +982,6 @@ export class QuestMachine {
     return { ok: true, quest };
   }
 
-  /** QUEST-SHELF: why the quest may not be set aside now, or null - shelveQuest's ladder, and the journal's button
-   *  (questBridge.js canAbandon) asks the same one. */
   shelveRefusal(uid, { refuse = null } = {}) {
     const quest = this.quests.get(Number(uid));
     if (!quest || quest.questComplete || quest.questTombstoned) return 'gone';
@@ -1943,18 +991,11 @@ export class QuestMachine {
     return refuse?.(quest) ?? null;
   }
 
-  /**
-   * QUEST-SHELF: RECLAIM - the quest set aside, back as it was. Its own clock's stamps (its clocks' samples, a wave's
-   * timing, a sound's, a daily guard's - questStamps.js QUEST_OWN_SECOND_KEYS) move on by the time it was set aside, so
-   * no deadline ran down while it was away: the quest is restored from its own envelope moved by that time, as a load
-   * restores one (TIME3's law, one home). Its site links stand again by Place, and a scene it stands in mounts its
-   * people, things and foes once more the next time it is built. Answers `{ ok, reason?, quest? }`.
-   */
+  // Reclaim moves the quest clock stamps on by the time it was away, so no deadline runs down meanwhile.
   reclaimQuest(uid) {
     const quest = this.quests.get(Number(uid));
     if (!quest || quest.questTombstoned) return { ok: false, reason: 'gone' };
     if (!isShelved(quest)) return { ok: false, reason: 'running' };
-    // its audit: the same quest taken again while this one was away - two running copies of one name are never made
     if (!isShelved(this.sharedCandidateNamed(quest.questName))) return { ok: false, reason: 'twin' };
     const now = Math.floor(this.deps.nowSeconds?.() ?? 0);
     const away = Math.max(0, now - quest.shelvedAt);
@@ -1965,20 +1006,18 @@ export class QuestMachine {
     data.shelvedSites = null;
     data.shelvedItems = null;
     shiftQuestStamps(data, away, { own: true });
-    const standing = this._liveBehaviours(quest.uid);   // its audit: relinked at once, as a resync's are (AUDIT DISC7 C2)
+    const standing = this._liveBehaviours(quest.uid);
     quest.restoreSaveData({ ...data, uid: quest.uid }, this._saveResolvers());
     for (const name of sites) {
       const place = quest.getPlace?.({ name });
       if (place?.siteDetails && !this.siteLinks.some((l) => l.questUID === quest.uid && l.placeSymbol?.name === name)) this.createSiteLink(quest, place.symbol);
     }
     for (const b of standing) b.relinkToLiveQuest?.();
-    this.deps.relinkQuestTopics?.(quest);   // and its talk topics (AUDIT 68 S29-share-topics): 'where is' reads the live Person
-    // QUEST-SHELF-DROP: an item the pack held as it was set aside and has not now (thrown away while the quest was not
-    // running) is handed back, its own quest item, so the quest can still be finished
+    this.deps.relinkQuestTopics?.(quest);
     let returned = 0;
     for (const name of carried) {
       const res = quest.getItem?.({ name });
-      if (!res?.daggerfallUnityItem || (this.deps.keepsQuestItem ?? this.deps.carriesQuestItem)?.(res)) continue;   // AUDIT QA3 B8: kept anywhere
+      if (!res?.daggerfallUnityItem || (this.deps.keepsQuestItem ?? this.deps.carriesQuestItem)?.(res)) continue;
       this.deps.giveItemToPlayer?.(structuredClone(res.daggerfallUnityItem));
       returned++;
     }
@@ -1986,34 +1025,16 @@ export class QuestMachine {
     return { ok: true, quest, returned };
   }
 
-  /**
-   * QUEST-RESET (2026-10-13, LostMyLeg on Discord: the Dust of Restful Death's mummy "wont spawn in the dungeon choosen
-   * by the quest ... the queststate itself is borked. We prob need to add an option that can fully reset a quest"):
-   * RESTART - the quest thrown away and started again from its own script, as `start quest` starts it. The new copy is
-   * parsed FIRST, while the old one still holds its sites, so its Places choose afresh away from the ones the old copy
-   * broke in; a copy that will not parse here (no source, no site of its kind left) leaves the old one as it was. Then
-   * the old copy goes the way an error-terminated quest goes (removeQuest: its quest items leave the pack, its site
-   * links, topics and questors go; no reputation and no journal entry - it did not end) and the new one starts at once.
-   * A shared copy leaves the party's step first, so the tombstone does not file it as finished (Share it again).
-   * Refused: a quest gone, ending or set aside; the world's own (PROTECTED_QUESTS); one with a questor (a restart
-   * would bind whoever was clicked last - abandon it and ask its questor again); one another quest's `run quest` is
-   * waiting on (the parent would read the restart as a failure); and whatever the host's `refuse` names. Not a DFU
-   * member (DFU's restart is its developer console). Answers `{ ok, reason?, quest? }` - `quest` the new copy.
-   */
+  // The new copy is parsed first, while the old one still holds its sites, so its Places choose afresh.
   restartQuest(uid, { refuse = null } = {}) {
     const why = this.restartRefusal(uid, { refuse });
     if (why) return { ok: false, reason: why };
     const old = this.quests.get(Number(uid));
-    // AUDIT QUESTLINES BRANCH-14: THE STAMP IS FOR LIFE, A RESTART'S TOO (decision 1). A stamped quest restarted with the
-    // switch off (offline, the player's) was read and started as DFU's: a questline's own step unstamped, its `ql act`
-    // deaf for good (qlActions.js QlAct). A stamped quest is read with its branch and starts stamped whatever the switch
-    // says now (its tier the holder's, as a start reads it); an unstamped one restarts as any start does, by the switch now.
     const stamped = old.ql?.stamp === QL_STAMP;
     const lines = this.deps.getQuestSourceLines?.(old.questName, stamped || undefined);
     const fresh = lines ? this.parseQuestForLists(lines, old.factionId) : null;
     if (!fresh) return { ok: false, reason: 'unparsed' };
     if (stamped) fresh.ql = this.deps.questlinesStamp?.(fresh) ?? { ...freshState(), tier: old.ql.tier };
-    // AUDIT QA3 A2: the gold the old copy paid is paid - its new copy's `get item` and `give pc` of it pay nothing more
     for (const [key, r] of old.resources) if (r?.isItem && r.goldPaid && fresh.resources.get(key)?.isItem) fresh.resources.get(key).goldPaid = true;
     if (this.sharedCandidateNamed(old.questName) === old) this.sharedQuestNames.delete(old.questName);
     this.removeQuest(old);
@@ -2027,21 +1048,12 @@ export class QuestMachine {
     return { ok: true, quest: fresh };
   }
 
-  /** QUEST-RESET: why the quest may not be restarted now, or null - restartQuest's ladder, and the journal's button
-   *  (questBridge.js canRestart) asks the same one. */
   restartRefusal(uid, { refuse = null } = {}) {
-    const why = this.shelveRefusal(uid);   // Abandon's own rungs: gone, set aside, ending, the world's own
+    const why = this.shelveRefusal(uid);
     if (why) return why;
     const quest = this.quests.get(Number(uid));
-    // STORY-AGAIN (#982): a questor BOUND BY THE CLICK (Person.setupQuestorNPC - its questorData the clicked NPC's) is
-    // whoever was clicked last when a parse runs again; one the script names and makes its questor (`add _Mynisera_ as
-    // questor` - the main story's every step) binds the same person again, and its quest restarts as any other
     if (holdsQuestorDoor(quest)) return 'questor';
-    // QUEST-AUDIT III RESTART-PAID: a quest that has paid out runs on to its end - restarted, it paid again (S0000015's
-    // diary money and standing, Nocturnal's artifact), as often as the button was pressed
     if (questPaidOut(quest)) return 'paid';
-    // AUDIT QA3 B1: nor one whose `start quest` has run - its new copy starts that quest again (S0000008's totem to the
-    // King of Worms: S0000106's +100 with sixteen factions, every press; its revenge quests twice)
     if ([...quest.tasks.values()].some((t) => t.actions?.some((a) => a?.typeName === 'StartQuest' && a.isComplete))) return 'started';
     for (const parent of this.quests.values()) {
       if (parent === quest || parent.questComplete || parent.questTombstoned) continue;
@@ -2052,22 +1064,7 @@ export class QuestMachine {
     return refuse ? refuse(quest) ?? null : null;
   }
 
-  /**
-   * STORY-AGAIN (#982, levelman123: S0000012's messenger was not found in the two days the quest gives, "Quest fails. I
-   * am unable to continue main story"): A STEP OF THE MAIN STORY THAT FAILED IS TAKEN UP AGAIN. Daggerfall's main
-   * quests end on a refusal, a missed window or a death (S0000012's `_S.07_`, every `_no_` task), and the step that
-   * would have started the next one never runs: the story stops for good. Not a DFU member (DFU's way back is its
-   * developer console). The quest starts again from its own script, as `start quest` starts it - its questor waits for
-   * the player and offers it once more. Why it may not, or null: not the main story's own ('protected'); a copy running
-   * or set aside ('running'); not one that has ended ('gone'); no source here ('unparsed'); a step the story does not
-   * need - one that starts no step it needs and sets none of its globals (S0000001's letters, S0000009's dead end:
-   * 'needless', AUDIT QA3 B6); the story went on past it ('carried') - a step it needs began, by however many steps
-   * (S0000020's Elysana's Betrayal files no journal entry: B2), or, for a step that starts none, a global it sets is set
-   * (S0000021's KingOfWormsSatisfied); or its own work would run again at once - a link task of its global already set
-   * that pays, starts a quest or ends it (S0000008's totem given, S0000009 after the finale: B1, B4). WHETHER IT PAID
-   * IS NOT ASKED (B2, B3): a step that paid and still stopped the story (S0000015's diary to Gortwog before its gates
-   * stood, S0000004's errand and then the thirty days) is the story's to take up again, its pay with it.
-   */
+  // A failed main story step can start again unless the story went on past it or its own work would rerun at once.
   storyAgainRefusal(questName) {
     const name = String(questName ?? '').toUpperCase();
     if (!isMainStoryQuest(name)) return 'protected';
@@ -2100,11 +1097,8 @@ export class QuestMachine {
     return null;
   }
 
-  /** STORY-AGAIN: the ended steps of the main story that may be started again, oldest record first. */
   storyAgainQuests() { return [...this.storyEnded].filter((n) => this.storyAgainRefusal(n) === null); }
 
-  /** STORY-AGAIN: start the failed step `questName` again (storyAgainRefusal's ladder first). Answers
-   *  `{ ok, reason?, quest? }` - `quest` the new copy, running now. */
   startStoryAgain(questName) {
     const why = this.storyAgainRefusal(questName);
     if (why) return { ok: false, reason: why };
@@ -2114,11 +1108,6 @@ export class QuestMachine {
     return { ok: true, quest };
   }
 
-  /** STORY-AGAIN: an envelope saved before the story's record (`storyLegacy`) learns it from the journal's archive -
-   *  `entries` its filed quests, `{ quest }`: each named one began and ended (the archive files an end). AUDIT QA3 B2/F1:
-   *  its success is not read - the archive's word is the QuestComplete box, and S0000015, S0000020 and S0000011 finish
-   *  without one; whether the story went on is the ladder's (storyAgainRefusal). A save that carries the record reads
-   *  its own. */
   seedStory(entries) {
     if (!this.storyLegacy) return;
     for (const e of entries ?? []) {
@@ -2130,69 +1119,35 @@ export class QuestMachine {
     this.storyLegacy = false;
   }
 
-  /** Dispose resources then task actions (Quest.cs Dispose order,
-   *  AUDIT quest-P5), mark tombstoned (site-link scrub rides Q3). */
   tombstoneQuest(quest, { ended = false } = {}) {
-    // QL1 (bible/06-Systems/Questlines-Arc.md section 2.3): a quest a system ENDS in its own place - the werewolf's cure
-    // closes $CUREWER (racialQuests.js endLycanthropyQuests, DFU's own tombstone, EndLycanthropyQuests) - settles its
-    // questlines outcome as its own `end quest` would (quest.js endQuest), first, while its tasks still stand
     if (ended && !quest.questComplete && !quest.questTombstoned) quest.hooks?.questEnding?.(quest);
-    // DISC28-I: a shared copy that ENDED (its own `end quest`, not an error's removal, not a finish a partner's
-    // envelope just brought - that one is the partner's to tell) leaves its final state for the party, taken now,
-    // before the dispose below
+    // A shared copy that ended takes its final envelope now, before the dispose below.
     if (quest.questComplete && !quest.questTombstoned && !quest._finishedBySync && this.sharedQuestNames.has(quest.questName)) {
       const data = this.getShareableQuestData(quest.uid);
       if (data) this._finishedShares.push(data);
     }
-    // AUDIT DROPS A2: a finished shared quest leaves the live-sync set and is remembered as finished - see the
-    // constructor's own note on the two sets
     if (this.sharedQuestNames.has(quest.questName)) { this.sharedQuestNames.delete(quest.questName); this.finishedSharedQuestNames.add(quest.questName); }
-    if (quest.shareId) this.finishedShareIds.add(quest.shareId);   // DISC22-F: this copy, whatever its name
-    // STORY-AGAIN (#982): a step of the main story that ends - its own end, an error's, a restart's throw-away (whose new
-    // copy clears it as it starts) - is one the journal may start again, if the story did not go on (storyAgainRefusal)
+    if (quest.shareId) this.finishedShareIds.add(quest.shareId);
     if (isMainStoryQuest(quest.questName)) this.storyEnded.add(quest.questName.toUpperCase());
     for (const resource of quest.resources.values()) resource.dispose();
     for (const task of quest.tasks.values()) task.disposeActions();
-    // RemoveAllQuestSiteLinks (QuestMachine.cs:1042-1048): a
-    // tombstoned quest's SiteLinks die with it - stale links would
-    // make hasSiteLink lie to the NEXT quest at the same site (the
-    // sequential-guild-hall case; Q3-i VERIFY: the scrub was missing).
+    // Site links die with the quest, or hasSiteLink would mislead the next quest at the same site.
     this.siteLinks = this.siteLinks.filter((link) => link.questUID !== quest.uid);
     quest.tombstone();
-    // RaiseOnQuestEndedEvent (QuestMachine.cs:1047) - LAST, after the
-    // dispose, the tombstone and the SiteLink scrub, C#'s own order.
-    // The HUD escorting faces' "unlike Daggerfall" sweep rides it.
     this.deps.onQuestEnded?.(quest);
   }
 
-  /** RemoveQuest (QuestMachine.cs): tombstones first if the quest is
-   *  not already - the error-termination path lands here - then drops
-   *  it from the live table. */
   removeQuest(quest) {
     if (!quest) return false;
     if (!quest.questTombstoned) this.tombstoneQuest(quest);
     this.quests.delete(quest.uid);
-    // RPT1026-MISC RUMOR-ORPHAN (a private report: a resident's news was a quest's own words, its placeholders bare -
-    // A0C01Y09's post-quest rumor). The tombstone files the quest's RumorsPostSuccess / RumorsPostFailure as its progress
-    // rumor (Quest.cs:637-640) and this removal, a week of the quest's clock later, leaves it in the mill - where the
-    // next telling asks for a quest the machine no longer holds, and ExpandQuestMessage's null-parent bail hands the
-    // words over unexpanded. DFU has the same orphan until its next load, whose RestoreConversationData sweep
-    // (TalkManager.cs:2522-2533, save.js removeOrphanedQuestRumors) takes it - a departure from QuestMachine.RemoveQuest
-    // only in WHEN: the rumor goes with its quest, not at the next load (a session online is days of a character's clock).
+    // The post-quest rumor leaves with its quest, or its next telling would show unexpanded placeholders.
     this.deps.removeProgressRumors?.(quest.uid);
     return true;
   }
 
-  // ---- SiteLinks (Q3-i): "reserved by 'create npc at'" and every
-  // placement action - the bridge layout builders walk to discover
-  // which quest resources stand at a site. ----
-
-  /** AddSiteLink (QuestMachine.cs). */
   addSiteLink(siteLink) { this.siteLinks.push(siteLink); }
 
-  /** GetSiteLinks(siteType, mapId, buildingKey, magicNumberIndex) -
-   *  the layout builders' query. buildingKey/magicNumberIndex of 0
-   *  match any, as in C# (the callers pass 0 when not applicable). */
   getSiteLinks(siteType, mapId, buildingKey = 0, magicNumberIndex = 0) {
     return this.siteLinks.filter((link) =>
       link.siteType === siteType && link.mapId === mapId
@@ -2200,11 +1155,6 @@ export class QuestMachine {
       && (magicNumberIndex === 0 || link.magicNumberIndex === magicNumberIndex));
   }
 
-  /** HasSiteLink(parentQuest, placeSymbol) (QuestMachine.cs:1739). QUEST-AUDIT III LINK-OWN: THIS quest's link for THIS
-   *  Place at its site - C# answered for any link at the site, so a second Place of the same quest at the same building
-   *  (S0000503's `_dummy_`'s home and `_magesguild_`, one Mages Guild hall in 17% of starts) never got its own, and the
-   *  mount, which walks each link's Place, never stood the map `place item` put there; and another quest's link at the
-   *  site stood in for this one's until that quest ended (QREPAIR's second mend, now its backstop). */
   hasSiteLink(parentQuest, placeSymbol) {
     const place = parentQuest.getPlace(placeSymbol);
     if (!place) throw new Error(`HasSiteLink() could not find Place symbol ${placeSymbol?.name}`);
@@ -2213,16 +1163,12 @@ export class QuestMachine {
       .some((link) => link.questUID === parentQuest.uid && link.placeSymbol?.name === place.symbol?.name);
   }
 
-  /** CreateSiteLink(parentQuest, placeSymbol) (QuestMachine.cs:1757). */
   createSiteLink(parentQuest, placeSymbol) {
     const place = parentQuest.getPlace(placeSymbol);
     if (!place) throw new Error(`Attempted to add SiteLink for invalid Place symbol ${placeSymbol?.name}`);
     this.addSiteLink({ questUID: parentQuest.uid, placeSymbol: placeSymbol.clone(), ...linkSiteOf(place) });
   }
 
-  /** GetAllActiveQuestSites (QuestMachine.cs:769): every Place's site
-   *  across INCOMPLETE quests - the already-assigned exclusions in
-   *  the site collectors read it. */
   getAllActiveQuestSites() {
     const sites = [];
     for (const quest of this.quests.values()) {
@@ -2234,28 +1180,17 @@ export class QuestMachine {
     return sites;
   }
 
-  /** WD3 (AUDIT WD3 S5): every incomplete quest's building sites whose town stands in another layout now, chosen again
-   *  in it (Place.reseatMovedSite), their site links following - and (QUESTOR-MOVED) its questors met in a building of
-   *  such a town, seated again in it (Person.reseatMovedQuestor), their halls with them. Answers how many moved. */
   reseatMovedSites(world = this.deps.world ?? null) {
     if (!world) return 0;
     let moved = 0;
-    // QUEST-AUDIT III RESEAT-TYPED: every quest's sites of a KIND first, the wildcards (`random`, a house of any kind)
-    // after - in quest order, A0C00Y06's and A0C00Y07's `local random` took both of a re-laid town's taverns and
-    // A0C00Y10's `local tavern` was unseated, its duel never standing
     for (const quest of this.quests.values()) moved += this._reseatMovedOf(quest, world, 'typed');
     for (const quest of this.quests.values()) moved += this._reseatMovedOf(quest, world, 'wild');
     return moved;
   }
-  /** One quest's half of reseatMovedSites - the questors first, so a questor's hall moves with them and never by a
-   *  Place's own law (it has none: Place.reseatMovedSite's Scopes.None). FIELD BUGS 2026-10-04d QUEST-MARKERS: and every
-   *  building site's markers the curation moves, moved (Place.mendCuratedMarkers) - not counted: no site moved. FB1020h
-   *  SITE-NAMED: and every building site a save carries with no name, named from its building (Place.nameSiteAgain). */
   _reseatMovedOf(quest, world, pass = null) {
     if (!world || quest.questComplete) return 0;
     let moved = 0;
     const follow = (place) => this._followSite(quest, place);
-    // RESEAT-TYPED: `pass` 'typed' seats the questors and the sites of a kind, 'wild' the rest and the mends; none, all
     const typed = (place) => (place.declaredSiteLaw?.()?.p2 ?? -1) >= 0;
     for (const resource of pass === 'wild' ? [] : quest.resources.values()) {
       if (!resource.isPerson || !resource.reseatMovedQuestor?.(world)) continue;
@@ -2268,28 +1203,19 @@ export class QuestMachine {
       if (!resource.isPlace || !resource.reseatMovedSite?.(world)) continue;
       moved++;
       follow(resource);
-      resource.fitSiteToBuild?.(world);   // KVAR-HOLD's audit: a dungeon drawn again, fitted to the size its link now builds
+      resource.fitSiteToBuild?.(world);
     }
     if (pass === 'typed') return moved;
     for (const resource of quest.resources.values()) if (resource.isPlace) resource.mendCuratedMarkers?.(world);
-    for (const resource of quest.resources.values()) if (resource.isPlace) resource.nameSiteAgain?.(world);   // FB1020h SITE-NAMED: a site the bag named '' off a town - not counted: no site moved
+    for (const resource of quest.resources.values()) if (resource.isPlace) resource.nameSiteAgain?.(world);
     return moved;
   }
-  /** A Place's site links moved to where it stands now - the whole site, its town with it (AUDIT QA2). One walk, the
-   *  layouts' re-seat's and a homed site's (reseatHomedSites). */
   _followSite(quest, place) {
     for (const link of this.siteLinks) {
-      if (link.questUID === quest.uid && link.placeSymbol?.name === place.symbol?.name) Object.assign(link, linkSiteOf(place));   // AUDIT QA2: the whole site, its town with it
+      if (link.questUID === quest.uid && link.placeSymbol?.name === place.symbol?.name) Object.assign(link, linkSiteOf(place));
     }
   }
 
-  /**
-   * FIELD BUGS 2026-10-14 QUEST-HOME (Mac, 2026-10-15: "Close both"): EVERY BUILDING SITE NOT YET REACHED THAT IS A
-   * PLAYER'S HOME NOW, CHOSEN AGAIN in its own town (Place.repickHomedSite), its site links following and the host told
-   * (`world.questSiteMoved(quest, place, was)` - the town map's mark and the talk's discovery move with it). Asked
-   * whenever the page learns of homes (the world host, its homesLearned: the boot's read of every town, the hub's word that one moved, a
-   * town's own answer). A quest complete, or set aside (QUEST-SHELF), moves nothing. Answers how many moved.
-   */
   reseatHomedSites(world = this.deps.world ?? null) {
     if (!world?.isPlayerHome) return 0;
     let moved = 0;
@@ -2307,9 +1233,6 @@ export class QuestMachine {
     return moved;
   }
 
-  /** QUEST-HOME: THE PLAYER STANDS INSIDE town `mapId`'s building `buildingKey` - every incomplete quest's site there is
-   *  REACHED, for good (`siteDetails.reached`, saved with the site): what the player found in it is never moved
-   *  (Place.repickHomedSite). The interior mount's (scenes/quest/questBridge.js mountScene). Answers how many were new. */
   noteSiteReached(mapId, buildingKey) {
     if (!(buildingKey > 0)) return 0;
     let n = 0;
@@ -2325,27 +1248,17 @@ export class QuestMachine {
     return n;
   }
 
-  /** QUESTOR-MOVED: a quest that ARRIVED (a partner's share, a resync) is mended as a load mends a save's
-   *  (the world host's applyLayoutPins) - a copy taken before the town mods names a questor and sites in a layout it no
-   *  longer stands in. Not before the host knows its towns' layouts: the world seam's `townLayoutsKnown()` (online,
-   *  the service's homes, AUDIT WD3 S4/S5; absent, known) - the load's own reseat runs once it does. */
   _reseatArrived(quest) {
     const world = this.deps.world ?? null;
     if (!world || world.townLayoutsKnown?.() === false) return 0;
     return this._reseatMovedOf(quest, world);
   }
 
-  /** QUESTOR-MOVED: the name a static NPC answers to when it was seated as a questor that stood elsewhere
-   *  (Person.reseatMovedQuestor) - the questor's own, the journal's - or null. In DFU the questor's name and the NPC's
-   *  are one (Person.nameSeed is the clicked NPC's, SetupQuestorNPC), so a questor bound where they stand answers
-   *  null here and the NPC's own name stands, as DFU's does. */
   movedQuestorName(npcData) {
     const person = this.activeQuestor(npcData);
     return person && person.nameSeed !== npcData?.nameSeed ? person.displayName : null;
   }
 
-  /** WD3 (AUDIT WD3 S3): every incomplete quest's questor met in a building - its town keeps the layout the questor
-   *  was met in (systems/layoutPins.js layoutRecordsOf). */
   getAllActiveQuestors() {
     const out = [];
     for (const quest of this.quests.values()) {
@@ -2357,25 +1270,15 @@ export class QuestMachine {
     return out;
   }
 
-  /** DISC28-I (Discord: a quest shared by a friend - "we couldn't enter the house after I entered it"): PlayerActivate.
-   *  IsActiveQuestBuilding (PlayerActivate.cs:1315-1329), the lock ladder's quest rung and the house market's
-   *  exclusion. It reads GetAllActiveQuestSites - EVERY Place of every incomplete quest, matched on building key and map
-   *  id alone - and, residencesOnly (the default), only a House1-House6 building. The port asked the site LINKS
-   *  instead, which only a placement action makes: a quest that names a residence and places nothing in it (The
-   *  Exterminator's `create npc at`, `pc at`) left the house locked to its own quest-holder, while a friend who had the
-   *  quest SHARED - whose receipt links every Place - walked in. */
   isActiveQuestBuilding(mapId, buildingKey, buildingType, residencesOnly = true) {
     if (residencesOnly && !(buildingType >= HOUSE1 && buildingType <= HOUSE6)) return false;
     return this.getAllActiveQuestSites().some((site) => site.buildingKey === buildingKey && site.mapId === mapId);
   }
 
-  /** ActiveFactionPersons (QuestMachine.cs:1085-1107): Person
-   *  resources of the faction across all NON-COMPLETE quests -
-   *  completed/tombstoned quests must not lock an NPC out. */
   activeFactionPersons(factionID) {
     const found = [];
     for (const quest of this.quests.values()) {
-      if (quest.questComplete || isShelved(quest)) continue;   // QUEST-SHELF: a named NPC a quest set aside held is home again
+      if (quest.questComplete || isShelved(quest)) continue;
       for (const resource of quest.resources.values()) {
         if (resource.isPerson && resource.factionId === factionID) found.push(resource);
       }
@@ -2383,20 +1286,6 @@ export class QuestMachine {
     return found;
   }
 
-  /** Add/RemoveFactionListener (QuestMachine.cs:1174-1198): first
-   *  claim wins, a missing claim is a no-op.
-   *
-   *  AUDIT 24 (wave 25): three comments here named TALKMANAGER as the
-   *  reader and marked the wiring "(Q4 wires)". Neither is true.
-   *  `HasFactionListener` has exactly one consumer in the whole DFU
-   *  tree - PlayerActivate.StaticNPCClick:1534, which returns before
-   *  any routing when a quest is listening on the clicked NPC's
-   *  faction ("This effectively shuts down several named NPCs during
-   *  main quest") - and TalkManager.cs does not contain the word
-   *  Listener at all. The port already ships that reader, at
-   *  src/scenes/worldModes.js:"if (questBridge?.machine.factionListeners.has(pn.factionID))". A pending marker over shipped work
-   *  is worse than no marker: it sends the next reader looking for
-   *  work that is done, in a file that never had it. */
   addFactionListener(factionID, owner) {
     if (!this.factionListeners.has(factionID)) this.factionListeners.set(factionID, owner);
   }
@@ -2405,14 +1294,6 @@ export class QuestMachine {
     this.factionListeners.delete(factionID);
   }
 
-  /** CullResourceTarget (QuestMachine.cs:1496): removes a resource
-   *  from the SELECTED marker of every linked Place of its quest
-   *  before it lands at a new one - a moved resource must not stand
-   *  in two sites. QUIRKS KEPT: the newPlace parameter is DEAD in C#
-   *  (the arriving place is pruned too, then re-added); a stale link
-   *  whose quest or place cannot resolve ABORTS the whole cull
-   *  (return, not continue); a marker symbol that no longer resolves
-   *  to a resource is skipped. */
   cullResourceTarget(resource, _newPlaceSymbol) {
     if (!resource) return;
     for (const link of this.siteLinks) {
@@ -2432,10 +1313,7 @@ export class QuestMachine {
   }
 }
 
-/** A site link's half that is its Place's site (CreateSiteLink, QuestMachine.cs:1757) - ONE derivation, for the link made
- *  and for the link a re-seat moves (AUDIT QA2: the re-seat copied the building key alone, and once NEAR-SITE could move a
- *  site to another town its link stayed on the old one - the mount stood the quest's person or thing in a stranger's
- *  building there and never in the site's, and Repair, finding a link, left it). */
+// One derivation for a new link and a re-seated one, so a moved site's link follows it to another town.
 export const linkSiteOf = (place) => ({
   siteType: place.siteDetails?.siteType,
   mapId: place.siteDetails?.mapId,

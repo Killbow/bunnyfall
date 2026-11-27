@@ -13,6 +13,7 @@ files:
   - "tools/lib/importGraph.mjs"
   - "tools/codex/cli.mjs"
   - "selfhost/upstream-ci/workflows/relay-deploy.yml"
+  - "src/world/quat.js"
 routes: []
 tables: []
 replacesBible:
@@ -25,6 +26,7 @@ related:
 invariants:
   - "RELAY_VERSION is exported from src/net/wire.js so both client and relay know the relay's name; the welcome frame carries it as `v` (server/src/message/frames/hello.js) and GET /health reports it (server/src/worker/entry.js)."
   - "Bump RELAY_VERSION with every relay-changing slice; the relay is deployed separately from the client, so version skew is normal on release day."
+  - "`quatToMat4Into` is a separate copy of mat4.js `quatToMat4` because mat4.js is in the relay bundle, where any byte change is a relay deploy. Keep the two numerically identical."
 traps:
   - "Moving or editing any src/ file that the relay imports (mostly src/net/) changes the relay bundle and needs a relay redeploy, which drops connected players' sockets."
   - "Never hardcode the RELAY_VERSION string in docs or tests; read it from src/net/wire.js."

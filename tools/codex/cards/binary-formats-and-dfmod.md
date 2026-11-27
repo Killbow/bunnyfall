@@ -16,6 +16,7 @@ files:
   - src/formats/mwBsaFile.js
   - src/formats/unityBundle.js
   - tools/importDfmod.mjs
+  - src/mods/dfmodTextures.js
 invariants:
   - "Binary parsers in src/formats/ read immutable Uint8Array views or range-sliced byte sources with zero DOM dependencies."
   - "arch3dFile.js applies the 905 per-record byte fixes from arch3dPatch.js onto private copies rather than mutating shared BSA buffers."
@@ -23,6 +24,8 @@ invariants:
 traps:
   - "Cloning multi-hundred-megabyte Morrowind BSA or multi-gigabyte .dfmod archives into memory hits browser limits; slice by Blob byte range instead."
   - "Asset-only .dfmod packages unpack via tools/importDfmod.mjs, whereas bundled .dll behavior must be ported manually into src/."
+  - "The dfmod registration runs on every host boot and returns the cached result for an unchanged set; compare `_registered` with null, not truthiness, because a count of 0 (all texture mods off) is still a registration."
+  - "`forgetOpen` runs after the stored indexes are read and before the new registration replaces the old one; calling it earlier lets a picture asked during the reads cache a client or null for the wrong registration."
 dfu:
   - Assets/Scripts/API/BsaFile.cs
   - Assets/Scripts/API/Arch3dFile.cs

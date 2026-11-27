@@ -1,8 +1,4 @@
 // @ts-check
-// PARTY-PING: the mark, who placed it, and what it names. A screen layer,
-// so the pin is the same size at any distance and shows through walls.
-// The words wear the vitals' face (ui/pixelifyFive.js). The pin is a map
-// marker drawn here. Not a DFU member.
 import { PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from '../ui/pixelifyFive.js';
 
 const eliteInk = (now) => {
@@ -11,10 +7,8 @@ const eliteInk = (now) => {
   return `rgb(${c(0.35)}, ${c(0.75)}, ${c(1)})`;
 };
 
-/** A filled map pin, 24 units. The tip is the bottom of the view. */
 const PIN = `<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 1.2c-4.3 0-7.6 3.4-7.6 7.6 0 5.7 7.6 13.8 7.6 13.8s7.6-8.1 7.6-13.8c0-4.2-3.3-7.6-7.6-7.6zm0 10.4a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6z"/></svg>`;
 
-/** Metres, the way a plaque says them. */
 export function pingDistanceText(metres) {
   if (!(metres >= 0)) return '';
   const n = metres < 10 ? Math.round(metres * 10) / 10 : Math.round(metres);

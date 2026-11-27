@@ -31,6 +31,7 @@ invariants:
 traps:
   - "Attacking an exhibition fighter from outside the match reverses the damage and triggers the Herald's first warning (`intrude`); a second hit reports a crime to the city watch (`intrudeCrime`)."
   - "Bookmaker wagers apply only to the hourly exhibition (`arenaBook.js`); abandoning the scene before the verdict (`BOUT_LEFT`) forfeits the stake, whereas a draw refunds all bets."
+  - "Local bouts in `createArenaBouts` run on `lawNow`, a clock that skips time the world did not run (an open window, a hidden tab), so the time limit, stall calls (`STALL_MS`), and AI tempers pause with it; relay bouts and replays use the real clock (`clockOf`)."
 dfu: []
 tags:
   - arena

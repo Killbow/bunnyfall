@@ -1,35 +1,18 @@
 // @ts-check
-// SHIP-COLOURS (2026-10-17, the owner: "Finally, a fully customizable flag with the option to use your guild insignia";
-// bible/03-World/Naval-Refit.md SHIP-COLOURS) - A SHIP'S FLAG, FLOWN: cloth at her masthead, streaming downwind.
-//
-// The guild's banners (render/bannerPass.js) hang from a wall; a flag flies from a staff. Each is a sheet of
-// FLAG_COLS by FLAG_ROWS quads, its HOIST edge (u 0) nailed at the masthead (her FlagObject - Come Sail Away aims it down
-// the wind she feels, ComeSailAway.cs's flag rotation, so the fly lies along its forward) and its FLY (u 1) out along
-// it. A travelling wave runs from the hoist to the fly, its throw growing toward the free edge and with the wind; in a
-// light air the fly bends down toward the staff along an arc (its length kept). Its normal is the wave's own slope, so the folds
-// catch the sun. The picture is the flag's drawing (ui/flagArt.js drawFlag), one texture a flag, kept while it is
-// drawn (BANNER_TEXTURE_IDLE_S, the banners' law); the shape's cut is discarded, both faces drawn, lit by the frame's sun
-// and moon and fogged as the ground is (bannerPass.js's fragment law).
-//
-// Every rate is a whole number of cycles over BANNER_CLOCK_PERIOD and the clock is handed wrapped (bannerClock), so the
-// wave never stutters as a 32-bit float's seconds grow; each flag's phase is its own.
+// Ship flag pass: a cloth sheet fixed at the masthead with a traveling wave out to the fly. Every rate is a whole
+// number of cycles over BANNER_CLOCK_PERIOD on a wrapped clock, so the wave never stutters as float seconds grow.
 import { FOG_FACTOR_GLSL } from './labGrass.js';
 import { buildProgram } from './glProgram.js';
 import { bannerClock, BANNER_TEXTURE_IDLE_S } from './bannerPass.js';
-import { BAYER_GLSL, DISSOLVE_GLSL } from './orderedDither.js';   // AUDIT 2: SHIP-FADE's dissolve, her cloth with her hull
+import { BAYER_GLSL, DISSOLVE_GLSL } from './orderedDither.js';
 
-/** The quads along the fly and down the hoist. */
 export const FLAG_COLS = 12;
 export const FLAG_ROWS = 3;
-/** The most flags a frame draws - SEA-COLOURS: the sea's ships' with the players', the nearest first (a cloth is one draw). */
 export const FLAGS_MAX = 24;
-/** The canvas a flag is drawn on, pixels wide (two thirds as tall). */
 export const FLAG_TEX_W = 96;
-/** A flag that would not paint is asked again this long on (s) - never every frame. */
+// A flag that would not paint is retried after this long, never every frame.
 export const FLAG_REPAINT_S = 5;
-/** How far a dead calm bends the fly down toward the staff (radians at its free edge). */
 export const FLAG_SLACK_BEND = 0.9;
-/** The wave's cycles a second and its waves along the cloth (whole over the period - a pin holds the rate). */
 export const FLAG_WAVE_HZ = 1.5;
 export const FLAG_WAVES = 1.6;
 
@@ -105,7 +88,6 @@ void main() {
   o = vec4(dwWaterFog(c, vWorld), 1.0);
 }`;
 
-/** The cloth's vertices, (along, down) pairs, two triangles a quad. Pure. */
 export function flagVertices(cols = FLAG_COLS, rows = FLAG_ROWS) {
   const out = new Float32Array(cols * rows * 6 * 2);
   let o = 0;
@@ -118,7 +100,6 @@ export function flagVertices(cols = FLAG_COLS, rows = FLAG_ROWS) {
   return out;
 }
 
-/** The fly's flat direction from a forward (her FlagObject's), unit - or +z for one that points straight up or down. */
 export function flyOf(forward) {
   const x = Number(forward?.[0]) || 0, z = Number(forward?.[2]) || 0;
   const l = Math.hypot(x, z);
@@ -133,7 +114,7 @@ function mat4Multiply(out, a, b) {
 }
 const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_WATER_FOG = new Float32Array(20);
-const NO_HAZE = new Float32Array(8);   // BANTHA1: uJungleHaze off ([1].x 0)
+const NO_HAZE = new Float32Array(8);
 const NO_FOCUS = new Float32Array(4);
 const GREY = new Float32Array([0.5, 0.5, 0.5]);
 const UP = new Float32Array([0, 1, 0]);
@@ -158,15 +139,11 @@ export class ShipFlagRenderer {
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
     this._vp = new Float32Array(16);
-    /** @type {Map<string, {tex: WebGLTexture | null, seen: number, failed?: number}>} a flag's texture, by its key, when it
-     *  was last drawn, and (null) when it would not paint */
+    /** @type {Map<string, {tex: WebGLTexture | null, seen: number, failed?: number}>} */
     this.textures = new Map();
     this.drawn = 0;
   }
 
-  /** A flag's texture: painted and uploaded the first time, kept while it is drawn (null where it cannot be painted -
-   *  remembered so, and asked again FLAG_REPAINT_S on: AUDIT 2026-10-17, a canvas was made and painted every frame for a
-   *  flag that would not paint). */
   textureOf(key, flag, seconds = 0) {
     const had = this.textures.get(key);
     if (had) { had.seen = seconds; if (had.tex || seconds - had.failed < FLAG_REPAINT_S) return had.tex; }
@@ -188,18 +165,12 @@ export class ShipFlagRenderer {
     this.textures.set(key, { tex, seen: seconds });
     return tex;
   }
-  /** A flag not drawn for BANNER_TEXTURE_IDLE_S gives its texture back - asked by every draw, one of no flags too (the
-   *  host draws on, so the textures of flags sailed out of sight go). */
+  // Every draw calls this, even one with no flags, so textures of flags sailed out of sight are released.
   prune(seconds) {
     for (const [key, t] of this.textures) if (seconds - t.seen > BANNER_TEXTURE_IDLE_S) { if (t.tex) this.gl.deleteTexture(t.tex); this.textures.delete(key); }
   }
 
-  /**
-   * Draw the flags: `flags` [{ key, flag, top: [x, y, z] in the scene, fly: [x, 0, z] unit, size: [fly, hoist], phase, fade }]
-   * (`fade` AUDIT 2: her SHIP-FADE share, 1 or none whole)
-   * (at most FLAGS_MAX), `seconds` any clock, `light` the frame's, `wind` 0..1, `fog` the frame's. Answers whether it
-   * drew anything (the host marks the foreign pass on it).
-   */
+  // The host calls renderer.markForeignPass when this returns true.
   draw(flags, proj, view, eye, seconds, { light = null, wind = 0, fog = null } = {}) {
     this.drawn = 0;
     this.prune(seconds);
@@ -224,7 +195,7 @@ export class ShipFlagRenderer {
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
     gl.uniform3fv(U.uCamPos, fog?.camPos ?? eye ?? GREY);
     if (U.uDwFog) gl.uniform4fv(U.uDwFog, fog?.dw ?? NO_WATER_FOG);
-    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);   // BANTHA1: the jungle's haze (renderer.setJungleHaze); none handed, off
+    if (U.uJungleHaze) gl.uniform4fv(U.uJungleHaze, fog?.haze ?? NO_HAZE);
     if (U.uFocus) gl.uniform4fv(U.uFocus, fog?.focus ?? NO_FOCUS);
     gl.uniform1i(U.uTex, 0);
     gl.activeTexture(gl.TEXTURE0);
@@ -239,7 +210,7 @@ export class ShipFlagRenderer {
       gl.uniform3f(U.uFly, fly[0], fly[1], fly[2]);
       gl.uniform2f(U.uSize, f.size[0], f.size[1]);
       gl.uniform1f(U.uPhase, Number(f.phase) || 0);
-      if (U.uDissolveCut) gl.uniform1f(U.uDissolveCut, 1 - Math.max(0, Math.min(1, Number.isFinite(f.fade) ? f.fade : 1)));   // AUDIT 2: her fade's share CUT (nought whole)
+      if (U.uDissolveCut) gl.uniform1f(U.uDissolveCut, 1 - Math.max(0, Math.min(1, Number.isFinite(f.fade) ? f.fade : 1)));
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
       this.drawn++;
     }

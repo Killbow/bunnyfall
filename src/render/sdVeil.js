@@ -1,53 +1,21 @@
 // @ts-check
-// SD-LOOK (2026-10-08, bible/11-Multiplayer/Super-Dungeons-Look.md section 3): THE STEP THROUGH THE HOUR - the Shattered
-// Hour's own veil, chosen by theme in ui/gate/gateVeil.js beside Dagon's fire (render/gate/gateVeil.js keeps its program and its
-// law: `veilAt` times this one too). One triangle over the veil's own canvas, as the fire's.
-//
-//   INTO THE HOUR - twelve heavy brass blades sweep in from the screen's edges, pivoting on the point where the Rift
-//     stood on the screen (`uCentre`), closing like the Rift's own iris: engraved with minute ticks, a rivet at each
-//     pivot, gold light along each leading edge, gold pouring through the gaps. Shut, the iris is a dial - its twelve
-//     seams the hours, its Roman numerals the sky's own (render/superDungeon/sdSky.js SD_NUMERAL_GLSL) - and a spade hand sweeps
-//     BACKWARDS from XII (`sdVeilHand`); past its first turn the Dragon Break: six gold and silver ghost hands at
-//     slightly different speeds, and a crack across the face. Opening, the face breaks along its cracks into shards
-//     that fall outward as the blades spin back off the screen.
-//   OUT BY THE WAY BACK OR THE RETURN - the same iris in silver, its face already cracked, its hand running FORWARD and
-//     slowing. Nothing is mended.
-//   OUT BY THE WAY HOME - silver, the hand running forward, and the crack MENDS (`uMend`); the face turns white-gold
-//     before it opens. The victory beat.
-//   FORCED (death in the Hour, cast out, the collapse - `flash`) - the whole face at once, cracked red, then it SHATTERS
-//     into about forty pieces that spin and fall away, revealing where you land.
-//   REDUCED MOTION - nothing spins, nothing shatters: the face holds still and an ordered dither wipes it.
-//
-// Every pixel posterized to six levels through the ordered dither, in the Hour's palette (world/superDungeon/sdLook.js); the canvas
-// is a third of the device's pixels (ui/gate/gateVeil.js), drawn pixelated. Output premultiplied. Not a DFU member. Ledger A
-// (SUPER-DUNGEONS).
+// Super dungeon veil, chosen by theme in ui/gateVeil.js: one triangle over the veil canvas, output premultiplied.
 import { buildProgram } from './glProgram.js';
 import { BAYER_GLSL } from './orderedDither.js';
 import { SD_NUMERAL_GLSL } from './sdSky.js';
 
-/** The veil's modes: into the Hour, out by the way back (or the Return), out by the way home, forced out. */
 export const SD_VEIL_MODE = Object.freeze({ in: 0, back: 1, home: 2, cast: 3 });
-/** The blades: how many, their most turn as they close (turns), the dial's radius when shut (screen radii), the
- *  numerals' ring on it and a numeral's cell. */
 export const SD_VEIL_BLADES = 12;
 export const SD_VEIL_TWIST = 0.3;
 export const SD_VEIL_FACE_R = 0.42;
 export const SD_VEIL_NUMERAL_R = 0.33;
 export const SD_VEIL_CELL = 0.012;
-/** The hand: a turn in SD_VEIL_TURN_S while the hold is young, one in SD_VEIL_SLOW_S once it has run SD_VEIL_SLOW_AFTER_S
- *  (the stillness looks deliberate); the Dragon Break after its first whole turn. */
 export const SD_VEIL_TURN_S = 2;
 export const SD_VEIL_SLOW_S = 6;
 export const SD_VEIL_SLOW_AFTER_S = 3;
-/** The forced shatter: its pieces (a grid of jittered cells), and how long it takes. */
 export const SD_VEIL_SHATTER = Object.freeze({ cols: 8, rows: 5, s: 1.4 });
 
-/**
- * THE HAND at `t` seconds shut in `mode`: its turn (radians, clockwise from XII as the screen shows it) - BACKWARDS into
- * the Hour (a turn in SD_VEIL_TURN_S, slowing to one in SD_VEIL_SLOW_S past SD_VEIL_SLOW_AFTER_S), FORWARD and slowing
- * out of it. Pure: the shader's own law (pinned equal), and the quarters' clock (ui/gate/gateVeil.js strikes them as it passes
- * IX, VI, III and XII).
- */
+// Mirrors the shader's hand math in JS; sdVeilQuarters reads it for the quarter strikes in ui/gateVeil.js.
 export function sdVeilHand(t, mode) {
   const s = Math.max(0, t);
   if (mode === SD_VEIL_MODE.in || mode === SD_VEIL_MODE.cast) {
@@ -56,7 +24,6 @@ export function sdVeilHand(t, mode) {
   }
   return Math.PI * 2 * 1.2 * (1 - Math.exp(-s * 0.7));
 }
-/** How many quarters the hand has struck by `t` (backwards from XII: IX, VI, III, XII - one each quarter turn). */
 export const sdVeilQuarters = (t, mode) => Math.floor(Math.abs(sdVeilHand(t, mode)) / (Math.PI / 2) + 1e-9);
 
 const f4 = (v) => v.toFixed(4);
@@ -252,8 +219,6 @@ void main() {
   o = px((uMode < 0.5 ? vec3(0.22, 0.15, 0.04) : vec3(0.14, 0.15, 0.18)), cover * 0.5);
 }`;
 
-/** The Hour's veil, one triangle over the veil's canvas. `draw(w, h, t, v, look)` - `v` a veilAt answer, `look`
- *  `{ mode, centre, shut, opening, mend, shatter, reduce }`. */
 export class SdVeilRenderer {
   constructor(gl) {
     this.gl = gl;

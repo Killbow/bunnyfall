@@ -13,6 +13,8 @@ files:
   - src/audio/songPlayer.js
   - src/formats/hmiFile.js
   - src/audio/soundscape/seaScore.js
+  - src/audio/soundRemix.js
+  - tools/sndify.mjs
 routes: []
 tables: []
 replacesBible:
@@ -27,6 +29,7 @@ invariants:
   - "Every bus passes through one limiter stage (DynamicsCompressorNode then WaveShaper) before ctx.destination, so nothing reaches the speakers past LIMIT_CEILING."
   - "One-shots are bounded by REAL_VOICES (32). Loops and named beds are not counted."
   - "Music switches fade out over MUSIC_FADE_OUT_S and fade in over MUSIC_FADE_IN_S. They never cut."
+  - "`remixSounds` (`src/audio/soundRemix.js`) builds spell sounds at runtime from the player's `DAGGER.SND` and shipped MP3 clips, with filters that match ffmpeg and an 8-bit bake that matches `tools/sndify.mjs`, so their arithmetic and rounding must not change."
 traps:
   - "Treating DFU call chains (ActionSystem, PlayerFootsteps, AmbientEffectsPlayer) as network routes. The audio arc is client-only and has no HTTP route, WebSocket frame, or SQLite table."
 dfu:

@@ -1,45 +1,14 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// POI-1 (2026-10-14) - WHAT A POI IS: THE DOCUMENT THE EDITOR WRITES, THE REALM APPROVES AND THE GAME STANDS.
-//
-// Mac: "POI Tool (General Map Editor) ... the creation of POI's using models, ... import models, texture, UV map, and
-// even placement onto our actual map ... a tool my developers can use without having to access the codebase"; asked who
-// publishes, "I need to be able to approve changes" (bible/06-Systems/POI-Editor-Arc.md).
-//
-// ONE LAW, THREE READERS. The editor checks a draft against it before it is saved, the account service refuses anything
-// it does not answer (server-account/src/poi.js), and the game stands only what it answers (poi/poiRuntime.js) - so a
-// POI the editor shows is the POI the realm stores is the POI every player sees.
-//
-// A POI is a place on the world map (`place`: a map pixel, a spot in it, how it meets the ground, a turn and a size) and
-// what stands there: PARTS - each a mesh (by the sha256 its bytes are stored under, poi/poiMesh.js) with a transform
-// relative to the place and a MATERIAL per submesh - and lights, and a marker on the map. Every asset is named by its
-// hash, so a document is small, two POIs share a model for free, and an approved POI can never change under its approval.
-//
-// THE FRAME: a map pixel is TERRAIN_SIZE (819.2 m) square; `place.x` runs east and `place.z` north from its south-west
-// corner (world/streamingWorld.js pixelTranslation: a pixel's origin, +x east, +z north). Heights in metres - `ground:
-// 'snap'` stands the place `y` above the ground beneath it, `ground: 'absolute'` at `y` itself. Rotations are unit
-// quaternions [x, y, z, w] in the game's frame (Unity's left-handed, +Y up).
-//
-// THE LIBRARY'S SHELF (POI-4b): a model the builders keep to stand again - its parts and lights as a POI holds them,
-// relative to its own origin, a name, tags, and a picture of it (`thumb`, a texture by its hash) - is a SHELF ENTRY,
-// read by the same law with `place` and `marker` left out (`poiShelfProblems`): what a POI may wear, an entry may hold.
-// ═══════════════════════════════════════════════════════════════════
+// The POI document rules. The editor, the account service, and the game all check a document against it.
 
 import { POI_V2_LIMITS, POI_V2_PART_KEYS, POI_V2_LIGHT_KEYS, POI_V2_NPC_KEYS, POI_V2_DOC_KEYS, poiV2Problems, poiArch3dOk } from './poiLawV2.js';
 
-/** The version both editors write for a POI. A v1 POI becomes v2 when the World Builder opens it from the store
- *  (tools/poi-editor/src/main.js), and otherwise at its first change (poiEdit.js upgradeChanged). */
 export const POI_DOC_VERSION = 2;
-/** The version a library shelf entry is, always. */
 export const POI_SHELF_VERSION = 1;
-/** Every version the law reads. A stored v1 document stays valid as it is. */
 export const POI_DOC_VERSIONS = Object.freeze([1, 2]);
-/** The most a document of each version may weigh as JSON. */
 export const poiDocBytesOf = (/** @type {number} */ v) => (v === 2 ? POI_V2_LIMITS.docBytes : POI_LIMITS.docBytes);
-/** A pixel's side in metres (world/terrain/terrainSampler.js TERRAIN_SIZE, held here so the law stands alone in the service). */
 export const POI_PIXEL_M = 819.2;
 export const POI_ID_RE = /^poi-[0-9a-f]{12}$/;
-/** A library shelf entry's id (POI-4b). */
 export const POI_SHELF_ID_RE = /^lib-[0-9a-f]{12}$/;
 export const POI_SHA_RE = /^[0-9a-f]{64}$/;
 export const POI_PART_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
@@ -51,16 +20,15 @@ export const POI_LIMITS = Object.freeze({
   tag: 24,
   parts: 128,
   lights: 32,
-  materials: 64,          // a part's - its mesh's submeshes, poiMesh.js POI_MESH_LIMITS.submeshes
+  materials: 64,
   label: 48,
-  npcs: 32,               // BUNNYFALL: the people a POI stands
-  npcLines: 8,            // the lines one says
-  npcLine: 240,           // a line's length
-  docBytes: 96 * 1024,    // the document as JSON
-  note: 500,              // a review's word
+  npcs: 32,
+  npcLines: 8,
+  npcLine: 240,
+  docBytes: 96 * 1024,
+  note: 500,
 });
 
-/** The world map's pixels a POI may stand on - MAPS.BSA's 1000 x 500 (formats/woodsFile.js MAP_WIDTH/HEIGHT). */
 export const POI_MAP = Object.freeze({ w: 1000, h: 500 });
 
 export const POI_ALPHA = Object.freeze(['opaque', 'cutout', 'blend']);
@@ -69,25 +37,18 @@ export const POI_FILTER = Object.freeze(['linear', 'nearest']);
 export const POI_COLLIDE = Object.freeze(['mesh', 'none']);
 export const POI_GROUND = Object.freeze(['snap', 'absolute']);
 
-/** A fresh POI id - `rand` fills a Uint8Array (crypto.getRandomValues). @param {(b: Uint8Array) => Uint8Array} rand */
+/** @param {(b: Uint8Array) => Uint8Array} rand */
 export const mintPoiId = (rand) => `poi-${[...rand(new Uint8Array(6))].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
-/** A fresh shelf entry id, the same way. @param {(b: Uint8Array) => Uint8Array} rand */
+/** @param {(b: Uint8Array) => Uint8Array} rand */
 export const mintShelfId = (rand) => `lib-${mintPoiId(rand).slice(4)}`;
 
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
 const vec = (v, n) => Array.isArray(v) && v.length === n && v.every(finite);
-// AUDIT POI S13: what no name, tag or label every player reads may hold - a control character (C0, DEL and C1 alike), a
-// line or paragraph separator, a bidi embedding, override or isolate (text that reads one way and is stored another),
-// or half of a surrogate pair (a string no encoder writes whole). `\p{Cs}` in a `u` pattern is a LONE surrogate: a pair
-// is one code point, and none of these.
 const UNSAID_RE = /[\p{Cc}\p{Cs}\u{2028}\u{2029}\u{202a}-\u{202e}\u{2066}-\u{2069}]/u;
-// the one field written as prose: lines allowed (U+000A), every other of UNSAID_RE refused
 const PROSE_UNSAID_RE = /[\u{0}-\u{9}\u{b}-\u{1f}\u{7f}-\u{9f}\p{Cs}\u{2028}\u{2029}\u{202a}-\u{202e}\u{2066}-\u{2069}]/u;
-// printable text: none of the above, trimmed, bounded
 const textOk = (s, max, min = 0) => typeof s === 'string' && s.length >= min && s.length <= max && s === s.trim() && !UNSAID_RE.test(s);
 const enumOk = (v, list) => typeof v === 'string' && list.includes(v);
 
-/** A quaternion as the law keeps it: four finite numbers whose length is 1 within a thousandth - renormalised - or null. */
 export function unitQuat(q) {
   if (!vec(q, 4)) return null;
   const n = Math.hypot(q[0], q[1], q[2], q[3]);
@@ -95,7 +56,6 @@ export function unitQuat(q) {
   return q.map((c) => c / n);
 }
 
-/** The material a submesh wears when its document names none of its own - white, opaque, one-sided, its UVs as made. */
 export const DEFAULT_MATERIAL = Object.freeze({
   texture: null, color: Object.freeze([1, 1, 1, 1]), emissive: null, emissiveColor: Object.freeze([0, 0, 0]),
   alpha: 'opaque', cutoff: 0.5, twoSided: false, wrap: Object.freeze(['repeat', 'repeat']), filter: 'linear',
@@ -104,19 +64,15 @@ export const DEFAULT_MATERIAL = Object.freeze({
 
 /**
  * @typedef {{ path: string, code: string, [arg: string]: any }} PoiProblem
- * A way a document falls short: WHERE (`path`, as the document spells it - `parts[2].materials[0].alpha`) and WHAT (`code`,
- * a stable word - `alpha`, `quat`, `unknown`), with any number it turns on. Never a sentence: the editor says it, in the
- * builder's language (poi/poiText.js), and the service returns the same objects verbatim - one law, every reader.
  */
 
-/** A problem as one line - `path: code` - for a log or a test. @param {PoiProblem} p */
+/** @param {PoiProblem} p */
 export const problemLine = (p) => `${p.path}: ${p.code}`;
 
 /**
- * Every way `raw` falls short of a POI document - empty for a good one. The editor shows them all; the service refuses
- * on any. Only the document's own shape: whether its assets exist is poiAssetProblems'. With `shelf`, a library shelf
- * entry's: a `lib-` id, no place and no marker, its picture (`thumb`) a texture's hash or null.
- * @param {any} raw @param {{ shelf?: boolean }} [opts] @returns {PoiProblem[]}
+ * @param {any} raw
+ * @param {{ shelf?: boolean }} [opts]
+ * @returns {PoiProblem[]}
  */
 export function poiDocProblems(raw, { shelf = false } = {}) {
   /** @type {PoiProblem[]} */
@@ -125,14 +81,12 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [{ path: 'doc', code: 'not-object' }];
   let bytes = 0;
   try { bytes = new TextEncoder().encode(JSON.stringify(raw)).byteLength; } catch { return [{ path: 'doc', code: 'not-json' }]; }
-  // a shelf entry is always v1; a POI may be v1 or v2, and an unknown version is judged as v1 for the rest
   const v2 = !shelf && raw.v === 2;
   const maxBytes = poiDocBytesOf(v2 ? 2 : 1);
   if (bytes > maxBytes) say('doc', 'too-large', { bytes, max: maxBytes });
   if (!(shelf ? [POI_SHELF_VERSION] : POI_DOC_VERSIONS).includes(raw.v)) say('v', 'version', { want: shelf ? POI_SHELF_VERSION : POI_DOC_VERSIONS[POI_DOC_VERSIONS.length - 1] });
   if (typeof raw.id !== 'string' || !(shelf ? POI_SHELF_ID_RE : POI_ID_RE).test(raw.id)) say('id', 'id');
   if (!textOk(raw.name, POI_LIMITS.name, 1)) say('name', 'name', { max: POI_LIMITS.name });
-  // the one field written as prose: lines allowed, nothing else UNSAID_RE refuses (AUDIT POI S13)
   if (raw.about !== undefined && !(typeof raw.about === 'string' && raw.about.length <= POI_LIMITS.about && !PROSE_UNSAID_RE.test(raw.about))) say('about', 'about', { max: POI_LIMITS.about });
   if (raw.tags !== undefined) {
     if (!Array.isArray(raw.tags) || raw.tags.length > POI_LIMITS.tags) say('tags', 'tags', { max: POI_LIMITS.tags });
@@ -154,7 +108,6 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
     unknownProblems(p, PLACE_KEYS, 'place', say);
   }
 
-  // BUNNYFALL: a place of people alone has no parts; in v2 so has one of flat pictures alone
   const stands = (Array.isArray(raw.npcs) && raw.npcs.length) || (v2 && Array.isArray(raw.flats) && raw.flats.length);
   if (!Array.isArray(raw.parts) || (!raw.parts.length && !stands)) say('parts', 'parts-none');
   else if (raw.parts.length > POI_LIMITS.parts) say('parts', 'parts-many', { max: POI_LIMITS.parts });
@@ -167,7 +120,6 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
       else if (keys.has(part.key)) say(`${at}.key`, 'key-twice', { key: part.key });
       else keys.add(part.key);
       if (part.name !== undefined && !textOk(part.name, POI_LIMITS.name)) say(`${at}.name`, 'part-name', { max: POI_LIMITS.name });
-      // v2: a part is a model of the game's own (arch3d) or a builder's mesh, never both
       const arch = v2 && part.arch3d !== undefined;
       if (arch) { if (!poiArch3dOk(part.arch3d)) say(`${at}.arch3d`, 'model'); if (part.mesh !== undefined) say(`${at}.mesh`, 'unknown'); }
       else if (typeof part.mesh !== 'string' || !POI_SHA_RE.test(part.mesh)) say(`${at}.mesh`, 'mesh-ref');
@@ -197,8 +149,6 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
     });
   }
 
-  // BUNNYFALL: THE PEOPLE A POI STANDS - a name, a spot (from the place, as a light's), the way they face, how tall, a look (one
-  // of Daggerfall's own sprites, or a picture a builder uploaded) and what they say, a line a press of Talk
   if (raw.npcs !== undefined && !shelf) {
     if (!Array.isArray(raw.npcs) || raw.npcs.length > POI_LIMITS.npcs) say('npcs', 'npcs', { max: POI_LIMITS.npcs });
     else {
@@ -248,11 +198,6 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
 const DOC_KEYS = ['v', 'id', 'name', 'about', 'tags', 'place', 'parts', 'lights', 'npcs', 'marker'];
 const DOC_KEYS_V2 = [...DOC_KEYS, ...POI_V2_DOC_KEYS];
 const SHELF_KEYS = ['v', 'id', 'name', 'about', 'tags', 'parts', 'lights', 'thumb'];
-// AUDIT POI S2: "A field the law does not know is a problem, not a passenger" - at EVERY level, not the top and a
-// material's alone. A place, a part, a light, the marker and a material's UVs carried anything past the law: stored,
-// approved and served to every player, unseen by the approver's diff (one 1,100-deep array in `place` broke every
-// builder's list, S3). Every value the law knows is now a checked shape, so the deepest document it takes is seven
-// levels (parts[i].materials[k].uv.offset[0]) - the nesting bounded by the shape itself.
 const NPC_KEYS = new Set(['key', 'name', 't', 'yaw', 'h', 'look', 'lines']);
 const NPC_LOOK_DF = new Set(['k', 'a', 'r']);
 const NPC_LOOK_PIC = new Set(['k', 'tex']);
@@ -265,11 +210,10 @@ const NPC_KEYS_V2 = new Set([...NPC_KEYS, ...POI_V2_NPC_KEYS]);
 const MARKER_KEYS = new Set(['show', 'label']);
 const MATERIAL_KEYS = new Set(['texture', 'color', 'emissive', 'emissiveColor', 'alpha', 'cutoff', 'twoSided', 'wrap', 'filter', 'uv']);
 const UV_KEYS = new Set(['offset', 'scale', 'rotation']);
-/** Every key of `o` the law does not know, a problem at its path. */
 function unknownProblems(o, known, at, say) {
   for (const k of Object.keys(o)) if (!known.has(k)) say(`${at}.${k}`, 'unknown');
 }
-/** Every way `raw` falls short of a library shelf entry (POI-4b). @param {any} raw */
+/** @param {any} raw */
 export const poiShelfProblems = (raw) => poiDocProblems(raw, { shelf: true });
 
 function materialProblems(m, at, say) {
@@ -290,34 +234,21 @@ function materialProblems(m, at, say) {
   unknownProblems(m, MATERIAL_KEYS, at, say);
 }
 
-/** The assets a document names: `{ meshes, textures }`, each a Set of sha256. @param {any} doc */
+/** @param {any} doc */
 export function poiAssetsOf(doc) {
   const meshes = new Set(), textures = new Set();
-  if (typeof doc?.thumb === 'string') textures.add(doc.thumb);   // a shelf entry's picture
+  if (typeof doc?.thumb === 'string') textures.add(doc.thumb);
   for (const part of doc?.parts ?? []) {
-    if (typeof part?.mesh === 'string') meshes.add(part.mesh);   // a v2 arch3d part has no mesh
+    if (typeof part?.mesh === 'string') meshes.add(part.mesh);
     for (const m of part?.materials ?? []) {
       if (typeof m?.texture === 'string') textures.add(m.texture);
       if (typeof m?.emissive === 'string') textures.add(m.emissive);
     }
   }
-  for (const n of doc?.npcs ?? []) if (n?.look?.k === 'pic' && typeof n.look.tex === 'string') textures.add(n.look.tex);   // BUNNYFALL: a person's picture
+  for (const n of doc?.npcs ?? []) if (n?.look?.k === 'pic' && typeof n.look.tex === 'string') textures.add(n.look.tex);
   return { meshes, textures };
 }
 
-/**
- * AUDIT POI S6: WHAT ONE POI MAY ASK OF A PLAYER'S MACHINE, AS A WHOLE. Every bound above is one asset's (a mesh at
- * POI_MESH_LIMITS, a picture at 4096 a side), and nothing bounded their sum: 128 parts each naming its own mesh at its
- * limit, with 256 distinct 4096-square pictures, passed - 7 GiB to fetch, 134 million triangles, 16 GiB of pictures, a
- * reach of 204,800 km. Each budget is over the facts the store keeps of the assets (poi.js putPoiAsset):
- *   - TRIANGLES and VERTICES as drawn - every part its mesh's (a model stood twice is drawn twice: the game makes a GPU
- *     mesh a part, poiHost.js load) - a million each, one fortress-sized model's worth for the POI whole;
- *   - BYTES as fetched - every distinct asset once - 64 MiB;
- *   - PIXELS as held - every distinct picture once - two 4096-square pictures' worth (128 MiB as RGBA8);
- *   - REACH - the farthest corner of any part's box from the place's origin, at the place's size - 2048 m, as far as
- *     one model may reach from its own origin (POI_MESH_LIMITS.extent).
- * A shelf entry is held to the same budgets (what a POI may wear, an entry may hold), its picture among its pictures.
- */
 export const POI_BUDGET = Object.freeze({
   triangles: 1_048_576,
   vertices: 1_048_576,
@@ -326,15 +257,12 @@ export const POI_BUDGET = Object.freeze({
   reach: 2048,
 });
 
-/** `v` turned by the unit quaternion `q` ([x, y, z, w]): v + 2w(q x v) + 2 q x (q x v). */
 function turned(q, v) {
   const [x, y, z, w] = q;
   const cx = y * v[2] - z * v[1], cy = z * v[0] - x * v[2], cz = x * v[1] - y * v[0];
   return [v[0] + 2 * (w * cx + y * cz - z * cy), v[1] + 2 * (w * cy + z * cx - x * cz), v[2] + 2 * (w * cz + x * cy - y * cx)];
 }
 
-/** How far a part's mesh box reaches from the POI's origin, before the place's size - its farthest corner, scaled,
- *  turned and moved as the part is; 0 for a part whose transform or box the law has not taken. */
 function partReach(part, mesh) {
   const r = unitQuat(part?.r);
   if (!r || !vec(part.t, 3) || !vec(part.s, 3) || !vec(mesh?.min, 3) || !vec(mesh?.max, 3)) return 0;
@@ -348,15 +276,13 @@ function partReach(part, mesh) {
 }
 
 /**
- * Every way a document's assets fall short - `metaOf(sha)` answers an asset's stored facts (`{ kind: 'mesh', submeshes,
- * vertices, triangles, min, max, bytes }` or `{ kind: 'texture', w, h, bytes }`) or null for one never stored. A part's
- * materials are its mesh's submeshes, one each; the POI as a whole within POI_BUDGET (a fact without a number counts
- * none). @param {any} doc @param {(sha: string) => any} metaOf @returns {PoiProblem[]}
+ * @param {any} doc
+ * @param {(sha: string) => any} metaOf
+ * @returns {PoiProblem[]}
  */
 export function poiAssetProblems(doc, metaOf) {
   /** @type {PoiProblem[]} */
   const out = [];
-  /** every distinct asset named, its facts - the bytes fetched and the pixels held, once each */
   const distinct = new Map();
   let triangles = 0, vertices = 0, reach = 0;
   if (doc?.thumb != null) {
@@ -366,7 +292,7 @@ export function poiAssetProblems(doc, metaOf) {
     else distinct.set(doc.thumb, t);
   }
   (doc?.parts ?? []).forEach((part, i) => {
-    if (part?.arch3d !== undefined) return;   // the game's own model: nothing stored, nothing to count
+    if (part?.arch3d !== undefined) return;
     const mesh = metaOf(part?.mesh);
     if (!mesh) out.push({ path: `parts[${i}].mesh`, code: 'not-uploaded' });
     else if (mesh.kind !== 'mesh') out.push({ path: `parts[${i}].mesh`, code: 'not-a-mesh' });
@@ -387,7 +313,6 @@ export function poiAssetProblems(doc, metaOf) {
       }
     });
   });
-  // a person's picture is a stored texture like any other, and counts in the budget
   (doc?.npcs ?? []).forEach((n, i) => {
     if (n?.look?.k !== 'pic') return;
     const t = metaOf(n.look.tex);
@@ -410,5 +335,5 @@ export function poiAssetProblems(doc, metaOf) {
   return out;
 }
 
-/** Where a POI stands, as the world map knows it - its pixel's id (formats/woodsFile.js getMapPixelID). @param {any} doc */
+/** @param {any} doc */
 export const poiPixelId = (doc) => doc.place.py * POI_MAP.w + doc.place.px;

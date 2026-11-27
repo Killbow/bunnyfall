@@ -1,6 +1,3 @@
-// Sailing in the world: Come Sail Away's boats, helm, waves, sounds, wind widget, cargo, and other
-// players' boats, with boarding, deck walking, and caravan visits. It also holds the naval host
-// with its crews, plunder, fleet, and captain's log, the Eltheric ports, and their save slots.
 import { midScreenText as _wildMidText, setMidScreenText } from '../../ui/midScreenText.js';
 import { activeWagonItem, activeWagonKind } from '../../travel/wagonKinds.js';
 import { addGold, changeLegalRep, deductGold, lowerRepForCrime, totalGoldAmount } from '../../justice/court.js';
@@ -1023,7 +1020,7 @@ export function createSeasWorld(shared) {
       legal: (region, n) => { changeLegalRep(playerEntity, region, n); surfacePlayer(); },
       faction: (id, n) => { if (playerEntity.factionRep) changeReputation(playerEntity.factionRep, id, n, true); },
     },
-    // The sea poses its ships after the eye is placed, so a deck carry places the eye again.
+    // The sea poses its ships after the camera is placed, so a deck carry places the camera again.
     deck: { allowed: deckMayCarry, ground: deckGround, carry: (d, yawDeg) => { deckCarry(d, yawDeg); cam.pos = player.eyeAt(); } },
     board: {
       leaveHelm: () => { if (csaRuntime?.isSailing?.()) csaCall(() => csaRuntime.StopSailing?.()); },

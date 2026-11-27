@@ -1,9 +1,5 @@
 // @ts-check
-// BUNNYFALL (2026-11-05, the owner: "massive chunks of burned land, basically its a warzone"): THE SCORCHED GROUND. A pixel's
-// terrain surface may carry `scorch` (0 none, up to 1; systems/wild/cromwarkWaste.js sets it in the Cromwark reach). Its
-// dirt and stone tiles - the grass the waste burnt (burnTilemap) among them - go to char and ash, and every other tile
-// dries toward a dead straw. One float a draw; 0 draws the ground exactly as before. Shared by the classic and the enhanced
-// terrain programs (render/renderer.js TERRAIN_FS, render/enhancedLighting.js EL_TERRAIN_FS), so their variants have it too.
+// Scorched-ground tint for terrain; the classic and enhanced-lighting terrain programs both include it.
 export const SCORCH_GLSL = `
 uniform float uScorch;
 vec3 scorched(vec3 tex, int layer, vec2 localXZ) {

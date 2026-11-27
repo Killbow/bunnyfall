@@ -1,7 +1,4 @@
 // @ts-check
-// Tows a booked ship off her berth before the journey takes the helm. Her crew warps her to the berth's approach
-// without turning her, then turns her toward open water (passageQuay.js in reverse).
-//   host = { harbours() -> [{ key, name, harbour }], isWater(x, z, hull) }
 import { alongside, createWaterGrid, footprintClear } from '../../systems/naval/shipLife.js';
 import { quatOfYaw } from '../../systems/naval/navalAI.js';
 import { quatRotate } from '../../world/quat.js';
@@ -26,7 +23,7 @@ export function createPassageCastOff(host) {
         const lead = [at[0] + b.normal[0] * TOW_LEAD_M, at[1] + b.normal[1] * TOW_LEAD_M];
         const way = createWaterGrid({ isWater: beamWater(host.isWater, boat.hull), hull: boat.hull }).path(lead, b.approach);
         if (!way) return false;
-        // Store points relative to the berth: the harbour book moves its berths with the floating origin.
+        // Points are stored relative to the berth because the floating origin moves the berths.
         tow = { boat, key: h.key, i, path: [at, ...way].map((q) => [q[0] - b.pos[0], q[1] - b.pos[1]]), idx: 1 };
         return true;
       }

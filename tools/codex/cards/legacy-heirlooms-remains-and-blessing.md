@@ -26,6 +26,7 @@ invariants:
 traps:
   - "An already designated heirloom is reused at death; rolling a new one duplicates lines."
   - "Family members slain by players or beasts in town die in records without remains or death quests."
+  - "Outside the pack and wagon, `itemTransfer.js` stores remains only in a list whose `REMAINS_LIST` symbol matches their `of`, so bones never land in a chest or on the ground."
 dfu: []
 tags:
   - heirloom

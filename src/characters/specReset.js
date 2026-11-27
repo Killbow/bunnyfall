@@ -72,5 +72,5 @@ export function resetSpec(entity, family) {
   entity[LAW[family].field] = null;
   entity[LAW[family].prompted] = true;
   computeEntityMods(entity);
-  return { ok: true, text: t('growth.spec.reset.done', '{name} is reset.', { name: held.name }) };
+  return { ok: true, text: t('growth.spec.reset.done', '{name} has been reset.', { name: held.name }) };
 }

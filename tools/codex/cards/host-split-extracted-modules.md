@@ -32,8 +32,14 @@ related:
   - integrity-pvp-duel-and-wild-referees
 invariants:
   - "Shared logic used by multiple hosts lives in a single seam module: corpsePrefabHost.js serves both buildDungeonContext and createExteriorFoes, and standInSpell.js defines the stand-in spell door once."
+  - "Both city gate models, open and closed, must be resident and climate-remapped before the first dusk swap, and the gate files its own collider bucket, because the swap runs in a synchronous frame tick."
+  - "`getStaticDoors` receives the real `b.dfBlock.index`, because the interior repair for bad models keys on `EntryDoor.blockIndex` and a hardcoded 0 makes that repair unreachable."
+  - "Editor flats (archive 199) stay in `blockFlats` for start markers, quest markers, and action chains but are skipped before batching, so they are never drawn."
 traps:
   - "Destructured constructor return bindings replace hoisted function declarations, so any host call situated above the constructor call throws in the temporal dead zone."
+  - "`pixelFirstModel` is a latch per placed block instance, matching DFU's per-block `firstModel`; a pixel-wide latch keyed on the block record index leaves every repeat of the same block with no buildings."
+  - "A windmill's sail phase is keyed on the map pixel plus the mill's local position, never its world position, because a floating-origin shift would otherwise re-seed every mill in sight."
+  - "A building door carries `INTERIOR_SEASON` (summer) for its interior, never the world's season, because DFU never assigns its interior `climateSeason` and the exterior season stops at the threshold."
 dfu: []
 tags:
   - host-split

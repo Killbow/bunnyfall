@@ -1,37 +1,4 @@
-// SongFiles.cs - the NAMES of every song in MIDI.BSA, plus the one law
-// that turns a name into something the archive can be asked for.
-//
-// Two DFU members, and they only exist as a pair:
-//   SongFiles                            (SongFiles.cs:20-154)
-//   DaggerfallSongPlayer.EnumToFilename  (Internal/DaggerfallSongPlayer.cs:275-279)
-//
-// C# spells a song `SongFiles.song_gday___d` and reaches its bytes with
-// `enumName.Remove(0, "song_".Length) + ".mid"`, because DFU ships
-// PRE-CONVERTED .mid files in Unity Resources and never opens MIDI.BSA
-// at all. This port reads the user's own archive (formats/hmiFile.js),
-// whose records are named `GDAY___D.HMI` - so the same two-step lands on
-// `.HMI` upper case instead of `.mid`. The STEM is untouched either way,
-// which is the whole reason DFU could name the enum members after the
-// files in the first place.
-//
-// Everything else in the port already speaks the archive's spelling -
-// songManager's playlists, musicReplacement's lookup key,
-// MusicService.playSong - and each of those files says so in its own
-// header. This is the ONE door from the C# spelling into it, so a caller
-// that starts from a quest line or a save field has somewhere to convert
-// and nowhere else to invent a second table.
-//
-// A name is not a promise of bytes: the enum names 132 songs beside its
-// sentinel and the shipped MIDI.BSA carries 131 records. DFU is the same
-// - `Play(SongFiles)` never checks for song_none and LoadSong just logs
-// "Song file '{0}' not found" - so resolution here is a pure string law
-// and the archive answers for itself.
-
-/** SongFiles.cs:20-154 - every member, in DECLARATION ORDER, song_none
- *  included. The order is not load-bearing for the port (nothing indexes
- *  it by ordinal), but the SET is: it is exactly what C#'s
- *  `Enum.IsDefined(typeof(SongFiles), name)` answers true for, which is
- *  the gate PlaySong.cs:47-52 throws behind. */
+// Daggerfall Unity's SongFiles enum. The set, not the order, matters: it is what PlaySong accepts as a song name.
 export const SONG_FILES = Object.freeze([
   'song_none', 'song_02', 'song_02fm', 'song_03', 'song_03fm', 'song_04',
   'song_04fm', 'song_05', 'song_05fm', 'song_5strong', 'song_06', 'song_06fm',
@@ -63,30 +30,10 @@ export const SONG_FILES = Object.freeze([
 
 const DEFINED = new Set(SONG_FILES);
 
-/**
- * `Enum.IsDefined(typeof(SongFiles), name)`.
- *
- * CASE-SENSITIVE, because C#'s is: Enum.IsDefined compares the member
- * name ordinally, so `Song_Tavern` is NOT defined and PlaySong throws on
- * it. Every member is lower case, so a quest line that shouts its song
- * name is a quest that fails to parse in DFU too.
- */
+// Case-sensitive, as C#'s Enum.IsDefined is: a quest line that shouts its song name fails in Daggerfall Unity too.
 export const isSongFileDefined = (name) => DEFINED.has(name);
 
-/**
- * EnumToFilename, in the port's spelling: strip the `song_` prefix and
- * append the extension. `song_gday___d` -> `GDAY___D.HMI`.
- *
- * The upper case is the ARCHIVE's, not a normalisation of the input -
- * BSA record names are stored upper case and hmiFile's getSongIndex is
- * an exact match. C# needs no such step because its Resources filenames
- * are lower case like the enum.
- *
- * C# `Remove(0, 5)` cuts five characters unconditionally; every member
- * carries the prefix, so guarding the slice changes no defined name and
- * only keeps an undefined one readable in a warning. Callers that need
- * C#'s guard call isSongFileDefined first, as PlaySong.cs:47-52 does.
- */
+// MIDI.BSA records are upper case and looked up exactly, so the stem is upper-cased with an .HMI extension.
 export function songFileToRecordName(name) {
   const s = String(name ?? '');
   return `${(s.startsWith('song_') ? s.slice('song_'.length) : s).toUpperCase()}.HMI`;

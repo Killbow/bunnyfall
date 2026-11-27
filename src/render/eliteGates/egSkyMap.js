@@ -1,103 +1,49 @@
 // @ts-check
-// EG-LOOK (2026-10-15, Mac: "Literally everything, and no band aids"; bible/11-Multiplayer/Elite-Gates-Look.md section 6):
-// THE SPIRE'S SKIES, PAINTED - each band's realm in an octahedral map, SD5b's law (render/superDungeon/sdSky.js SdSkyMap): an
-// EG_SKY_MAP x EG_SKY_MAP picture of the whole sky, one texel about 0.35 degrees (Daggerfall's own sky is pi/512 a pixel),
-// NEAREST, painted a quadrant a frame by THE BAND'S PAINTER (its own fragment shader - EG_SKY_PAINT_FS[band]), every
-// texel through the pixel law (render/orderedDither.js SD_PIXEL_GLSL), fetched by one triangle at the far plane
-// (render/eliteGates/egSkyPass.js) at the band's gain against its fog. Four realms, the halls fallen through them:
-//   THE DEADLANDS over the Broken Galleries - a blood-red sky under a lid of ash lit from beneath, the fire-sea below the
-//     horizon with its slow bright currents, black volcano spires standing out of the haze, a vent's fire on the tallest;
-//   THE SOUL CAIRN - violet-black, thick with soul-stars (cold white and cyan, crowding in a stream of the dead across the
-//     sky), a pale soul-aurora, and below a sea of mist rolling outward in slow banded swells to the horizon, black
-//     cairns of stacked stones standing out of it;
-//   THE EVERGLOAM over the Shade Perilous - near-black, a HUGE low moon on the key light's own bearing (world/eliteGates/egAtmos.js:
-//     the moon IS the light) with its seas and craters and a cold halo, a scatter of stars, a thin silver aurora, black
-//     glass thorns against its lower limb, and below the dark with silver mist glinting, the moon's glade across it;
-//   THE HAVOC WELLHEAD - a red-orange sky under heavy ash lit from below, the crater's basalt cliffs round the line,
-//     eruption columns standing on its rim and churning up into the ash, the magma lake below with its crust plates.
-// THE HORIZON IS THE FOG: every layer is hazed by one law (EG_SKY_HAZE) that keeps all of the band's fog colour on the line
-// itself, so the far wreck (world/eliteGates/egVista.js) melts into the sky it stands against. The map is painted in the band's own
-// air (world/eliteGates/egAtmos.js - its fog and its sky's colours, never the frame's), and the fetch scales it by the gain the host
-// hands (render/deadlands.js skyGain - the lane's dungeon fog against the band's), so the line meets the frame's fog on
-// both lanes. THE SPIRE'S UNDERSIDE is not painted: it is the wreck's model (one underside, never two).
-// Only slow drifts are live, and only through the paint (a quadrant a frame - each moves under a texel between refreshes):
-// the ash, the currents, the aurorae, the swells, the mist, the plumes - every one a whole number of cycles over
-// EG_SKY_PERIOD on the sky's clock (the Hour's - world.js hands deadlandsSeconds), so the sky never jumps.
-//
-// THE PIXEL LAW on the eye's own ramp: each texel's colour is posterized through sdPixel in the square root of its value
-// and squared back (a palette's ramp, its dark steps close - Daggerfall's sky's own), so the void dithers between dark
-// steps instead of speckling black with the first step's dots; every texel still goes through SD_PIXEL_GLSL.
-//
-// A foreign pass's map: it owns its target and its painters (built a band at a time, kept for the breach); `release()`
-// frees all of it. Not a DFU member. Ledger A (ELITE-GATES).
 import { buildProgram } from '../glProgram.js';
 import { DEAD_NOISE_GLSL } from '../deadlands.js';
 import { createRenderTarget, withTarget } from '../renderTarget.js';
 import { SD_OCT_GLSL, SD_SKY_PERIOD, SD_SKY_STEPS } from '../sdSky.js';
 import { egAtmosOf } from '../../world/eliteGates/egAtmos.js';
 
-/** The map's side (texels): the Hour's. */
 export const EG_SKY_MAP = 512;
-/** Every live drift is whole cycles over this many seconds - the Hour's sky period, one clock. */
+// Every live drift is a whole number of cycles over this period, so the wrapped clock never jumps.
 export const EG_SKY_PERIOD = SD_SKY_PERIOD;
-/** The sky's clock wrapped to the period (in double, before it reaches a float). */
+// Wraps in double precision before the value reaches a float uniform.
 export const egSkyClock = (seconds) => ((seconds % EG_SKY_PERIOD) + EG_SKY_PERIOD) % EG_SKY_PERIOD;
-/** The pixel law's steps on the lane and on the classic set (SD-LOOK's). */
 export const EG_SKY_STEPS = SD_SKY_STEPS;
-/** THE HORIZON LAW, a band a row: how fast the fog gives way above the line and below it (1/rad) - a ray at elevation e
- *  keeps exp(-|e| k) of the fog, all of it on the line. The far landmarks are hazed by the same law at `far` of their
- *  elevation (they stand further off than the sky's own glow). */
 export const EG_SKY_HAZE = Object.freeze([
   Object.freeze({ up: 16, down: 7, far: 0.6 }),
   Object.freeze({ up: 11, down: 4.5, far: 0.5 }),
   Object.freeze({ up: 14, down: 6, far: 0.5 }),
   Object.freeze({ up: 10, down: 6, far: 0.5 }),
 ]);
-/** EG_SKY_HAZE's law in JS: the share of the fog a ray at elevation `e` (rad) keeps in band `band`. Pure - the painters'. */
 export function egSkyHaze(band, e) { const H = EG_SKY_HAZE[band]; return e >= 0 ? Math.exp(-e * H.up) : Math.exp(e * H.down); }
-/** THE LIVE DRIFTS, whole cycles a period, a band a row (the painters read them): the ash lid's loop, the fire-sea's
- *  and the magma lake's loop, the currents' pulses, a vent's smoke and the plumes' churn, the aurorae, the swells, the
- *  mist, the stars' breath and the mist's glints. */
 export const EG_SKY_DRIFT = Object.freeze([
   Object.freeze({ ash: 1, sea: 1, pulse: 6, smoke: 9 }),
   Object.freeze({ stream: 1, aurora: 2, swell: 5, mist: 1, breath: 3 }),
   Object.freeze({ aurora: 2, mist: 1, glint: 9 }),
   Object.freeze({ ash: 1, lake: 1, lava: 4, plume: 8 }),
 ]);
-/** THE DEADLANDS' VOLCANO SPIRES: azimuth (rad from +z toward +x), the crag's elevation, the foot's half-width (rad), a
- *  vent burning at its crag (1). */
 export const EG_SKY_SPIRES = Object.freeze([
   [0.42, 0.22, 0.065, 1], [0.78, 0.1, 0.036, 0], [0.12, 0.07, 0.026, 0], [1.6, 0.13, 0.05, 0], [2.35, 0.2, 0.06, 1], [3.0, 0.09, 0.035, 0],
   [-0.5, 0.14, 0.048, 0], [-0.82, 0.08, 0.03, 0], [-1.25, 0.17, 0.055, 1], [-2.05, 0.11, 0.04, 0], [-2.7, 0.065, 0.028, 0],
 ].map((s) => Object.freeze(s)));
-/** THE SOUL CAIRN'S CAIRNS on the mist's line: azimuth, the top's elevation, the foot's half-width, a seed (its stones). */
 export const EG_SKY_CAIRNS = Object.freeze([
   [0.3, 0.06, 0.008, 1], [0.95, 0.045, 0.007, 2], [1.9, 0.07, 0.009, 3], [2.8, 0.05, 0.007, 4], [-0.7, 0.055, 0.008, 5], [-1.6, 0.04, 0.006, 6], [-2.4, 0.065, 0.009, 7],
 ].map((s) => Object.freeze(s)));
-/** THE SOUL-STREAM's pole (the stars crowd along the great circle about it). */
 export const EG_SKY_STREAM = Object.freeze((() => { const v = [0.35, 0.25, -0.9], l = Math.hypot(...v); return v.map((x) => x / l); })());
-/** THE EVERGLOAM'S MOON: its bearing - THE SHADE'S KEY LIGHT'S own (world/eliteGates/egAtmos.js: "a cold silver key from the
- *  moon's bearing" - the key's azimuth, toward the light), so the moon hangs where the light falls from; its elevation
- *  (rad - low: its lower limb a few degrees over the line, where every hall's view sees it) and its angular radius: huge.
- *  `dir` its centre's direction. */
 export const EG_SKY_MOON = Object.freeze((() => {
   const k = egAtmosOf(2).key.dir, az = Math.atan2(k[0], k[2]), elev = 0.3;
   return { az, elev, r: 0.21, dir: Object.freeze([Math.cos(elev) * Math.sin(az), Math.sin(elev), Math.cos(elev) * Math.cos(az)]) };
 })());
-/** The moon's craters on its face (u right, v up, its radius 1): centre, radius, rays (1: a young crater's bright rays). */
 export const EG_SKY_CRATERS = Object.freeze([
   [-0.35, 0.3, 0.2, 0], [0.42, -0.2, 0.16, 1], [0.1, -0.55, 0.11, 0], [-0.52, -0.36, 0.09, 0], [0.32, 0.5, 0.12, 0], [0.64, 0.22, 0.07, 0], [-0.1, 0.05, 0.06, 0], [-0.72, 0.04, 0.08, 0],
 ].map((s) => Object.freeze(s)));
-/** THE EVERGLOAM'S THORNS: black glass spines standing up against the moon's lower limb - azimuth off the moon's, the
- *  tip's elevation, the foot's half-width, how far the tip bends (rad). */
 export const EG_SKY_THORNS = Object.freeze([
   [-0.13, 0.33, 0.012, 0.03], [0.04, 0.22, 0.009, -0.02], [0.16, 0.29, 0.011, -0.04], [-0.3, 0.14, 0.008, 0.02], [0.33, 0.12, 0.007, -0.015],
 ].map((s) => Object.freeze(s)));
-/** THE WELLHEAD'S CRATER: its basalt columns round the line (a whole number - no seam at the back), the cliffs' foot
- *  height and how much higher they rise (rad). */
+// `columns` must stay a whole number, or the crater shows a seam at the back.
 export const EG_SKY_CRATER = Object.freeze({ columns: 720, base: 0.035, rise: 0.06 });
-/** THE WELLHEAD'S ERUPTIONS, standing on the crater's rim: azimuth, the fountain's half-width, the plume's top (its
- *  elevation), how wide the plume spreads at its top (rad). */
 export const EG_SKY_ERUPTIONS = Object.freeze([
   [0.55, 0.012, 0.42, 0.34], [-0.9, 0.009, 0.32, 0.28], [2.4, 0.014, 0.48, 0.4], [-2.6, 0.008, 0.26, 0.26],
 ].map((s) => Object.freeze(s)));
@@ -107,7 +53,6 @@ const v3 = (c) => `vec3(${c.map((v) => v.toFixed(4)).join(', ')})`;
 const vec4s = (name, rows) => `const vec4 ${name}[${rows.length}] = vec4[${rows.length}](${rows.map((r) => `vec4(${r.map(f4).join(', ')})`).join(', ')});`;
 const turns = (k) => `${Number(k).toFixed(1)}`;
 
-/** The paint's vertex stage: the quadrant painted (`uQuad` - its corner and its size on the map, 0..1). */
 export const EG_SKY_PAINT_VS = `#version 300 es
 precision highp float;
 layout(location = 0) in vec2 aPos;
@@ -116,7 +61,6 @@ out vec2 vUv;
 const float HALF = 0.5;
 void main() { vUv = uQuad.xy + (aPos * HALF + HALF) * uQuad.zw; gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
-/** Every painter's head: its band's haze law and colours, the noise, the octahedral decode, the drifts. */
 function paintHead(band) {
   const A = egAtmosOf(band), H = EG_SKY_HAZE[band];
   return `#version 300 es
@@ -158,20 +102,16 @@ vec2 deckAt(vec3 d, float lift) { return d.xz / (abs(d.y) + lift); }
 float band4(float k) { return floor(clamp(k, 0.0, 1.0) * 4.0 + 0.5) / 4.0; }
 `;
 }
-// every painter's foot: the texel's direction, and what it holds - the realm's colour behind the haze (kept in its square
-// root - the dark steps the 8 bits hold close), and the share of the fog in front of it (the fetch mixes the frame's own
-// fog in by it, and lays the pixel law over the whole)
+// The map stores each color's square root (finer dark steps in 8 bits); the fetch in egSkyPass.js squares it back.
 const PAINT_MAIN = `
 vec4 paintTexel(vec2 cell) {
   vec4 c = skyAt(octDecode((cell + 0.5) / MAP), cell);
   return vec4(sqrt(max(c.rgb, vec3(0.0))), c.a);
 }
 void main() { o = paintTexel(floor(vUv * MAP)); }`;
-// the ash lid's thickness where a ray meets it (the Deadlands' and the Wellhead's)
 const LID_GLSL = `float lidAt(vec2 p) { vec2 w = vec2(dfbm(p * 0.45 + 3.1, 3), dfbm(p * 0.45 + 7.7, 3)); return dfbm(p * 0.85 + w * 1.7, 5); }
 `;
 
-// ── THE DEADLANDS (the Broken Galleries) ──────────────────────────────────────────────────────────────────────────────
 function deadlandsFs() {
   const S = /** @type {any} */ (egAtmosOf(0).sky), D = /** @type {any} */ (EG_SKY_DRIFT[0]);
   return paintHead(0) + `const vec3 LID = ${v3(S.lid)};
@@ -240,10 +180,8 @@ vec4 skyAt(vec3 d, vec2 cell) {
 }` + PAINT_MAIN;
 }
 
-// ── THE SOUL CAIRN ────────────────────────────────────────────────────────────────────────────────────────────────────
 function soulCairnFs() {
   const S = /** @type {any} */ (egAtmosOf(1).sky), D = /** @type {any} */ (EG_SKY_DRIFT[1]), P = EG_SKY_STREAM;
-  // the stream's own frame: two directions across its pole
   const a = Math.abs(P[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
   const c1 = [P[1] * a[2] - P[2] * a[1], P[2] * a[0] - P[0] * a[2], P[0] * a[1] - P[1] * a[0]], l1 = Math.hypot(...c1), S1 = c1.map((v) => v / l1);
   const S2 = [P[1] * S1[2] - P[2] * S1[1], P[2] * S1[0] - P[0] * S1[2], P[0] * S1[1] - P[1] * S1[0]];
@@ -319,10 +257,8 @@ vec4 skyAt(vec3 d, vec2 cell) {
 }` + PAINT_MAIN;
 }
 
-// ── THE EVERGLOAM (the Shade Perilous) ────────────────────────────────────────────────────────────────────────────────
 function evergloamFs() {
   const S = /** @type {any} */ (egAtmosOf(2).sky), D = /** @type {any} */ (EG_SKY_DRIFT[2]), M = EG_SKY_MOON.dir;
-  // the moon's face: right and up across its bearing
   const r0 = [M[2], 0, -M[0]], lr = Math.hypot(...r0), R1 = r0.map((v) => v / lr);
   const U1 = [M[1] * R1[2] - M[2] * R1[1], M[2] * R1[0] - M[0] * R1[2], M[0] * R1[1] - M[1] * R1[0]];
   const up = U1[1] < 0 ? U1.map((v) => -v) : U1, right = U1[1] < 0 ? R1.map((v) => -v) : R1;
@@ -404,7 +340,6 @@ vec4 skyAt(vec3 d, vec2 cell) {
 }` + PAINT_MAIN;
 }
 
-// ── THE HAVOC WELLHEAD ────────────────────────────────────────────────────────────────────────────────────────────────
 function wellheadFs() {
   const S = /** @type {any} */ (egAtmosOf(3).sky), D = /** @type {any} */ (EG_SKY_DRIFT[3]), K = EG_SKY_CRATER;
   return paintHead(3) + `const vec3 LID = ${v3(S.lid)};
@@ -486,12 +421,8 @@ vec4 skyAt(vec3 d, vec2 cell) {
 }` + PAINT_MAIN;
 }
 
-/** THE PAINTERS, a band each (index the band). */
 export const EG_SKY_PAINT_FS = Object.freeze([deadlandsFs(), soulCairnFs(), evergloamFs(), wellheadFs()]);
 
-/** THE MAP: its target and its painters (a band's built the first time it paints, kept until `release`); painted a
- *  quadrant a call - all four when it has never been painted in this band and these steps. `lite` (the phones' tier):
- *  a quadrant every fourth call (the whole every sixteen - SD-LOOK's phone column). */
 export class EgSkyMap {
   /** @param {WebGL2RenderingContext} gl @param {{ lite?: boolean }} [o] */
   constructor(gl, { lite = false } = {}) {
@@ -507,7 +438,6 @@ export class EgSkyMap {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
     gl.bindVertexArray(null);
-    /** the band the map holds (-1: none yet), the next quadrant, the calls made, the quadrants painted */
     this.band = -1;
     this.next = 0;
     this.calls = 0;
@@ -516,7 +446,6 @@ export class EgSkyMap {
     this._vp = new Int32Array(4);
     this._all = false;
     this._u = /** @type {any} */ (null);
-    // the quadrants' draw made once (AUDIT SD V P4's law: no closure a frame)
     this._quads = () => {
       for (let k = 0; k < 4; k++) {
         if (!this._all && k !== this.next) continue;
@@ -528,7 +457,6 @@ export class EgSkyMap {
       }
     };
   }
-  /** Band `band`'s painter, built the first time it is asked. */
   painter(band) {
     const b = Math.max(0, Math.min(3, band | 0));
     if (!this.painters[b]) {
@@ -539,13 +467,7 @@ export class EgSkyMap {
     }
     return this.painters[b];
   }
-  /** Whether the map holds band `band` whole (the fetch draws only then). */
   holds(band) { return this.band === band && this.painted >= 4; }
-  /**
-   * Paint band `band`'s next quadrant at `seconds` on the sky's clock (wrapped here) - the whole map when it held another
-   * band. `viewport` the world viewport to hand back (null: the drawing buffer's). A DRAW PATH: binds its target and
-   * hands back the frame's (render/renderTarget.js). Answers whether it painted.
-   */
   paint(band, seconds, viewport = null) {
     const gl = this.gl, b = Math.max(0, Math.min(3, band | 0));
     const all = this.band !== b || this.painted < 4;
@@ -566,7 +488,6 @@ export class EgSkyMap {
     return true;
   }
   get texture() { return this.target.tex; }
-  /** Every GL object it made, freed once. */
   release() {
     const gl = this.gl;
     if (!this.target) return;
