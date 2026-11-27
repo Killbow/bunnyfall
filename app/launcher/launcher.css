@@ -155,11 +155,25 @@ body[data-busy] .gem { animation: gleam 1.6s steps(8) infinite; }
 .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 188px; }
 .bunny { position: absolute; left: 20px; bottom: 0; width: 176px; height: 176px; }
 .bunny img { position: absolute; left: 0; bottom: 0; display: block; image-rendering: auto; filter: drop-shadow(2px 3px 0 rgba(90,40,15,0.3)); }
-.bunny .anim { left: 8px; bottom: 6px; width: 158px; height: auto; }
-.bunny .still { width: 172px; height: auto; }
-.bunny .anim, .go .anim { display: none; }
-body[data-ready] .bunny .anim, body[data-ready] .go .anim { display: block; }
-body[data-ready] .bunny .still, body[data-ready] .go .still { display: none; }
+/* THE SCENE follows the campfire (body[data-fire]): he lights it (0-1, his own sticks stand in for the fire), cheers
+   it on as it catches (2-3), and dances beside it once it burns (4) with the cube sat by the fire. On the first run
+   (body[data-panel=setup]) he carries the cube in instead. A little overlap is the point: it is a collage. */
+.bunny img { display: none; height: auto; }
+.bunny .light { left: 88px; bottom: 2px; width: 132px; }
+.bunny .hands { left: 10px; bottom: 2px; width: 132px; }
+.bunny .anim { left: 8px; bottom: 6px; width: 158px; }
+.bunny .still { width: 172px; }
+.bunny .cube { left: -10px; bottom: 2px; width: 68px; }
+.bunny .carry { left: -14px; bottom: 0; width: 180px; }
+body:not([data-panel="setup"])[data-fire="0"] .bunny .light, body:not([data-panel="setup"])[data-fire="1"] .bunny .light,
+body:not([data-panel="setup"])[data-fire="2"] .bunny .hands, body:not([data-panel="setup"])[data-fire="3"] .bunny .hands,
+body:not([data-panel="setup"])[data-fire="4"] .bunny .anim, body:not([data-panel="setup"])[data-fire="4"] .bunny .cube,
+body[data-panel="setup"] .bunny .carry { display: block; }
+body:not([data-panel="setup"])[data-fire="0"] .fire, body:not([data-panel="setup"])[data-fire="1"] .fire { display: none; }
+/* the PLAY badge moves only while Play can be pressed */
+.go .anim { display: none; }
+body[data-ready] .go .anim { display: block; }
+body[data-ready] .go .still { display: none; }
 
 /* one height for every state - a bar that grew with its words would move the panel under the pointer */
 .bubble {
@@ -229,8 +243,8 @@ body[data-ready] .loot .spark.s2 { animation-delay: 1.1s; }
   body[data-ready] .loot .spark { animation: none; opacity: 1; }
   .progress .track i, .play { transition: none; }
   /* the moving pictures hold still too */
-  body[data-ready] .bunny .anim, body[data-ready] .go .anim { display: none; }
-  body[data-ready] .bunny .still, body[data-ready] .go .still { display: block; }
+  body[data-ready] .go .anim, body[data-fire="4"] .bunny .anim { display: none; }
+  body[data-ready] .go .still, body[data-fire="4"]:not([data-panel="setup"]) .bunny .still { display: block; }
   body[data-ready] .play:disabled img, body[data-ready] .go .still { filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
 }
 

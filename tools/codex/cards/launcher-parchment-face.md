@@ -18,7 +18,7 @@ related:
   - ui-arc-overview
 invariants:
   - "The launcher's art is public/art/bunnyfall-decor, the SAME folder the site's front page reads: app/main.cjs serves it as dagger://launcher/art/<file> (LAUNCHER_ART, source tree unpacked) and app/package.json build.files packs it as launcher/art."
-  - "The rabbit and the PLAY badge animate only while Play can be pressed (body[data-ready], launcher.js); otherwise their still frames show. prefers-reduced-motion keeps the stills."
+  - "The PLAY badge animates only while Play can be pressed (body[data-ready]). The rabbit follows the campfire: lighting it at data-fire 0-1 (his own sticks stand in for the fire, which hides), cheering at 2-3, dancing (bunny-wave.gif) with the cube beside him at 4; on the first run (data-panel=setup) he carries the cube instead. prefers-reduced-motion swaps the dance for bunny-cheer.png."
   - "The campfire is body[data-fire]: 0 cold, 1 embers (busy), 1-3 with a download's percent, 4 burning once Play is enabled; once 4 it stays lit for the window's life."
   - "Nothing scrolls but the patch notes: the first-run card's found rows are one line, and with four or more found it hides #setup-detail."
 traps:

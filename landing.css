@@ -81,20 +81,20 @@ p { margin: 0 0 10px; }
 .gate b { color: var(--wax); font-weight: 600; }
 .presses { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; }
 /* PLAY is the rabbit's own badge (the still one: the launcher's moves) */
-.badge { position: relative; display: block; width: 150px; height: 150px; margin: -18px 0 -18px -12px; text-decoration: none; transition: transform 0.12s steps(2); }
-.badge img { display: block; width: 150px; height: 150px; image-rendering: auto; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
+.badge { position: relative; display: block; width: 104px; height: 97px; margin: -8px 0 -8px -6px; text-decoration: none; transition: transform 0.12s steps(2); }
+.badge img { display: block; width: 104px; height: auto; image-rendering: auto; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.35)); }
 .badge span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .badge:hover { transform: translateY(-4px); }
 .badge:focus-visible { outline: 2px solid var(--ruby); outline-offset: -6px; }
 
 .burrow { position: relative; height: 380px; }
 .burrow img { position: absolute; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.3)); }
-.burrow .bunny { left: 50%; bottom: 0; width: 330px; height: auto; transform: translateX(-50%); image-rendering: auto; }
+.burrow .bunny { left: 50%; bottom: 0; width: 340px; height: auto; transform: translateX(-50%); image-rendering: auto; }
 .burrow .chest { right: 2%; bottom: 4px; width: 92px; height: auto; image-rendering: auto; }
 .burrow .scroll { left: 4%; bottom: 0; width: 46px; height: auto; transform: rotate(-58deg); transform-origin: 50% 100%; }
 .burrow .pile { left: 14%; bottom: 2px; width: 72px; height: auto; }
 .burrow .spark { width: 24px; height: 24px; filter: none; }
-.burrow .s1 { left: 12%; top: 22%; } .burrow .s2 { right: 10%; top: 12%; } .burrow .s3 { right: 22%; top: 38%; width: 28px; height: 28px; }
+.burrow .s1 { left: 12%; top: 22%; } .burrow .s2 { right: 10%; top: 12%; } .burrow .s3 { left: 4%; top: 46%; width: 28px; height: 28px; }
 
 /* A CARD: lighter paper, a brown rule and a hard shadow, sealed at a corner */
 main { max-width: 1120px; margin: 0 auto; padding: 24px 24px 44px; display: flex; flex-direction: column; gap: 40px; }
@@ -121,7 +121,9 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 24px 44px; display: flex
 .desktop .meta { font-size: 13px; letter-spacing: 0.04em; margin: 0; }
 
 /* THE CREDITS: a few small lines */
-.credits { padding: 22px 30px; font-size: 14px; color: #4a2a18; }
+.credits { padding: 22px 200px 22px 30px; font-size: 14px; color: #4a2a18; }
+/* the rabbit hauling the cube - the other dev - by the names */
+.credits .haul { position: absolute; right: 18px; bottom: -14px; width: 168px; height: auto; image-rendering: auto; filter: drop-shadow(3px 4px 0 rgba(90,40,15,0.3)); }
 .credits h2 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-family: inherit; font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--wax); }
 .credits h2 img { width: 24px; height: 24px; }
 .credits p { margin: 0 0 6px; }
@@ -162,3 +164,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 24px 24px 44px; display: flex
   .doors a { font-size: 10px; letter-spacing: 0.06em; padding: 4px 4px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .badge { transition: none; } }
+@media (max-width: 860px) {
+  .credits { padding: 22px 18px 150px; }
+  .credits .haul { right: 50%; transform: translateX(50%); bottom: -10px; width: 150px; }
+}

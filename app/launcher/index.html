@@ -86,9 +86,15 @@
 
     <!-- THE BAR: the rabbit, what the launcher is doing, and PLAY -->
     <footer class="bar">
+      <!-- THE RABBIT follows the campfire (launcher.css): he lights it, cheers it on as it catches, and dances
+           beside it once it burns, with the cube sat by the fire; on the first run he carries the cube in -->
       <div class="bunny" aria-hidden="true">
+        <img class="light" src="art/bunny-light.png" alt="" width="306" height="400">
+        <img class="hands" src="art/bunny-hands.png" alt="" width="299" height="400">
+        <img class="cube" src="art/cube.png" alt="" width="320" height="298">
         <img class="anim" src="art/bunny-wave.gif" alt="" width="315" height="311">
         <img class="still" src="art/bunny-cheer.png" alt="" width="420" height="420">
+        <img class="carry" src="art/bunny-carry.png" alt="" width="480" height="490">
       </div>
       <!-- THE CAMPFIRE: cold while the launcher waits, embers while it checks, catching as an update comes down, and
            burning once Play can be pressed (body[data-fire] 0-4, launcher.js) - then it stays lit -->

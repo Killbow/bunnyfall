@@ -17,7 +17,7 @@
     of it: no module, no canvas. It is the desktop launcher's sheet, read as a page: parchment under a wooden rail
     (public/art/bunnyfall-decor/wood.png, one plank that tiles), cream plaques with a brown rule, the rabbit, and the
     game's own trinkets (the GrimoireUI pack's bank icons and wax seals, the spell icons, the currency) scattered about.
-    The site wears the STILL rabbit and the still PLAY badge; the launcher's move. Faces: Jacquard 12 and Pixelify Sans,
+    The site wears the still rabbit, the cube standing by the Play press, and the rabbit hauling the cube (the other dev) by the credits; the launcher's pictures move. Faces: Jacquard 12 and Pixelify Sans,
     the launcher's own files (public/fonts/pixel/).
   -->
   <link rel="stylesheet" href="./landing.css" />
@@ -62,7 +62,8 @@
       <h1 id="door-h">Daggerfall online with friends, in your browser, on our own private server.</h1>
       <p class="gate">You need <b>your own copy</b> of The Elder Scrolls II: Daggerfall, free since 2009. Your game files stay on your device. Make an account to play online with the group and back up your saves.</p>
       <div class="presses">
-        <a class="badge" href="./play/"><img src="/art/bunnyfall-decor/play-still.png" alt="" width="361" height="362" /><span>Play</span></a>
+        <a class="badge" href="./play/" tabindex="-1" aria-hidden="true"><img src="/art/bunnyfall-decor/cube.png" alt="" width="320" height="298" /></a>
+        <a class="plaque big primary" href="./play/">Play</a>
         <a class="plaque big" href="#desktop">Download</a>
       </div>
     </div>
@@ -126,6 +127,7 @@
     </section>
 
     <section class="card credits" id="credits" aria-labelledby="credits-h">
+      <img class="haul" src="/art/bunnyfall-decor/bunny-carry.png" alt="" width="480" height="490" aria-hidden="true" />
       <img class="seal green" src="/art/bunnyfall-decor/seal-green.png" alt="" width="72" height="75" aria-hidden="true" />
       <h2 id="credits-h"><img src="/art/bunnyfall-decor/feather.png" alt="" width="16" height="16" />Credits</h2>
       <p>Bunnyfall is a fork of <a href="https://github.com/Lattymoy/daggerfall-js-source">DFO Online</a> (Lattymoy and contributors, MIT), which grew from <a href="https://github.com/Interkarma/daggerfall-unity">Daggerfall Unity</a> (Interkarma and contributors, MIT). Run by Killbunny.</p>
