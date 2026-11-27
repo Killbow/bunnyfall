@@ -15,6 +15,7 @@ import { makeAnchor, WORLD_CONTEXT } from '../src/travel/teleportAnchor.js';
 import { ChargenFlow } from '../src/ui/chargen.js';
 import { chargenHit } from '../src/ui/chargenArt.js';
 import { EXTRA_RACE_TEMPLATES, PLAYABLE_RACE_TEMPLATES, RACE_TEMPLATES, artRaceOf, raceArt, raceById } from '../src/characters/races.js';
+import { duelAttackerOf } from '../src/combat/duelCombat.js';
 import { racialDelivery, RACIAL_FAVORITES, RACIAL_TRAITS } from '../src/combat/abilities/racialProfiles.js';
 import { noteRacialReadiness, racialGuardDamage, racialPace } from '../src/combat/abilities/racialIdentity.js';
 import { calculateAttackDamage, racialModifiers } from '../src/combat/formulas.js';
@@ -29,12 +30,21 @@ import { hotbarEntry, hotbarEntryForAbility, hotbarEntryForWeaponRank, hotbarPre
 const longsword = { templateIndex: 120, group: 'Weapons' };
 const makeEntity = () => ({ isPlayer: true, race: 'Nord', skills: [], fatigue: 1000, health: 100 });
 
+test('a duel sheet sends a Bunnyfall people as the classic people it is drawn as', () => {
+  const sheet = (race, raceId) => duelAttackerOf({ ...makeEntity(), race, raceId, level: 5, stats: {}, items: [] }).r;
+  assert.equal(sheet('Orc', 103), 2);
+  assert.equal(sheet('Imperial', 100), 1);
+  assert.equal(sheet('Lilmothit', 101), 7);
+  assert.equal(sheet('Lungaris', 102), 7);
+  assert.equal(sheet('Nord', 3), 3);
+});
+
 test('extra character creation races keep their identity and racial ability when saved', (t) => {
   const previous = globalThis.location;
   globalThis.location = { search: '?abilities' };
   t.after(() => { if (previous) globalThis.location = previous; else delete globalThis.location; });
   assert.equal(RACE_TEMPLATES.length, 8);
-  assert.equal(new Set(PLAYABLE_RACE_TEMPLATES.map(race => race.id)).size, 11);
+  assert.equal(new Set(PLAYABLE_RACE_TEMPLATES.map(race => race.id)).size, 12);
   for (const [i, race] of EXTRA_RACE_TEMPLATES.entries()) {
     const flow = new ChargenFlow([]);
     flow.applyHit(chargenHit(flow, 230, 182));
@@ -66,7 +76,7 @@ test('the preview applies the same conditional racial accuracy in both combat co
   for (const race of PLAYABLE_RACE_TEMPLATES) {
     const entity = { ...makeEntity(), race: undefined, raceId: race.id, health: 50, maxHealth: 100 };
     const favorites = RACIAL_FAVORITES[race.key];
-    assert.equal(new Set(favorites).size, 2);
+    assert.ok(favorites.length >= 2 && new Set(favorites).size === favorites.length, race.key);   // two favored weapons, or the Orc's warhammer and both axes
     const expected = { damageMod: 0, toHitMod: 4 };
     for (const favorite of favorites) {
       const weapon = favorite === 'bare' ? null : { templateIndex: favorite };
@@ -102,11 +112,11 @@ test('each race has a conditional preview movement perk and a defensive passive'
     else noteRacialReadiness(entity, longsword, false, true);
     const motor = { isRunning: race.key === 'Lungaris', isSneaking: race.key === 'WoodElf',
       swimming: race.key === 'Argonian' };
-    assert.equal(racialPace(entity, trait.pace, motor, true), 1.06, race.key);
+    assert.equal(racialPace(entity, trait.pace, motor, true), 1.15, race.key);
     assert.equal(racialPace(entity, 'levitate', motor, true), 1);
     if (trait.guard) {
       const kind = trait.guard === 'physical' ? 'melee' : trait.guard;
-      assert.equal(racialGuardDamage(100, hostile, entity, kind), 94, race.key);
+      assert.equal(racialGuardDamage(100, hostile, entity, kind), 85, race.key);
       assert.equal(racialGuardDamage(100, { isPlayer: true }, entity, kind), 100);
       assert.equal(racialGuardDamage(100, hostile, entity, 'spell'), 100);
       assert.equal(racialGuardDamage(1, hostile, entity, kind), 1);
@@ -134,7 +144,7 @@ test('racial pace reaches player displacement and guarded hits use both combat c
   };
   const wounded = walk();
   entity.health = 100;
-  assert.ok(Math.abs(wounded / walk() - 1.06) < 1e-6);
+  assert.ok(Math.abs(wounded / walk() - 1.15) < 1e-6);
   const attacker = { level: 20, isClass: true, skills: new Array(35).fill(100),
     stats: { strength: 80, agility: 80, speed: 80, luck: 80 }, items: [] };
   const sword = createWeapon(120, 4);
@@ -145,12 +155,12 @@ test('racial pace reaches player displacement and guarded hits use both combat c
     if (overhaul) installPcaao({ read: key => key === 'Enabled' || key === 'armorHitFormulaRedone' });
     const base = damage('Breton');
     assert.ok(base > 40);
-    assert.equal(damage('Imperial'), Math.round(base * .94));
+    assert.equal(damage('Imperial'), Math.round(base * .85));
   }
 });
 
 test('registry keeps every planned action, with no firearm delivery', () => {
-  assert.equal(ABILITIES.length, 145);
+  assert.equal(ABILITIES.length, 146);
   assert.equal(new Set(ABILITIES.map(a => a.id)).size, ABILITIES.length);
   assert.equal(ABILITIES.filter(a => a.category === 'weapon').length, 92);
   assert.equal(ABILITIES.filter(a => a.category === 'combination').length, 30);

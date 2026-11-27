@@ -19,6 +19,7 @@ export const RACIAL_FAVORITES = Object.freeze({
   Imperial: [118, 124],
   Lilmothit: [117, 129],
   Lungaris: [116, 563],
+  Orc: [126, 128, 127],
 });
 
 export const RACIAL_TRAITS = Object.freeze({
@@ -41,6 +42,8 @@ export const RACIAL_TRAITS = Object.freeze({
     pace: 'sneak', condition: 'rested', movement: 'Sneak 15% faster at half fatigue or higher.' },
   Lungaris: { passive: 'Light on Your Feet reduces melee damage by 15% while running on foot.', guard: 'melee', guardCondition: 'running',
     pace: 'jump', movement: 'Jump with 15% more upward speed.' },
+  Orc: { passive: 'Thick Hide reduces physical damage by 15% with a weapon readied.', guard: 'physical', guardCondition: 'readied',
+    pace: 'run', condition: 'wounded', movement: 'Run 15% faster below half health.' },
 });
 
 const common = { spend: 7, cooldownMs: 25000, windUpMs: 250, activeMs: 440, recoveryMs: 600 };
@@ -95,6 +98,10 @@ const pilots = new Map([
   ['racial.lungaris.harebound', melee({
     advance: { ...launch(6.6, .45), mech: 'leap', apex: 2.6 }, rangeM: 4.3, potency: 1.2, windUpMs: 175, fx: 'lunge',
     description: 'Spring in a long, high hare leap onto the enemy under your aim and strike where you land.',
+  })],
+  ['racial.orc.skullsplitter', melee({
+    rangeM: 2.9, potency: 1.35, windUpMs: 320, control: { poiseShare: .9, shove: .9 }, fx: 'lunge',
+    description: 'Bring a heavy overhead blow down on the enemy ahead of you, staggering it. Works with a melee weapon or empty hands.',
   })],
 ]);
 

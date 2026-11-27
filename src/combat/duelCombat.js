@@ -9,6 +9,7 @@ import { SKILLS, skillValue } from '../characters/skills.js';
 import { liveStat } from '../characters/statMods.js';
 import { offHandToHit, OFF_HAND_BLOW } from './twoHands/handsLaw.js';
 import { STAT_KEYS_ORDER } from '../characters/chargen.js';
+import { RACES, raceById, raceByKey } from '../characters/races.js';
 import { weaponSkillUsed } from '../characters/weapons.js';
 import { armorValuesOf } from '../characters/equip.js';
 import { clawMetalDamage, CLAW_METAL_MAX } from './clawMetal.js';
@@ -32,11 +33,17 @@ const u32 = (v) => { const n = Number(v); return Number.isFinite(n) ? (n >>> 0) 
 
 const skillForTemplate = (t) => (Number.isInteger(t) ? (weaponSkillUsed(t) ?? SKILLS.HandToHand) : SKILLS.HandToHand);
 
+/** The race a duel sheet carries: the wire holds the eight classic ids, so a people added by Bunnyfall (Imperial, Orc ...) goes as the classic people it is drawn as, not as the highest id. */
+const duelRaceId = (entity) => {
+  const race = raceById(entity?.raceId) ?? raceByKey(entity?.race);
+  return race?.artRace ? RACES[race.artRace] : (entity?.raceId ?? 0);
+};
+
 export function duelAttackerOf(entity, weapon = null) {
   const ws = skillForTemplate(weapon?.templateIndex);
   return {
     lv: clamp(entity?.level ?? 1, 1, DUEL_LEVEL_MAX),
-    r: clamp(entity?.raceId ?? 0, 0, DUEL_RACE_MAX),
+    r: clamp(duelRaceId(entity), 0, DUEL_RACE_MAX),
     st: STAT_KEYS_ORDER.map((k) => clamp(liveStat(entity, k), 0, DUEL_STAT_MAX)),
     sk: [ws, SKILLS.HandToHand, SKILLS.CriticalStrike, SKILLS.Backstabbing].map((id) => clamp(skillValue(entity, id), 0, DUEL_SKILL_MAX)),
     cf: [clamp(entity?.career?.attackModifierFlags ?? 0, 0, 255), u32(entity?.career?.weaponArmorShieldsBitfield), u32(entity?.career?.abilityFlagsAndSpellPointsBitfield)],

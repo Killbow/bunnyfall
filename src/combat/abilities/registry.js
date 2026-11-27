@@ -143,6 +143,7 @@ const definitions = [
   ["racial.imperial.commanders-call", "Commander's Call", 0, null, null, "Imperial"],
   ["racial.lilmothit.foxfire-feint", "Foxfire Feint", 0, null, null, "Lilmothit"],
   ["racial.lungaris.harebound", "Harebound", 0, null, null, "Lungaris"],
+  ["racial.orc.skullsplitter", "Skullsplitter", 0, null, null, "Orc"],
 
   ["utility.trailblazer", "Trailblazer", 10, null, null, null],
   ["utility.unbound-will", "Unbound Will", 20, null, null, null],

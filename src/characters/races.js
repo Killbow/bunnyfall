@@ -1,4 +1,4 @@
-// The race table: DFU RaceTemplate data (MIT, Daggerfall Workshop) for the eight classic races, plus three extra races.
+// The race table: DFU RaceTemplate data (MIT, Daggerfall Workshop) for the eight classic races, plus the extra races.
 
 import { BODY_MORPHOLOGY } from '../items/armorMaterials.js';
 
@@ -68,6 +68,7 @@ export const EXTRA_RACE_TEMPLATES = Object.freeze([
   extraRace('Imperial', 100, 'Breton', 'Imperials favor the broadsword and mace.'),
   extraRace('Lilmothit', 101, 'Khajiit', 'Lilmothit are foxfolk who favor the wakizashi and short bow.'),
   extraRace('Lungaris', 102, 'Khajiit', 'Lungaris are harefolk who favor the shortsword and crossbow.'),
+  extraRace('Orc', 103, 'Redguard', 'Orcs favor the warhammer and axes.'),
 ]);
 export const PLAYABLE_RACE_TEMPLATES = Object.freeze([...RACE_TEMPLATES, ...EXTRA_RACE_TEMPLATES]);
 export const RACE_KEYS = Object.freeze(PLAYABLE_RACE_TEMPLATES.map((r) => r.key));
