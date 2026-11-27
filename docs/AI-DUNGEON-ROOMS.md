@@ -1,6 +1,6 @@
 # AI-generated dungeon rooms
 
-Status 2026-11-27: **built, checked in node, not yet seen in the real game.** "Tile" means a dungeon room, an RDB block.
+Status 2026-11-27: **built, checked in node, and seen in the real game (headless Chromium).** "Tile" means a dungeon room, an RDB block.
 The card `ai-dungeon-rooms` is the short reference; this is how it was done and what is left.
 
 ## What was built
@@ -36,8 +36,12 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
 
 ## What is not done
 
-- **Nobody has looked at a room in the game.** Texture orientation, lighting level and how a room feels are unchecked;
-  the top-down previews (`build.mjs --preview <dir>`) show plans only. First thing to do: enter a few spawned dungeons.
+- **Seen in the real game, but only by a free camera.** `tools/aiRoom/shots.mjs` (with `shots.patch`, a temporary patch
+  to the standalone dungeon scene) lays the rooms into a real dungeon and screenshots each: textures, walls, ceilings,
+  columns, cages, torches and foes all draw correctly in several rooms (Hall of Pillars, Throne Room, Cavern Mouth,
+  Sunken Arena, Prison Block, Cruciform Chapel, Pit Hall). Not yet done: playing through a room with a character, and
+  entering a spawned dungeon in the full world host (the hook was exercised there only as a function call, and it
+  reports on, door open, switch on).
 - Foes come from the plain random-enemy marker, so their kind follows the dungeon, as in classic blocks.
 - The relay and account service were not checked for any dependency on block names.
 - New pieces are single-sided stone (dungeon slot textures); no wood, metal or glass textures yet.
@@ -45,4 +49,5 @@ The card `ai-dungeon-rooms` is the short reference; this is how it was done and 
 ## Regenerating
 
 `ARENA2_PATH=<arena2> node tools/aiRoom/build.mjs` rewrites `vendor/bunnyfall-ai-rooms/`; `--check` only tests;
-`--preview <dir>` draws plans; `node tools/aiRoom/walk.mjs` and `integrate.mjs` run the other two checks.
+`--preview <dir>` draws plans; `node tools/aiRoom/walk.mjs` and `integrate.mjs` run the other two checks, and
+`shots.mjs` takes in-game screenshots (see its header; the screenshots show Daggerfall's art, so keep them out of the repo).
