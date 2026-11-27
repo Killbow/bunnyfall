@@ -7,6 +7,7 @@
 import { storedSession, serviceBase, skinsMine, skinsGet, skinsWear, accountRefusalText } from '../net/accountClient.js';
 import { PIXEL_STACK } from './pixelifyFive.js';
 import { t } from './textManager.js';
+import { selfSiteUrl } from '../net/selfHost.js';
 import { TAVERN_ART } from './tavernFrontDoor.js';
 import { APP_ROOT } from '../platform/appRoot.js';
 
@@ -64,7 +65,7 @@ export function tavernPaperdoll({ storage, doc = globalThis.document, fetch = (.
   msg.setAttribute('role', 'status');
   const wear = /** @type {HTMLButtonElement} */ (el('button', 'td-parch gold', t('menu.tavern.dollWear', 'Wear this'))); wear.type = 'button';
   const manage = /** @type {HTMLAnchorElement} */ (el('a', 'td-parch', t('menu.tavern.dollManage', 'Upload or manage')));
-  manage.href = 'skins.html'; manage.target = '_blank'; manage.rel = 'noopener';
+  manage.href = selfSiteUrl('skins.html');   // the site's page: from the desktop app a relative link asks dagger://game, which has none manage.target = '_blank'; manage.rel = 'noopener';
   const acts = el('div', 'td-doll-acts'); acts.append(wear, manage);
   root.append(seal, head, stage, nameBox, msg, acts);
 

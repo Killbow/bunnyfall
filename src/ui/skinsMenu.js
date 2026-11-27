@@ -3,6 +3,7 @@
 // the custom paperdoll worn online (ui/skinsPanel.js), with a link to the skins page (skins.html) to upload one.
 import { storedSession, serviceBase } from '../net/accountClient.js';
 import { mountSkinsPanel } from './skinsPanel.js';
+import { selfSiteUrl } from '../net/selfHost.js';
 
 const STYLE_ID = 'bf-skin-mark-style';
 const CSS = `
@@ -36,7 +37,7 @@ export function skinMark({ storage, doc = globalThis.document }) {
     const h = doc.createElement('h2'); h.textContent = 'Paperdoll online';
     const body = doc.createElement('div');
     const foot = doc.createElement('div'); foot.className = 'foot';
-    const up = doc.createElement('a'); up.href = '/skins.html'; up.target = '_blank'; up.rel = 'noopener'; up.textContent = 'Upload or manage skins';
+    const up = doc.createElement('a'); up.href = selfSiteUrl('skins.html'); up.target = '_blank'; up.rel = 'noopener'; up.textContent = 'Upload or manage skins';
     const close = doc.createElement('button'); close.type = 'button'; close.textContent = 'Close';
     const shut = () => win.remove();
     close.onclick = shut; win.addEventListener('click', (e) => { if (e.target === win) shut(); });
