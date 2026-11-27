@@ -23,6 +23,7 @@ import { ROTOR, MACHINERY, MACHINERY_MODEL_ID, MACHINERY_CHILDREN, PLANK_GEAR, R
 import { skinnedBody } from '../world/windmills.js';   // WM2e: its walls and roof follow the climate
 import { flatFaceOverride } from '../characters/staticNpc.js';   // RR2: FLATS.CFG's dictionary, as a mod rewrites it
 import { createPlaceHolds } from '../world/placeHolds.js';   // FIELD BUGS 2026-10-04d PLACE-LRU
+import { pseudoArchiveOwner } from '../world/eliteGates/pseudoArchives.js';
 
 /** ROAD-H H4: `fetch` defaults to the one data seam every scene uses
  *  (shared.js's fetchBytes) and is a parameter for the same reason
@@ -89,6 +90,11 @@ export function createDataPipeline({ renderer, arch, palette, fetch = fetchBytes
         // (a mod's item icons, 532-539) has no TEXTURE file to fetch -
         // decode the PNGs and stand a sized shell in for the file, and
         // the swap arm below draws them.
+        if (pseudoArchiveOwner(archive)?.kind === 'port') {
+          const v = vendorTextureStandIn(archive);
+          textureFiles.set(archive, v);
+          return v;
+        }
         if (isVendorArchive(archive)) {
           const epoch = textureTierEpoch();   // AUDIT VE R1
           await preloadTextureArchive(archive).catch(() => {});

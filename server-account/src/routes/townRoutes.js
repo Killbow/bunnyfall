@@ -36,6 +36,7 @@ import { decoratorsRoute } from '../decorators.js';
 import { saveDraft, acceptDraft } from '../decoratorDrafts.js';
 import { caravanRoute } from '../caravanTemplates.js';
 import { marksOf, exchangeMarks, payGearUpgrade, depositGuildMarks, withdrawGuildMarks, marksReport, findMarks } from '../marks.js';
+import { SEALS_STATUS, sealsBalanceOf, spendPsijicSeal } from '../psijicSeals.js';
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from '../board.js';
 import { progressSpent } from '../progress.js';
 import { DECORATOR_STATUS, RENT_STATUS, ROLL_STATUS, GUILD_STATUS, MARKS_STATUS, BOARD_STATUS, TOWN_STATUS } from '../routeStatus.js';
@@ -275,6 +276,19 @@ export async function townRoutes({ request, env, subtle, nowS, origin, path, ctx
     const r = await act();
     if (progressRoute) await progressSpent(ctx, who.player.id, path, r);
     return 'error' in r ? no(r.error, MARKS_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
+  }
+
+  if (path.startsWith('/v1/seals/')) {
+    if (request.method !== 'POST') return no('method', 405, origin);
+    const act = {
+      '/v1/seals/balance': () => sealsBalanceOf(ctx, who.player),
+      '/v1/seals/spend': () => spendPsijicSeal(ctx, who.player, body),
+    }[path];
+    if (!act) return no('not-found', 404, origin);
+    const r = await act();
+    return 'error' in r
+      ? json({ error: r.error, ...(r.balance != null ? { balance: r.balance } : {}) }, SEALS_STATUS[r.error] ?? 400, origin)
+      : json(r, 200, origin);
   }
 
   if (path.startsWith('/v1/board/')) {

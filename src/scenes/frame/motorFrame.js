@@ -21,6 +21,7 @@ import { exteriorSwimming, ON_EXTERIOR_WATER } from '../../player/exteriorSurfac
 import { flashPlayerDamage } from '../../ui/damageFlash.js';
 import { floorLanding } from '../../player/enterExit.js';
 import { FOUND_NOTHING_VALUABLE_TEXT_ID } from '../../talk/talk.js';
+import { getBazaarGothwayHost } from '../bazaarBetwixtRoom.js';
 import { getInteractionMode } from '../../player/interactionMode.js';
 import { held, moveHeld, pressed, released, swingKeyHeld } from '../../ui/input.js';
 import { hurtPlayer, playerEntity, surfacePlayer } from '../../characters/playerEntity.js';
@@ -385,6 +386,7 @@ export function createMotorFrame(shared) {
           crouch: crouchPress,
         }, cam.yaw, cam.pitch);
         worldAddons.run('postMotor');
+        if (!_overlayHeld && !_seasonHeld && walkMode && shared.playerSpawned) getBazaarGothwayHost(shared)?.stepMotor(player.feetAt(), now);
         // TRAVEL-NAV1: the travel the motor was really asked for this frame - after the ground gate, and
         // nothing on a held or paralysed frame - which the steering's grinding check weighs next frame.
         travelNavFrame.asked = shared._travelDrive && !_overlayHeld && !_seasonHeld && !paralyzed
@@ -685,7 +687,7 @@ export function createMotorFrame(shared) {
           const _hccPick = pickActivatableHit(cam.pos, useFwd, hcc.targets(), collider);   // HCC: the parked wagon's box, the following team's, the standing horse's (RegisterCustomActivation at 3.2), the same one ray
           const _springPick = pickActivatableHit(cam.pos, useFwd, springTargets(), collider);   // SURV3: a fountain, a well, a trough
           const _gatePick = gatePool ? pickActivatableHit(cam.pos, useFwd, [...gatePool.targets(), ...(riteHost?.targets() ?? [])], collider) : null;   // WB2: an Oblivion Gate's fire; WB12d: and the faithful's casket, on its ray
-          const _brokerPick = pickActivatableHit(cam.pos, useFwd, [...(sigilBroker?.targets() ?? []), ...cromwark.targets(), ...(mines?.targets() ?? [])], collider);   // BUNNYFALL: and Nyx at the Guild camp, on the Broker's arm   // SET7: the Sigil Broker (BROKER-CAGE: in her cage, its whole her box)
+          const _brokerPick = pickActivatableHit(cam.pos, useFwd, [...(sigilBroker?.targets() ?? []), ...cromwark.targets(), ...(mines?.targets() ?? []), ...(getBazaarGothwayHost(shared)?.targets() ?? [])], collider);
           const _csaBoatPick = csaActivationPick(cam.pos, useFwd);   // CSA-D: a boat's box or hull (RegisterCustomActivation 112400-112406 at 3.2), the same one ray
           // HARD2: the race is ONE law now (player/activationRace.js) - the
           // body against the pile, the torch against both and the door,
@@ -751,7 +753,7 @@ export function createMotorFrame(shared) {
             // EOTB-IL: the mod's cart under the same ray (RegisterCustomActivation(41239, CheckWagon, 3.2)) - Info names it, any other mode opens the pack with the wagon
             // SURV3: a camp under the ray - Info and Talk name it, any other mode opens its menu; a water source fills the skins
             if (_race.gateWins) { if (_gatePick.distance > _gatePick.reach) setMidScreenText(tooFarAwayText()); else if (!riteHost?.activate(_gatePick.key)) gatePool.activate(_gatePick.key); }   // WB2: the gate's own door; WB12d: the casket's its own
-            else if (_race.brokerWins) { if (_brokerPick.distance > _brokerPick.reach) setMidScreenText(tooFarAwayText()); else if (!cromwark.activate(_brokerPick.key, getInteractionMode()) && !mines?.activate(_brokerPick.key, getInteractionMode())) sigilBroker?.activate(_brokerPick.key, getInteractionMode()); }   // SET7 (BUNNYFALL: Nyx's press first): Info names her, Steal is watched, anything else opens her window
+            else if (_race.brokerWins) { if (_brokerPick.distance > _brokerPick.reach) setMidScreenText(tooFarAwayText()); else if (!getBazaarGothwayHost(shared)?.activate(_brokerPick.key, getInteractionMode()) && !cromwark.activate(_brokerPick.key, getInteractionMode()) && !mines?.activate(_brokerPick.key, getInteractionMode())) sigilBroker?.activate(_brokerPick.key, getInteractionMode()); }
             else if (_race.campWins) { if (_campPick.distance > _campPick.reach) setMidScreenText(tooFarAwayText()); else if (!reachEvents.activateFire(_campPick.key, getInteractionMode())) camps.activate(_campPick.key, getInteractionMode(), plaqueActionFor(_campPick.key)); }   // REST2: the plaque's lit row
             else if (_race.waterWins) { if (_springPick.distance > _springPick.reach) setMidScreenText(tooFarAwayText()); else drinkAtSpring(_springPick.key); }
             else if (_race.wagonWins) { if (_wagonPick.distance > _wagonPick.reach) setMidScreenText(tooFarAwayText()); else mwViewWagonActivate(getInteractionMode(), { say: (l) => townTalk.say(l), openInventoryWithWagon: () => { const w = makeInventoryWindow(EOTB_WAGON_PACK); if (w) townTalk.showOverlay(w); } }); }   // DISC10-E L3: a refused pack is null

@@ -3,6 +3,7 @@ import { clockFogColor, VIEW_RINGS } from '../render/realWindows.js';
 import { arcOn, loadArc } from '../systems/offArcs.js';
 import { farFlatVisibleAt } from './flatDistance.js';
 import { fillLanternPool, nearestLights } from './cityLights.js';
+import { getBazaarGothwayHost } from '../scenes/bazaarBetwixtRoom.js';
 import { getFloat } from '../platform/settings.js';
 import { identity, multiply, UP_Y } from './mat4.js';
 import { SUN_RIG_COLOR, sunDirection, viewOutLight, windowStyleForTime } from './worldClock.js';
@@ -77,5 +78,6 @@ export async function createOutsideViewWorld(shared) {
     draw: ({ renderer: r, planes }) => drawOutsideStreet(r, planes),
   });
   shared.witches = arcOn('witchesFestival') ? (await loadArc('witchesFestival')).createWitchesHost({ built, renderer, pipeline, onlineHomes, townTalk, state, player, saveSoon, chatNotice, mode: _mode, get online() { return shared.online; } }) : null;
+  getBazaarGothwayHost(shared);
   return { outsideView };
 }

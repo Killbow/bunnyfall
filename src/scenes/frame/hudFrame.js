@@ -8,6 +8,7 @@ import { drawHud } from '../../ui/hud.js';
 import { duelVitality } from '../../net/duelBar.js';
 import { fetchBytes } from '../shared.js';
 import { frameEnd } from '../../platform/frameClock.js';
+import { getBazaarGothwayHost } from '../bazaarBetwixtRoom.js';
 import { getInteractionMode } from '../../player/interactionMode.js';
 import { hidePaceBox, showPaceBox } from '../../ui/travelPaceControls.js';
 import { isEnhanced } from '../../ui/uiSkin.js';
@@ -134,8 +135,13 @@ export function createHudFrame(shared) {
           // working; it does not keep the panel readable.
           cursorActive: gamePaused() || pointerSurfaces.size > 0 || !!tvf,   // TV1: the travel view frees the cursor - no crosshair, nothing named under it
           // PROF-MENU: the profession node the press would take, over the race's own winner (gatherHost.hoverHit)
-          pick: () => profHoverOver(modes.exteriorHoverPick(cam.pos, _hd, hoverPicks(cam.pos, _hd))),
-          name: (key) => modes.exteriorHoverName(key, { eye: cam.pos, dir: _hd, names: _hoverNamers, modNames: _hoverModNamers }),
+          pick: () => {
+            const _hp = hoverPicks(cam.pos, _hd);
+            const _bz = pickActivatableHit(cam.pos, _hd, getBazaarGothwayHost(shared)?.targets() ?? [], collider);
+            if (_bz && (!_hp.broker || _bz.distance < _hp.broker.distance)) _hp.broker = _bz;
+            return profHoverOver(modes.exteriorHoverPick(cam.pos, _hd, _hp));
+          },
+          name: (key) => getBazaarGothwayHost(shared)?.hoverName(key) ?? modes.exteriorHoverName(key, { eye: cam.pos, dir: _hd, names: _hoverNamers, modNames: _hoverModNamers }),
           contents: _hoverContents,
         });
       }

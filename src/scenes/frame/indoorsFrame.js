@@ -52,9 +52,13 @@ export function createIndoorsFrame(shared) {
       // street's own rain is what you hear through the walls: a building at INDOOR_RAIN_GAIN of it, never louder
       // than the street, and underground at the street's own gain. Forcing gain 1 here made a light shower (the
       // front's 0.15) louder in a tavern than in the street - the Discord report itself - and a dungeon 6.7x.
-      ambience.setPreset(presetForExterior(heardWeather(), isNight(minuteNow()), cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y)));   // DISC9: the word the street last heard - the one truth Better Ambience's indoor rain reads too
-      ambience.update(dt, { inside: true, underground: modes.mode === 'dungeon', indoorRainSource: betterAmbience.rainPlaying() });
-      worldAddons.run('indoorFrame');
+      const _keepStreetRigs = !!modes.inBazaarBetwixt?.();
+      if (_keepStreetRigs) ambience.stop?.();
+      else {
+        ambience.setPreset(presetForExterior(heardWeather(), isNight(minuteNow()), cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y)));
+        ambience.update(dt, { inside: true, underground: modes.mode === 'dungeon', indoorRainSource: betterAmbience.rainPlaying() });
+        worldAddons.run('indoorFrame');
+      }
       livingWays.frame(); livingMemoFresh();   // AUDIT-E2: the ways asked indoors too - a load made in a tavern or below asked once and never again
       try { livingDiversStep(now); } catch (e) { console.warn('[divers] step', e); }   // LW6: underground, the companies diving here met (AUDIT LW-II-2: wrapped as its neighbours are - a throw never kills the frame loop)
       try { livingRemainsStep(now); } catch (e) { console.warn('[remains] step', e); }   // LW6b: ...and the dead the deep kept there

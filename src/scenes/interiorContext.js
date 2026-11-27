@@ -48,6 +48,7 @@ import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // B
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
 import { seatMagicFolk } from './magicTavernRoom.js';   // MAGIC-TAVERN: the shared hall's people, its keeper Nyx
+import { seatBazaarMystic } from './bazaarBetwixtRoom.js';
 import { furnishBunnyHall, isHouseFurniture, stripHallFlats } from '../guilds/bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall stripped of the house, and furnished for its guild
 import { markGuildClerkArt, standGuildClerkArt } from '../guilds/guildClerkArt.js';
 import { ensureBunnyClerk } from '../guilds/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
@@ -406,21 +407,23 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     drawList.push({ mesh: gpu, matrix, key, aabb });
     // PERF6: the entry stays in drawList for the automap; the main view draws the merge
     if (!baseKey && cpu.normals && cpu.uvs) { staticBuilder.add(cpu, matrix, resolveTexKey); drawList[drawList.length - 1]._batched = true; }
-    automapEntries.push({
-      key,
-      aabb,
-      blockIndex: 0,
-      blockName: amapBlockName,
-      elementIndex: 0,
-      elementName: INTERIOR_ELEMENT_NAMES[0],
-      modelIndex: amapModelCount[0]++,
-      waterLevel: null,   // AddWater is a DUNGEON block's (Automap.cs:1982-2001); an interior has no water level
-      positions: cpu.positions,
-      indices: cpu.indices,
-      normals: cpu.normals ?? null,   // DISC22-G: the file's facing - a building's ceilings are not its storeys
-      matrix,
-    });
-    collider.addMesh(baseKey ? baseBucketOf(baseKey) : 'interior', cpu.positions, cpu.indices, matrix);
+    if (!cpu.skybox) {
+      automapEntries.push({
+        key,
+        aabb,
+        blockIndex: 0,
+        blockName: amapBlockName,
+        elementIndex: 0,
+        elementName: INTERIOR_ELEMENT_NAMES[0],
+        modelIndex: amapModelCount[0]++,
+        waterLevel: null,
+        positions: cpu.positions,
+        indices: cpu.indices,
+        normals: cpu.normals ?? null,
+        matrix,
+      });
+      collider.addMesh(baseKey ? baseBucketOf(baseKey) : 'interior', cpu.positions, cpu.indices, matrix);
+    }
     if (baseKey) base.addModel(baseKey, { model: p.modelIdNum, draw: drawList[drawList.length - 1], cpu, matrix, at: aabb.min.map((v, i) => (v + aabb.max[i]) / 2), aabb });
     if (p.modelIdNum === MACHINERY_MODEL_ID && getMachineryParts) {
       machineryParts ??= await getMachineryParts();
@@ -620,6 +623,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // (its name, its shop) and stands as the lamp; no Morrowind body is read for it (MWNPC8a's look, null)
   for (const pn of people) if (opts.lampPerson?.(pn)) Object.assign(pn, { lamp: true, _mwLook: null });
   if (opts.magicTavern) seatMagicFolk(people, opts.magicTavern.folk, interior.spawnPoints.map(([x, y, z]) => parentPt(x, y, z)), opts.magicTavern.isKeeper);   // MAGIC-TAVERN: the tavern's own people in the hall (scenes/magicTavernRoom.js)
+  if (opts.bazaarBetwixt) seatBazaarMystic(people);
   if (opts.bunnyHall) ensureBunnyClerk(people, opts.bunnyHall, interior.spawnPoints.map(([x, y, z]) => parentPt(x, y, z)));   // BUNNY-GUILDS: a converted house's clerk speaks for its guild, and is always there
   markGuildClerkArt(people, opts.guildClerkArt);
   // AUDIT 24 (wave 20): AddPeople's LAST act on every person it stands

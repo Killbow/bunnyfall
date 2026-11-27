@@ -2,6 +2,7 @@
 import { clearDoorways, spaceAcross, spacingSkips } from '../../characters/foeSpacing.js';
 import { foeFrameDt } from '../../characters/enemyMotor.js';
 import { folkActor } from '../../characters/folkBodies.js';
+import { getBazaarGothwayHost } from '../bazaarBetwixtRoom.js';
 import { isInvisible } from '../../magic/effects.js';
 import { isNight } from '../../world/worldClock.js';
 import { livingWorldOn } from '../../systems/livingWorld/livingSwitch.js';
@@ -176,7 +177,7 @@ export function createPeopleFrame(shared) {
     portalGates.tick(_mode() === 'exterior' && walkMode && shared.playerSpawned ? player.feetAt() : null, { hold: portalHoldNow });   // PORTAL1: the portals run out, and a step in is an arrival - indoors nobody steps in
     if (_mode() === 'exterior') livePersonBatches.push(...portalGates.batches());   // PORTAL1: the vortexes on the flats' axis
     if (sigilBroker && _mode() === 'exterior') livePersonBatches.push(...sigilBroker.batches());
-    if (_mode() === 'exterior') livePersonBatches.push(...cromwark.batches());   // BUNNYFALL: Nyx at the Guild camp   // SET7: the Broker on the flats' axis, as a foe stands
+    if (_mode() === 'exterior') livePersonBatches.push(...cromwark.batches(), ...(getBazaarGothwayHost(shared)?.batches() ?? []));
     if (shared.lefay && _mode() === 'exterior') livePersonBatches.push(...shared.lefay.batches());   // LEFAY1: the flowers laid at the monument, and the ones in flight
     if (shared.merchantYards && _mode() === 'exterior') livePersonBatches.push(...shared.merchantYards.batches());   // MERCHANT-YARDS: the keepers and the Stables' horses on the flats' axis
     portBatchesInto(livePersonBatches);   // SHIPYARDS: the port's people on the flats' axis
@@ -218,6 +219,7 @@ export function createPeopleFrame(shared) {
     if (shared.naval?.enabled) navalRender.draw(shared.naval.drawFrame());   // NAV-B: the smoke, the spray, the balls in flight and the aim's arcs and zone, over the sea's top
     if (shared._serpentDraw) { try { serpentRenderer()?.drawSea(shared._serpentDraw); } catch (e) { console.warn('[serpent] marks', e?.message ?? e); } }   // SERPENT1: its telegraphs, the maelstrom and the venom, over the sea's top
     portGlows();   // SHIPYARDS: the lighthouses' lamps and their turning beams, added light over the sea's top
+    if (_mode() === 'exterior') getBazaarGothwayHost(shared)?.drawTear(proj, view, mwv.eye, now);
     cannonSmoke();   // BUNNYFALL: the Great Cannon's flash and smoke
     navalHud(dt);   // NAV-F: the helm's readout
     _fr.foeDt = foeDt;

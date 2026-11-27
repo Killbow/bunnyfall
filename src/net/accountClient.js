@@ -1256,6 +1256,7 @@ export async function call({ fetch, base = DEFAULT_ACCOUNT_SERVICE, secret = nul
       ...(Array.isArray(data?.keeps) ? { keeps: data.keeps.filter((k) => typeof k === 'string').slice(0, 16) } : {}),   // GUILD3c: and everything that holds a guild that would go
       ...(Number.isSafeInteger(data?.cakes) ? { cakes: data.cakes } : {}), ...(Number.isSafeInteger(data?.bowls) ? { bowls: data.bowls } : {}),   // WITCH1: a festival refusal's counts, the pack's faces
       ...(Array.isArray(data?.matches) ? { matches: data.matches.slice(0, 9), ...(data.more === true ? { more: true } : {}) } : {}),
+      ...(Number.isSafeInteger(data?.balance) ? { balance: data.balance } : {}),
       ...(data?.error === 'banned' ? heardBan(data) : {}),   // AUDIT SAFE CLIENT-2: a ban's end and its reason
       status: res.status };
   }
@@ -2374,6 +2375,18 @@ export function accountMarks({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     guildWithdraw: (character, marks, rid) => post('/v1/marks/guild/withdraw', { character, marks, rid }),
     report: () => post('/v1/marks/report', {}),
     find: (kind, rid, account = null) => post('/v1/marks/find', { kind, rid }, account),   // SILVER-FINDS: a loot find the device rolled - AUDIT 625 S4: under the account it was found by
+  };
+}
+
+/**
+ * @param {{ fetch: typeof globalThis.fetch, storage: any, waitMs?: number }} deps
+ */
+export function accountSeals({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return {
+    account: () => storedSession(storage)?.id ?? null,
+    balance: () => post('/v1/seals/balance', {}),
+    spend: (rid, character = null) => post('/v1/seals/spend', character ? { rid, character } : { rid }),
   };
 }
 

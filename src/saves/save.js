@@ -45,6 +45,8 @@ import { repairUnmintedConditions, repoolWeaponConditions } from '../items/condi
 import { tidyFoodInventory } from '../systems/survival/foodInventory.js';
 import { restackStones, nameEmbers, PORTAL_GIFT, givePortalGift } from '../worldEvents/gateSpoils.js';   // SS1: Sigil Stones saved before they stacked, folded into one stack; WB12a: and named Deadlands Embers
 import { WALLET_GIFT, giveWalletGift } from '../items/walletItem.js';   // WALLET1: a character from before the wallet is given one, once
+import { ensureOfflinePsijicSeals } from '../systems/psijicSealsLaw.js';
+import { sanitizeParkedRespec } from '../characters/characterRespec.js';
 import { LOCKPICK_GIFT, giveLockpickGift } from '../systems/lockpick/lockpickItem.js';   // LOCKPICK: a picking class from before the lockpick is given its picks, once
 import { BINDER_GIFT, giveBinderGift, cleanBinders } from '../cards/iliacItems.js';   // CARDS8: and a Card Binder with the starter deck, once
 import { foldStrayWeirKeys } from '../systems/eliteGates/weirKey.js';   // KEY-FACE: a Weir Key's face anywhere but the pack, folded away
@@ -439,6 +441,10 @@ export function snapshotPlayer(entity, { position = null, pose = null, classicMi
   snap.loanAmnesty = Number.isSafeInteger(entity.loanAmnesty) ? entity.loanAmnesty : LOAN_AMNESTY;
   snap.binderGift = Number.isSafeInteger(entity.binderGift) ? entity.binderGift : BINDER_GIFT;   // CARDS8: whether this character has been given its binder - the Wallet's law: one never restored from an older save is born with it (chargen's)
   snap.walletGift = Number.isSafeInteger(entity.walletGift) ? entity.walletGift : WALLET_GIFT;   // WALLET1: whether this character has been given its wallet - one never restored from an older save is born with it (its kit's)
+  snap.psijicSeals = Number.isSafeInteger(entity.psijicSeals) && entity.psijicSeals >= 0 ? entity.psijicSeals : 0;
+  snap.psijicSealEpoch = Number.isSafeInteger(entity.psijicSealEpoch) && entity.psijicSealEpoch >= 0 ? entity.psijicSealEpoch : 0;
+  snap.parkedRespec = sanitizeParkedRespec(entity.parkedRespec);
+  snap.lastRespecRid = typeof entity.lastRespecRid === 'string' && entity.lastRespecRid.length <= 80 ? entity.lastRespecRid : null;
   snap.lockpickGift = Number.isSafeInteger(entity.lockpickGift) ? entity.lockpickGift : LOCKPICK_GIFT;   // LOCKPICK: the Wallet's law - one never restored from an older save is born with its picks (its kit's)
   snap.portalGift = Number.isSafeInteger(entity.portalGift) ? entity.portalGift : PORTAL_GIFT;   // PORTAL-GIFT: which gift this character has had - one never restored from an older save is born after it   // LOAN-AMNESTY: which amnesty this character has had - a character never restored from an older save is born after the last
   // TR4: SerializablePlayer.cs:180 - the BOARDING MEMORY is saved
@@ -936,6 +942,10 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
   entity.loanAmnesty = Number.isSafeInteger(snap.loanAmnesty) ? snap.loanAmnesty : 0;   // LOAN-AMNESTY: a save from before the first amnesty has had none
   entity.portalGift = Number.isSafeInteger(snap.portalGift) ? snap.portalGift : 0;   // PORTAL-GIFT: a save from before the gift has had none
   entity.walletGift = Number.isSafeInteger(snap.walletGift) ? snap.walletGift : 0;   // WALLET1: a save from before the wallet has had none
+  entity.psijicSeals = Number.isSafeInteger(snap.psijicSeals) && snap.psijicSeals >= 0 ? snap.psijicSeals : 0;
+  entity.psijicSealEpoch = Number.isSafeInteger(snap.psijicSealEpoch) && snap.psijicSealEpoch >= 0 ? snap.psijicSealEpoch : 0;
+  entity.parkedRespec = sanitizeParkedRespec(snap.parkedRespec);
+  entity.lastRespecRid = typeof snap.lastRespecRid === 'string' && snap.lastRespecRid.length <= 80 ? snap.lastRespecRid : null;
   entity.lockpickGift = Number.isSafeInteger(snap.lockpickGift) ? snap.lockpickGift : 0;   // LOCKPICK: a save from before the lockpick has had none
   entity.binderGift = Number.isSafeInteger(snap.binderGift) ? snap.binderGift : 0;   // CARDS8
   entity.boardShipPosition = snap.boardShipPosition ?? null;   // TR4 (:425)
@@ -1010,6 +1020,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
   for (const list of repairLists) tidyFoodInventory(list);
   givePortalGift(entity);   // PORTAL-GIFT: a character from before the gift is given its stones once - below the relinks and the fold, onto the pack's stack
   giveWalletGift(entity);   // WALLET1: and a character from before the wallet, one - at the pack's end, below the relinks (no index above it moves)
+  if (!isOnlinePage()) ensureOfflinePsijicSeals(entity);
   cleanBinders(entity.items);   // AUDIT CARDS-5 C1: a binder's decks from an old, foreign or edited save made sound (the load copies a record whole)
   giveBinderGift(entity);   // CARDS8: and the Card Binder and its starter deck, once - at the pack's end too
   giveLockpickGift(entity);   // LOCKPICK: and a picking class from before the lockpick, its picks - at the pack's end too

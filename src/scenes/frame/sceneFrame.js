@@ -13,6 +13,7 @@ import { farFlatVisibleAt } from '../../world/flatDistance.js';
 import { fieldOfView } from '../../ui/viewSettings.js';
 import { figureLook, personActor } from '../../characters/peopleBodies.js';
 import { floraSwayOn } from '../../weather/windDrive.js';
+import { getBazaarGothwayHost } from '../bazaarBetwixtRoom.js';
 import { getBuildingVariant } from '../../world/worldDataVariants.js';
 import { glassFov } from '../../ui/spyglassView.js';
 import { holidayTextPrimesFor } from '../../world/holidays.js';
@@ -102,6 +103,7 @@ export function createSceneFrame(shared) {
     // SHIPYARDS: the lighthouses' lamps and the shipyards' office lanterns, in the lanterns' hours (the pool's own `lit`) -
     // scene lights beside the quays', in the town lanterns' colour
     if (shared.portHost && lightsOnAt(minute)) portLightsInto(csaLit);
+    try { getBazaarGothwayHost(shared)?.poolsFrame(now, csaLit); } catch (e) { console.warn('[bazaar] pool', e?.message ?? e); }
     const frameLanterns = () => {   // PERF-V8
     if (lightsOnAt(minute)) {
       worldLightAnimator.tick(dt);
@@ -182,6 +184,7 @@ export function createSceneFrame(shared) {
     sigilBroker?.draw(renderer);   // BROKER-CAGE: the Sigil Broker's cage beside it, and its door
     cromwark.draw(renderer);   // BUNNYFALL: the Adventurers' Guild's tent at the reach's edge
     shared.mines?.draw(renderer);   // BUNNYFALL (2026-11-26, caverns): the mines' entrances, the owner's model
+    getBazaarGothwayHost(shared)?.drawOpaque(now);
     starfall?.draw(renderer);   // STAR4: the craters and their stones
     gatePool?.draw(renderer);   // WB2: the Oblivion Gate's stone
     ketch?.drawSky(renderer);   // KETCH: the Sky-Ketch over Daggerfall, and her anchor-lift let down to the fields

@@ -5,6 +5,7 @@ import { restoreAbilityProgress } from '../combat/abilities/progress.js';
 import { CLASSIC_GAME_START_TIME } from '../world/gameDate.js';
 import { liveStat, STAT_KEYS_ORDER, FATIGUE_MULTIPLIER } from './statMods.js';
 import { renownHpOf, renownMpOf, foldMpOf, spireHpOf } from './renownLayer.js';
+import { ensureOfflinePsijicSeals } from '../systems/psijicSealsLaw.js';
 
 export const CLASS_CAREERS = Object.freeze([
   'Mage', 'Spellsword', 'Battlemage', 'Sorcerer', 'Healer',
@@ -175,6 +176,7 @@ export function applyCharacter(playerEntity, career, careerIndex, { name = caree
   defineLiveMaxMagicka(playerEntity);
   defineLiveMaxHealth(playerEntity);
   restoreAbilityProgress(playerEntity, null);
+  if (playerEntity._online !== true) ensureOfflinePsijicSeals(playerEntity);
   return playerEntity;
 }
 

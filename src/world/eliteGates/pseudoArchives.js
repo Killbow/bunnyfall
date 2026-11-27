@@ -51,6 +51,8 @@ export const PSEUDO_ARCHIVES = Object.freeze([
   N(38321, 'systems/lockpick/lockpickArt.js', 'LOCKPICK_ARCHIVE', 'port', 'the Lockpick - a hook pick over a tension wrench (LOCKPICK)'),
   N(38331, 'systems/currencyArt.js', 'CURRENCY_ARCHIVE', 'port', "the currencies' pictures - the Dusk Token's card at record 0"),
   N(38341, 'world/mine/mineArt.js', 'MINE_ART_ARCHIVE', 'port', "the mines' own models' textures - the owner's entrance and ores, baked by tools/mineArtBake.mjs (BUNNYFALL caverns)"),
+  N(38351, 'render/bazaarBetwixtArt.js', 'BAZAAR_NPC_ARCHIVE', 'port', "The Bazaar Betwixt's Psijic Order vestments"),
+  N(38352, 'render/bazaarBetwixtArt.js', 'BAZAAR_ROOM_ARCHIVE', 'port', "The Bazaar Betwixt's sanctum and pocket-plane art"),
   N(38400, 'world/capitalShapes.js', 'CAPITAL_ARCHIVE', 'port', "the capitals past the Bay - their stone, roofs, domes and statues, painted at run time (TESA10, TESA-LORE)"),
   N(38990, 'tools/abyssLab.js', 'LAB_ARCHIVE', 'port', "the abyss lab's walls and floor"),
   N(56790, 'world/townStandIns.js', 'TOWN_CLUTTER_ARCHIVE', 'data', "the towns' clutter Daggerfall's blocks name"),

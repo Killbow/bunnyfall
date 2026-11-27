@@ -5,6 +5,7 @@
 import {
   accountGuilds, accountRefusalText, accountRoll, accountVaultDoor, serviceBase, storedSession,
 } from './accountClient.js';
+import { mountOnlinePsijicSeals } from './psijicSealsClient.js';
 import {
   actFrameFits, cellHaloFor, CHAT_LANGS, chatLangRoom, chatRegionRoom, GATE_BRAIN_V, isCellRoom, isWorldRoom,
   parkKeyOf, POSE_RIDE, POSE_STRIKES, poseHandsOf, relaySupportsCage, relaySupportsRite, seaVaultRoomId, SOCIAL_ROOM,
@@ -53,6 +54,7 @@ import { createAccountVaultBook } from './accountVaultBook.js';
 import { createDuelPrompt } from '../ui/duelPrompt.js';
 import { createEmoteWheel } from '../ui/emoteWheel.js';
 import { createTouchFx } from '../scenes/touchFx.js';
+import { getBazaarGothwayHost } from '../scenes/bazaarBetwixtRoom.js';
 import { emoteText } from './chatCommands.js';
 import { createHeartbeat, whileLive } from './heartbeat.js';
 import { createPageWindow, pageView } from '../ui/pageWindow.js';
@@ -197,6 +199,7 @@ export function createOnlineWorld(shared) {
     surfaceClose, surfaceOpen, tavernSocial, townTalk, travelControlUI, travellerBook, travellerSent, tvRaid, veilOf,
     walkMode, weaponRig, worldMoveBusy, worldPublish, writBook,
   } = shared;
+  mountOnlinePsijicSeals();
   /** COATS3D: a peer on a HORSE rides the 3D horse in their Morrowind body (net/peer/peerBodies.js) where this lane builds
    *  one, its rig is up and their body is not refused - the rider layer yields them (a beast stays the layer's). */
   const peerRidesIn3d = (d) => !!shared.peerBodies?.enabled() && horseRigFor(renderer).ready() && d.shown?.rd === POSE_RIDE.Horse && !d.shown?.wb && !shared.peerBodies.failureOf(d.look, d.shown, d.glyphs);
@@ -267,9 +270,10 @@ export function createOnlineWorld(shared) {
     const bandMoved = cell && bandWord(null, full);   // TV7b: a chase moves every frame, and asks for one
     const navalMoved = cell && navalWord(null, full);   // NAV-G: a volley is news at once - the sea's changed word asks for a frame
     const seaRaidMoved = cell && seaRaidWord(null, full);   // OW6: and a raider's at sea
-    const frame = cell ? ((shared.modes?.mode ?? 'exterior') === 'exterior' ? exteriorFoes.foesFrame(full, shared._hccDirty || csaMoved || csaAboardMoved || bandMoved || navalMoved || seaRaidMoved) : null) : shared.modes?.dungeonFoesFrame?.(full);
+    const bazaarMoved = cell && !!getBazaarGothwayHost(shared)?.isWireDirty();
+    const frame = cell ? ((shared.modes?.mode ?? 'exterior') === 'exterior' ? exteriorFoes.foesFrame(full, shared._hccDirty || csaMoved || csaAboardMoved || bandMoved || navalMoved || seaRaidMoved || bazaarMoved) : null) : shared.modes?.dungeonFoesFrame?.(full);
     if (!frame) return false;
-    if (cell && full) frame.c = camps.wireRecords(campToWire); if (cell && (full || shared._hccDirty)) { frame.hv = hcc.wireRecord(campToWire); shared._hccDirty = false; } if (cell) duelRingWord(frame, full); if (cell) csaWord(frame, full); if (cell) csaAboardWord(frame, full); if (cell) bandWord(frame, full); if (cell) navalWord(frame, full); if (cell) seaRaidWord(frame, full); if (cell) { const rk = raidWireWord(), ro = raidObjWord(); if (rk) frame.rk = rk; if (ro) frame.ro = ro; } if (cell) portalWord(frame, full); if (cell && frame.hv !== undefined) frame.wr = shared.wagonRiders?.word() ?? null;   // HCC-ONLINE: my horse and wagon as shown (null: none stand) ride beside the camps - on every full frame, and on a moved word between them   // AUDIT SURV B: an empty list says "none stand" - the last camp packed reaches the peers   // SURV3: my camps ride my full frame - a shared world object in the cell's own way; RAID2: my word on the raids I run or fought - my share of their deaths, and my claim; PORTAL1: my portal, on every full frame while it stands and I stand near it; WAGONS1: my ask for a seat in another's wagon, or the seat I sit in - beside my team's word, on its clock (sent whenever `hv` is)
+    if (cell && full) frame.c = camps.wireRecords(campToWire); if (cell && (full || shared._hccDirty)) { frame.hv = hcc.wireRecord(campToWire); shared._hccDirty = false; } if (cell) duelRingWord(frame, full); if (cell) csaWord(frame, full); if (cell) csaAboardWord(frame, full); if (cell) bandWord(frame, full); if (cell) navalWord(frame, full); if (cell) seaRaidWord(frame, full); if (cell) { const rk = raidWireWord(), ro = raidObjWord(); if (rk) frame.rk = rk; if (ro) frame.ro = ro; } if (cell) portalWord(frame, full); if (cell) { const bz = getBazaarGothwayHost(shared)?.wireWord(full); if (bz) frame.bz = bz; } if (cell && frame.hv !== undefined) frame.wr = shared.wagonRiders?.word() ?? null;
     // SCALE2c: A FULL FRAME THAT SAYS NOTHING IS SAID ONCE (net/foesQuiet.js) - in a cell, after one that said the same
     const said = { full, cell, room: shared.online.room };
     if (_foesQuiet.skip(frame, said)) { shared._foesFullAt = now; return false; }

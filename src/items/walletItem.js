@@ -47,6 +47,10 @@ export function giveWalletGift(/** @type {any} */ entity) {
 let _silver = null;
 /** @type {(() => any) | null} */
 let _refresh = null;
+/** @type {(() => (number|null|false)) | null} */
+let _seals = null;
+/** @type {(() => any) | null} */
+let _sealsRefresh = null;
 /** @type {Promise<void> | null} */
 let _asking = null;
 export function setWalletSilver(/** @type {any} */ read, /** @type {any} */ refresh = null) {
@@ -54,15 +58,26 @@ export function setWalletSilver(/** @type {any} */ read, /** @type {any} */ refr
   _refresh = typeof refresh === 'function' ? refresh : null;
   _asking = null;
 }
+export function setWalletPsijicSeals(/** @type {any} */ read, /** @type {any} */ refresh = null) {
+  _seals = typeof read === 'function' ? read : null;
+  _sealsRefresh = typeof refresh === 'function' ? refresh : null;
+  _asking = null;
+}
 export function refreshWalletSilver() {
   if (_asking) return _asking;
   let ask;
-  try { ask = Promise.resolve(_refresh?.()).then(() => undefined, () => undefined); } catch { return Promise.resolve(); }
+  try {
+    ask = Promise.all([
+      Promise.resolve(_refresh?.()).then(() => undefined, () => undefined),
+      Promise.resolve(_sealsRefresh?.()).then(() => undefined, () => undefined),
+    ]).then(() => undefined, () => undefined);
+  } catch { return Promise.resolve(); }
   const mine = ask.then(() => { if (_asking === mine) _asking = null; });
   _asking = mine;
   return mine;
 }
 export const walletSilverHere = () => _silver != null;
+export const walletPsijicSealsHere = () => _seals != null;
 export function walletSilver() {
   try {
     const n = _silver?.() ?? null;
@@ -70,17 +85,33 @@ export function walletSilver() {
     return Number.isSafeInteger(n) && n >= 0 ? n : null;
   } catch { return null; }
 }
+export function walletPsijicSeals() {
+  try {
+    const n = _seals?.() ?? null;
+    if (n === false) return false;
+    return Number.isSafeInteger(n) && n >= 0 ? n : null;
+  } catch { return null; }
+}
 
 /** @param {any[]} items @param {any} entity */
-export function walletContents(items, entity, { silver = walletSilver(), here = walletSilverHere() } = {}) {
+export function walletContents(items, entity, {
+  silver = walletSilver(), here = walletSilverHere(),
+  seals = walletPsijicSeals(), sealsHere = walletPsijicSealsHere(),
+} = {}) {
   const held = (Array.isArray(items) ? items : []).filter((it) => walletHolds(it) && !isEquipped(it));
   const count = (t) => held.reduce((n, it) => n + (it.templateIndex === t ? Math.max(1, Math.trunc(Number(it.stackCount) || 1)) : 0), 0);
   const letters = held.filter((it) => it.templateIndex === LETTER_OF_CREDIT_TEMPLATE);
   const kg = (t) => held.reduce((w, it) => w + (it.templateIndex === t ? itemWeight(it) : 0), 0);
+  const offlineSeals = Number.isSafeInteger(entity?.psijicSeals) ? Math.max(0, entity.psijicSeals) : 0;
+  const liveSeals = sealsHere
+    ? (typeof seals === 'number' && Number.isSafeInteger(seals) ? seals : null)
+    : offlineSeals;
   return {
     gold: Math.max(0, Math.trunc(Number(entity?.goldPieces) || 0)),
     silver: typeof silver === 'number' && Number.isSafeInteger(silver) ? silver : null,
     silverWhy: Number.isSafeInteger(silver) ? null : !here ? 'offline' : silver === false ? 'none' : 'asking',
+    seals: liveSeals,
+    sealsWhy: Number.isSafeInteger(liveSeals) ? null : seals === false ? 'none' : 'asking',
     letters: { count: letters.length, gold: letters.reduce((g, it) => g + Math.max(0, Math.trunc(Number(it.value) || 0)), 0) },
     embers: count(SIGIL_STONE_TEMPLATE),
     shards: count(WELKYND_SHARD_TEMPLATE),
@@ -103,8 +134,11 @@ export function walletLedger(c) {
   const silver = c.silver != null ? { key: 'silver', label: 'Imperial Argents', figure: num(c.silver), none: false, note: null, weight: null }
     : c.silverWhy === 'none' ? { key: 'silver', label: 'Imperial Argents', figure: 'none', none: true, note: null, weight: null }
       : { key: 'silver', label: 'Imperial Argents', figure: null, none: false, note: SILVER_WHY[c.silverWhy] ?? SILVER_WHY.offline, weight: null };
+  const seals = c.seals != null ? { key: 'seals', label: 'Psijic Seals', figure: num(c.seals), none: false, note: null, weight: null }
+    : c.sealsWhy === 'none' ? { key: 'seals', label: 'Psijic Seals', figure: 'none', none: true, note: null, weight: null }
+      : { key: 'seals', label: 'Psijic Seals', figure: null, none: false, note: SILVER_WHY[c.sealsWhy] ?? SILVER_WHY.asking, weight: null };
   return [
-    { head: 'Coin', rows: [{ key: 'gold', label: 'Gold', figure: num(c.gold), none: false, note: null, weight: null }, silver] },
+    { head: 'Coin', rows: [{ key: 'gold', label: 'Gold', figure: num(c.gold), none: false, note: null, weight: null }, silver, seals] },
     { head: 'In the wallet', rows: [
       count('letters', 'Letters of credit', c.letters.count, c.weights.letters, `worth ${num(c.letters.gold)} gold`),
       count('embers', 'Deadlands Embers', c.embers, c.weights.embers),
@@ -120,9 +154,9 @@ export function walletLines(/** @type {ReturnType<typeof walletContents>} */ c) 
 
 export const WALLET_CARD_LINES = Object.freeze([
   'Holds your letters of credit, Deadlands Embers and Welkynd Shards,',
-  'and counts your gold and your Imperial Argents.',
+  'and counts your gold, Imperial Argents, and Psijic Seals.',
 ]);
 
 registerItemUseHandler(WALLET_TEMPLATE, (item) => ({ kind: 'wallet', item }));
 
-export function _resetWalletForTests() { _silver = null; _refresh = null; _asking = null; }
+export function _resetWalletForTests() { _silver = null; _refresh = null; _seals = null; _sealsRefresh = null; _asking = null; }

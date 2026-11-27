@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-27
 
+- Added: Envoy Valenis beside the Gothway Garden Mages Guild now opens a portal to the Bazaar Betwixt, a shared Psijic sanctum above Artaeum.
+- Added: Master Celarus in the Bazaar Betwixt resets your class, attributes, and skills for a Psijic Seal and banks one prior build to restore for free. Nobody starts with a Seal; the staff can grant them.
 - Fixed: In duels between players, an Imperial, Lilmothit, Lungaris or Orc was counted as an Argonian; they now count as the people they are drawn as.
 - Added: A new people in character creation, the Orc. They look like Redguards and favor the warhammer and axes. In the combat beta an Orc takes 15% less physical damage with a weapon readied, runs 15% faster below half health, and has the Skullsplitter ability.
 - Changed: In the combat beta, every racial edge that was 6% (the faster walking, running, sneaking, swimming and jumping, and the damage each people takes less of) is now 15%.
