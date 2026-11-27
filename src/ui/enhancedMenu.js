@@ -218,6 +218,8 @@ import { onlineSyncPlan, applyOnlineSync, lastOnlineSync, undoOnlineSync } from 
 import { CREDITS, translationCredits } from './credits.js';   // CR1: who made what the port carries
 import { ownerUpdateMark } from './ownerUpdate.js';   // BUNNYFALL: the owner's update button
 import { skinMark } from './skinsMenu.js';   // BUNNYFALL: the custom paperdoll button
+import { buildTavernHome } from './tavernFrontDoor.js';   // BUNNYFALL: the tavern face of the boot front door
+import { tavernPaperdoll } from './tavernPaperdoll.js';   // BUNNYFALL: its paperdoll section (signed in only)
 import { SUPPORT_ASKS } from './supportAsks.js';   // SUPPORT1: the project's asks - the website's corner and this door's
 import { t, tIn, currentLocale, localeInfo, localeTable, availableLocales, BASE_LOCALE, localizedText, formatText } from './textManager.js';   // L10N1b: the port's own strings, the language row and the first-run offer; L10N3d: DFU's Internal_Strings
 import { localeForBrowser, catalogLocale } from './localeCatalog.js';   // L10N1b
@@ -369,7 +371,7 @@ let hooks = {};
 let homeLevel = 'top';
 /** AUDIT UICALM-FIRM1 L3 L1: the keyboard's place after a level changes - the door named, else the level's first. */
 function focusDoor(id) {
-  globalThis.requestAnimationFrame?.(() => (app?.querySelector?.(`.px-menu .door-${id}`) ?? app?.querySelector?.('.px-menu .doorbtn'))?.focus?.());
+  globalThis.requestAnimationFrame?.(() => (app?.querySelector?.(`.px-menu .door-${id}, .td-menu .door-${id}`) ?? app?.querySelector?.('.px-menu .doorbtn, .td-menu .td-door'))?.focus?.());
 }
 let keyHandler = null;
 // ACC1f (Mac: "The online details itself will live as a popup on main
@@ -4550,6 +4552,7 @@ function renderHome() {
   // TITLE-DOOR (2026-10-27, the owner: "we use the intro title screen as the landing pad itself"): the boot door's face
   // over the film's held title - no sky (the map is the ground), no wordmark (the film's mark is the masthead); the doors
   // stand in a row under the mark (uiCalmStyle.js TITLE_DOOR_CSS)
+  if (!paused && twoQuestionDoor()) { renderTavernHome(); return; }   // BUNNYFALL: the boot front door wears the tavern (ui/tavernFrontDoor.js)
   const title = onTitle();
   const home = el('div', `px-home${paused ? ' px-over' : ''}${title ? ' px-title' : ''}`);
   if (!paused && !title) {
@@ -4724,6 +4727,60 @@ function renderHome() {
   }
 
   appendPxFoot(home);
+  app.append(home);
+}
+
+/**
+ * BUNNYFALL (2026-11-27, the owner: "a new main menu ... more tavern like"): THE TAVERN FACE of the boot front door. ui/tavernFrontDoor.js
+ * draws it; what each door DOES stays here: the same go() and level changes the old two-question door made (drawDoors), so
+ * Continue, New Game, Load Game, Online and the Test Room keep their panes' laws. Online is the large door; Offline is a minor
+ * one that opens the offline doors on the same panel. The corner marks (profile, support, the owner's update) stand in the wood
+ * rail, the paperdoll on the left for a signed-in player, and the account window and the language offer behave as before.
+ */
+function renderTavernHome() {
+  const door = (label, sub, onClick) => ({ id: idOf(label), label: railLabel(label), sub, onClick });
+  const levelTo = (to) => () => {
+    const focused = app?.contains?.(document.activeElement);
+    homeLevel = to;
+    render();
+    if (focused) focusDoor(to === 'offline' ? idOf(HOME_OFFLINE[0]) : 'offline');   // a keyboard or a pad keeps its place
+  };
+  const plain = (label, onClick) => ({ id: idOf(label), label: railLabel(label), onClick });
+  const minor = [];
+  if (homeLevel === 'top') minor.push({ id: 'offline', label: t('menu.tavern.playOffline', 'Play Offline'), onClick: levelTo('offline') });
+  if (sections.includes('Screenshots')) minor.push(plain('Screenshots', () => go('screenshots')));
+  minor.push(plain('About', () => go('about')));
+  const marks = [supportMarks(), ownerUpdateMark({ storage: appStorage() }), profileMark()];
+  const home = buildTavernHome(document, {
+    level: homeLevel === 'offline' ? 'offline' : 'top',
+    online: door('Online', t('menu.tavern.onlineSub', 'Join the shared world of the Iliac Bay'), () => go('online')),
+    main: [
+      door('Settings', t('menu.tavern.settingsSub', 'Controls, graphics, sound and features'), () => go('settings')),
+      door('Overhauls', t('menu.tavern.overhaulsSub', 'Change how the game looks and plays'), () => go('overhauls')),
+      ...(sections.includes('Tutorials') ? [door('Tutorials', t('menu.tavern.tutorialsSub', 'Learn the ways of the Bay'), () => go('tutorials'))] : []),
+    ],
+    offline: {
+      head: t('menu.home.offline', 'Offline'),
+      note: t('menu.home.offlineSub', 'Your own game, saved on this device'),
+      doors: HOME_OFFLINE.map((l) => plain(l, () => go(idOf(l)))),
+      back: { id: 'back', label: t('menu.home.back', 'Back'), onClick: levelTo('top') },
+    },
+    minor,
+    marks,
+    paperdoll: tavernPaperdoll({ storage: appStorage() }),
+    build: `${t('menu.foot.build', 'build')} ${BUILD_TAG}`,
+  });
+  // L10N1b: the first-run language offer, in the top-left corner nothing else uses
+  const offer = languageOffer();
+  if (offer) home.append(offer);
+  // the account window, offered ONCE per visit to a device with nobody signed in (the latch lives here, so the mark can reopen it)
+  if (!offer && !accountOpen && !accountOffered && !signedIn()) { accountOffered = true; accountOpen = true; }
+  if (accountOpen) {
+    const acct = el('div', 'px-stage px-acctstage');
+    acct.append(accountWindow());
+    home.append(acct);
+    closeOnOutsideTap(home, '.px-win', closeAccount);
+  }
   app.append(home);
 }
 
