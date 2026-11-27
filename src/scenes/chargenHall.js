@@ -39,6 +39,7 @@ import { PLAYABLE_RACE_TEMPLATES } from '../characters/races.js';
 import { composePaperDollPixels } from '../ui/paperDoll.js';
 import { createChargenFlow, mountWizardOverHall } from '../characters/chargenSession.js';
 import { setHallBorn } from '../characters/hallBorn.js';
+import { assignStartingGear } from '../characters/startingGear.js';
 
 /** How tall a patron stands, in the hall's metres (the doll's figure fills its panel's height). */
 const PATRON_H = 1.9;
@@ -160,11 +161,21 @@ export async function runChargenHall(canvas, renderer, status = () => {}) {
   // ── the patrons' paperdolls, composed once each ──
   const bodies = new Map();
   let bodyListener = () => {};
+  // one at a time: the first files can be slow to come while the hall's own archives are still arriving
+  let queue = Promise.resolve();
+  // dressed as every new character is dressed (characters/startingGear.js: a shirt and trousers), the dye fixed per people
+  const composeOnce = (race, gender, faceIndex) => {
+    let seed = [...race].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7);
+    const rolls = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
+    const patron = { race, gender, faceIndex, items: [] };
+    try { assignStartingGear(patron, { rolls, torchesFromItems: false }); } catch (e) { console.warn('[chargen hall] the patron could not be dressed', e?.message ?? e); }
+    return composePaperDollPixels({ fetchBytes, palette, getTexture: pipeline.getTexture }, patron, { background: false });
+  };
   const body = (raceKey, gender = 'male', faceIndex = 0) => {
     const key = `${raceKey}|${gender}|${faceIndex}`;
     if (!bodies.has(key)) {
       bodies.set(key, null);
-      composePaperDollPixels({ fetchBytes, palette }, { race: raceKey, gender, faceIndex }, { background: false }).then((px) => {
+      queue = queue.then(() => composeOnce(raceKey, gender, faceIndex)).then((px) => {
         if (!px?.rgba) { console.warn('[chargen hall] no paperdoll for', key); return; }
         const c = document.createElement('canvas');
         c.width = px.width; c.height = px.height;
@@ -182,6 +193,8 @@ export async function runChargenHall(canvas, renderer, status = () => {}) {
     copy.getContext('2d')?.drawImage(c, 0, 0);
     return copy;
   };
+
+  for (const t of PLAYABLE_RACE_TEMPLATES) body(t.key);   // the patrons start composing now, behind the hall's first frames
 
   // ── the frame ──
   let running = true;
@@ -246,7 +259,7 @@ export async function runChargenHall(canvas, renderer, status = () => {}) {
   requestAnimationFrame(frame);
   status('');
   // the probe's handle in the dev server: where things are, and the camera to move (tools and the shots' tuning)
-  if (import.meta.env?.DEV) globalThis.__hall = { cam, shots, spots, pick, people: ctx.people.map((p) => [p.x, p.y, p.z, p.factionID]), markers: ctx.markers.map((m) => [m.type, m.x, m.y, m.z]), aim, hold: () => { t = 1; to = cam; } };
+  if (import.meta.env?.DEV) globalThis.__hall = { cam, shots, spots, pick, bodies, people: ctx.people.map((p) => [p.x, p.y, p.z, p.factionID]), markers: ctx.markers.map((m) => [m.type, m.x, m.y, m.z]), aim, hold: () => { t = 1; to = cam; } };
 
   // ── the wizard over it ──
   return new Promise((resolve) => {
