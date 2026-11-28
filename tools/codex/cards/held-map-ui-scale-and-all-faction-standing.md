@@ -9,6 +9,7 @@ files:
   - "src/ui/heldMap.js"
   - "src/ui/enhancedStyle.js"
   - "src/guilds/factionStanding.js"
+  - "src/guilds/provincialRepute.js"
   - "src/guilds/affiliations.js"
   - "src/platform/onlineLane.js"
 routes: []
@@ -23,6 +24,7 @@ invariants:
   - "Chrome scales via the --hm-ui CSS variable."
   - "standingAll is a local pref, not room-agreed state."
   - "Active guild memberships are not duplicated in the full list."
+  - "Successful NPC quests award +3 Kingdoms reputation in the quest giver's home region. Paid board bounties award +2 in the posting board's region. Both rewards can raise the score past zero and apply only to the matching Province faction."
 traps:
   - "Expelled status is not active membership; without standingAll expelled guilds vanish."
 dfu: []

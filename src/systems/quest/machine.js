@@ -221,6 +221,7 @@ export class QuestMachine {
       offerReward: (q, dfItem) => this.deps.offerReward?.(q, dfItem),
       questReward: (q, dfItem, resource) => this.deps.questReward?.(q, dfItem, resource),
       questEnding: (q) => this.deps.questEnding?.(q),
+      rewardProvincialQuest: (q) => this.deps.rewardProvincialQuest?.(q),
       rewardShares: (quest) => (this.sharedQuestNames.has(quest?.questName) ? Math.max(1, Math.min(Math.trunc(this.deps.partySize?.() ?? 1) || 1, 1 + (quest?._holdersHeard?.size ?? 0))) : 1), sharedCopy: (quest) => !!quest && this.sharedQuestNames.has(quest.questName) && this.sharedCandidateNamed(quest.questName) === quest,
       sharerHere: (quest) => !quest?._sentBy || (this.deps.partyHas?.(quest._sentBy) ?? true),
       partySize: () => Math.max(1, Math.trunc(this.deps.partySize?.() ?? 1) || 1),

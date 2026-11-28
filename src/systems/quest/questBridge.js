@@ -2,6 +2,8 @@
 // Construction logs the ctx members a host leaves unwired.
 
 import { QuestMachine, TICKS_PER_SECOND, holdsQuestorDoor } from './machine.js';
+import { questorRegion } from './questRepute.js';
+import { PROVINCIAL_QUEST_REP, rewardProvincialReputation } from '../../guilds/provincialRepute.js';
 import { contentOn } from '../../mods/contentOff.js';
 import { isEnhanced } from '../../ui/uiSkin.js';
 import { clockCounts } from './clock.js';
@@ -287,6 +289,8 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
     questlinesStamp: (q) => questlines?.stamp(q) ?? null,
     questReward: (q, item, resource) => questlines?.reward(q, item, resource) ?? null,
     questEnding: (q) => questlines?.ending(q) ?? null,
+    rewardProvincialQuest: (q) => rewardProvincialReputation(
+      ctx.playerEntity, questorRegion(q), PROVINCIAL_QUEST_REP, (text) => ctx.addHUDText?.(text)),
     isPlayerInTown: () => ctx.isPlayerInTown?.() ?? false,
     partySize: () => ctx.partySize?.() ?? 1,
     partyHas: (acct) => ctx.partyHas?.(acct) ?? true,
