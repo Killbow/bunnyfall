@@ -19,6 +19,7 @@ import { bunnyMembershipOf } from '../guilds/bunnyMembership.js';
 /** @param {any} deps */
 export function createTavernServiceHost(deps) {
   let state = null, version = 0, busy = false, pending = null, observed = null, window = null;
+  let roomRead = null, startingKeeper = null;
   let discordNames = {};
   let discordSkins = {};
   const hud = createTavernServiceHud();
@@ -156,12 +157,21 @@ export function createTavernServiceHost(deps) {
     return out;
   }
   const isServiceNpc = (key) => key === state?.keeper || key === tavernOrder(state)?.patron || key === tavernRoomPatron(state);
-  function start(keeper) {
-    if (!deps.where() || busy) return;
+  async function start(keeper) {
+    const where = deps.where();
+    if (!where || startingKeeper || (busy && !roomRead)) return;
     if (deps.online?.() && !deps.act) { deps.say(t('tavern.service.realmRequired', 'Load an online realm character before working a paid shift.')); return; }
     const patrons = people().filter((p) => p !== keeper && deps.patron(p)).slice(0, 24).map(id);
     if (!patrons.length) { deps.say(t('tavern.service.noPatrons', 'There are no available customers in this tavern.')); return; }
-    send('start', { keeper: id(keeper), patrons });
+    startingKeeper = keeper;
+    try {
+      if (roomRead) await roomRead;
+      if (deps.where() === where && people().includes(keeper)) {
+        await send('start', { keeper: id(keeper), patrons });
+      }
+    } finally {
+      startingKeeper = null;
+    }
   }
   /** Open the hands-on chore where it lies. True when the key was a chore. */
   function activateChore(key) {
@@ -192,10 +202,11 @@ export function createTavernServiceHost(deps) {
     patronSkinOn: (pn) => !!patronSkins?.has(pn),
     patronName: (pn) => deps.where() && deps.patron(pn) ? alias(id(pn)) : null,
     musicShare: () => state?.where === deps.where() ? tavernRoomMusicShare(state.room) : 1,
-    innRows: (pn) => [{ code: 'KeyS', label: t('tavern.service.start', 'S - Work a tavern shift'), action: () => { Promise.resolve().then(() => start(pn)); } },
+    innRows: (pn) => [{ code: 'KeyS', label: t('tavern.service.start', 'S - Work a tavern shift'), action: () => { void Promise.resolve().then(() => start(pn)); } },
       { code: 'KeyR', label: t('tavern.service.recipeRow', 'R - Recipe book'), action: () => { Promise.resolve().then(() => book()); } },
       ...(deps.act ? [{ code: 'KeyD', label: t('tavern.discord.collect', 'D - Collect Discord tips'), action: () => { void send('discord-tips'); } }] : [])],
     activate(pn, selected = null) {
+      if (startingKeeper === pn) return true;
       if (pending && !busy) { send(pending.op); return true; }
       if (!live()) return false;
       if (busy && isServiceNpc(id(pn))) return true;
@@ -227,9 +238,9 @@ export function createTavernServiceHost(deps) {
       const where = deps.where();
       if (observed !== where && !busy && deps.act) {
         observed = where; busy = true;
-        deps.act({ op: 'read', txn: txnId(), where, buildingKey: deps.buildingKey(), patrons: people().filter(deps.patron).slice(0, 24).map(id) }).then((r) => {
+        roomRead = deps.act({ op: 'read', txn: txnId(), where, buildingKey: deps.buildingKey(), patrons: people().filter(deps.patron).slice(0, 24).map(id) }).then((r) => {
           if (r?.ok && !pending && observed === where) { state = r.data.state; version = r.data.version; discordNames = r.data.discordNames ?? {}; discordSkins = r.data.discordSkins ?? {}; }
-        }).catch(() => {}).finally(() => { busy = false; });
+        }).catch(() => {}).finally(() => { busy = false; roomRead = null; });
       }
       if (live()) chores?.sync(state, where); else chores?.clear();
       patronSkins?.sync(where ? skinsNow() : {});
