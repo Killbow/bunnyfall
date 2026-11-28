@@ -30,6 +30,10 @@ try {
       showWindow: (view) => { p.current?.dispose(); p.current = view; },
       act: async (body, apply) => {
         p.requests.push(body);
+        if (body.op === 'read') {
+          await new Promise((resolve) => { p.finishRoomRead = resolve; });
+          return { ok: true, data: { state: p.state, version: p.version } };
+        }
         if (body.op === 'pour' && p.hold) await new Promise((r) => { p.release = r; });
         const result = body.op === 'start' ? { state: createTavernShift({ ...body, seed: 1, nowS: 100 }) } : stepTavernShift(p.state, body, 100);
         if (result.error) return { ok: false, error: result.error };
@@ -38,9 +42,13 @@ try {
     });
     p.openMix = () => p.host.activate(keeper, 'tservice:mix');
     p.openBook = () => p.host.activate(keeper, 'tservice:book');
+    p.host.frame(true, false);
     p.host.innRows(keeper)[0].action();
+    await Promise.resolve();
+    if (!p.host.activate(keeper)) throw new Error('Inn services reopened while starting a shift');
+    p.finishRoomRead();
     await new Promise((r) => setTimeout(r, 0));
-    const actions = p.host.hoverName('person:0').actions.map((a) => a.id);
+    const actions = p.host.personHover(keeper).actions.map((a) => a.id);
     if (!actions.includes('tservice:mix') || actions.includes('tservice:wine')) throw new Error('Old dose menu still present');
     document.querySelector('#focus-return').focus(); p.openMix();
   });
