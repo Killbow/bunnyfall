@@ -1,5 +1,5 @@
 // @ts-check
-import { QL_LINES, lineById, lineStepOf, lineOpens, opensWords, witnessOf, lineServiceOf, unmetNeeds } from './qlLines.js';
+import { QL_LINES, lineById, lineStepOf, lineContentOn, lineOpens, opensWords, witnessOf, lineServiceOf, unmetNeeds } from './qlLines.js';
 import { QL_SERVICE_LINES, qlStepClaimed } from '../../net/questlineClaims.js';
 import { questlinesOn } from './qlLaw.js';
 import { t } from '../../ui/textManager.js';
@@ -165,7 +165,7 @@ export function createLineRunner({ machine, ctx = {}, service = null, nowMs = ()
       const s = now();
       for (const l of QL_LINES) {
         const rec = lines[l.id];
-        if (!rec) continue;
+        if (!rec || !lineContentOn(l)) continue;
         if (rec.stalled && !rec.done && runningStep(l.steps[rec.step]?.quest)) { rec.stalled = false; rec.wait = 0; }
         // A first step with no quest puts its line back on offer; it is never started again unasked.
         if (!rec.done && rec.step === 0 && !runningStep(l.steps[0].quest)) { reoffer(l.id); continue; }
@@ -210,6 +210,7 @@ export function createLineRunner({ machine, ctx = {}, service = null, nowMs = ()
       if (!questlinesOn()) return { ok: false, line: id, reason: 'off' };
       const l = lineById(id);
       if (!l) return { ok: false, line: id, reason: 'unknown' };
+      if (!lineContentOn(l)) return { ok: false, line: id, reason: 'closed' };
       const rec = lines[id];
       const shelved = firstShelved(l, rec);
       if (shelved) {
@@ -243,13 +244,13 @@ export function createLineRunner({ machine, ctx = {}, service = null, nowMs = ()
 
     onOffer(id) {
       const l = lineById(id);
-      return !!l && questlinesOn() && (lines[id] ? !!firstShelved(l, lines[id]) : lineOpens(l, probe));
+      return !!l && lineContentOn(l) && questlinesOn() && (lines[id] ? !!firstShelved(l, lines[id]) : lineOpens(l, probe));
     },
 
     shelvedFirst: (id) => { const l = lineById(id); return l ? firstShelved(l, lines[id]) : null; },
 
     rows() {
-      return QL_LINES.filter((l) => lines[l.id] || lineOpens(l, probe)).map((l) => {
+      return QL_LINES.filter((l) => lines[l.id]?.done || (lineContentOn(l) && (lines[l.id] || lineOpens(l, probe)))).map((l) => {
         const rec = lines[l.id];
         const stepQuest = rec && !rec.done ? runningStep(l.steps[rec.step]?.quest) : null;
         const shelved = stepQuest?.shelvedAt != null;
