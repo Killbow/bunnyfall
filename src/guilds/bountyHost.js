@@ -35,6 +35,7 @@ import { addGoldPieces, addItem } from '../items/inventory.js';
 import { BOUNTY_RING_R } from '../ui/bountyMapMark.js';
 import { setBountyJournal, BOUNTY_QUEST_PREFIX } from './bountyJournal.js';
 import { rewardContract } from '../justice/standing.js';   // REP4: a contract finished, the region's law two points better
+import { PROVINCIAL_BOUNTY_REP, rewardProvincialReputation } from './provincialRepute.js';
 import { sharedClockOn } from '../world/worldTick.js';   // AUDIT REST II Q3: the never-lapse build's rows, re-stamped online
 import { festivalBountyPaid } from '../systems/festival/festivalClient.js';   // WITCH1: a bounty paid asks a find
 import { createHuntersMark } from './huntersMark.js';   // HUNTERS-MARK: the hunter's rank and the week's named mark
@@ -357,6 +358,7 @@ export function createBountyHost(deps) {
     // cleared its road - two points of its law (standing.js rewardContract), said by the law's own notice
     const region = deps.regionAt?.(posting.town.px, posting.town.py);
     if (Number.isInteger(region) && region >= 0 && entity) rewardContract(entity, region);
+    rewardProvincialReputation(entity, region, PROVINCIAL_BOUNTY_REP, deps.say);
     const reward = bountyRewardRows(gold, item);
     notices.push({
       title: BOUNTY_REWARD_TITLE,

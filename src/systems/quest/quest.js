@@ -246,6 +246,7 @@ export class Quest {
       const repChange = this.questSuccess ? QUEST_SUCCESS_REP : QUEST_FAILURE_REP;
       this.hooks?.changeReputation?.(this.factionId, repChange, true);
     }
+    if (this.questSuccess) this.hooks?.rewardProvincialQuest?.(this);
     const logEntries = this.getLogMessages();
     if (logEntries && logEntries.length > 0) {
       const questMessages = [];
