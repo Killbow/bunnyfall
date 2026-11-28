@@ -64,7 +64,8 @@ import { ENEMY_BASICS } from './enemyBasics.js';
 import { copyEffectEntry } from '../saves/save.js';   // AUDIT 26 F217
 import { KNIGHT_CITY_WATCH } from './mobileTypes.js';
 import { MobileUnit } from './mobileUnit.js';
-import { EnemyAI, withinYaw, isBackFacing, foeFrameDt } from './enemyMotor.js';
+import { EnemyAI, withinYaw, isBackFacing, foeFrameDt, CLASSIC_UPDATE_INTERVAL } from './enemyMotor.js';
+import { setMidScreenText } from '../ui/midScreenText.js';   // REP2: the Wanted banner and Escaped! line - DaggerfallHUD's one centred label
 import { EnhancedEnemyAI } from '../ai/enhancedMotor.js';   // FIELD BUGS 2026-10-16b INDOOR-WATCH: the routes, where the host hands a mesh (`nav`)
 import { getPref } from '../ui/uiPrefs.js';   // INDOOR-WATCH: the Enhanced AI switch, as the dungeon's construction sites read it
 import { spaceFoes, DOORWAY_DEPTH } from './foeSpacing.js';   // FOE-SPACING: the watch keeps apart   // TACT3c: past the threshold
@@ -1164,6 +1165,17 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
     // REP2: THE CHASE ENDS WITH THE CRIME. Whatever cleared it - a court's release, the town's edge, a fast travel, a
     // load - the crime's one charge (arrestFlow.js chargeOnce) and a slain watchman's refusal (court.js) end with it.
     if (!playerEntity.crimeCommitted) { playerEntity.chargedCrime = 0; playerEntity.watchSlain = false; }
+    // REP2-CHASE-END: the chase's two surfaces. The pursuing set is the live non-defenders in this pool - enlistDefender above turns a defender into the crime watch, so it never chases and never counts here. While at least one still holds the chase, surface its furthest-out give-up clock (the highest remaining GiveUpTimer) as a Wanted banner, its ticks to seconds off CLASSIC_UPDATE_INTERVAL; only when every one has run it out does the crime clear and Escaped! show. The transformed-lycanthrope trap holds: a beast can never hold a crime, so neither line fires for one.
+    {
+      const pursuing = guards.filter((g) => !g.dead && !g.defender);   // REP2: the chase's live watch - defenders excluded (enlistDefender above)
+      if (pursuing.length && pursuing.every((g) => g.ai.giveUpTimer <= 0)) {
+        setCrimeCommitted(playerEntity, 0);   // REP2-CHASE-END: everyone gave up - clear the charge and let the standing drift back on its own terms
+        setMidScreenText('Escaped!');   // REP2: the escape's line, DaggerfallHUD's one centred label
+      } else if (pursuing.length && playerEntity.crimeCommitted && !isTransformedLycanthrope(playerEntity)) {
+        const highest = Math.max(...pursuing.map((g) => g.ai.giveUpTimer));   // the furthest-out give-up clock, in ticks
+        setMidScreenText(`Wanted: ${Math.round(highest * CLASSIC_UPDATE_INTERVAL)}s`);   // REP2: the chase's remaining time, centred on DaggerfallHUD's label
+      }
+    }
     if (countdown > 0) {
       countdown -= dt;
       // PlayerEntity.cs:355-359 verbatim: the arrival is gated on
