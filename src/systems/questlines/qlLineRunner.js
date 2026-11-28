@@ -40,6 +40,22 @@ export function letterOnItsWay(quest) {
 const courierGive = (quest, a) => a.typeName === 'GivePc' && a.textId && !a.isComplete && quest.getItem?.(a.itemSymbol)?.itemName === 'letter';
 const hasCourier = (quest) => [...(quest?.tasks?.values?.() ?? [])].some((t) => t.actions?.some((a) => courierGive(quest, a)));
 
+export function retireDisabledLineQuests(machine) {
+  const retired = (quest) => {
+    const step = lineStepOf(quest.questName);
+    return !quest.questComplete && step && !lineContentOn(step.line);
+  };
+  for (let i = machine.questsToInvoke.length - 1; i >= 0; i--) {
+    const quest = machine.questsToInvoke[i];
+    if (!retired(quest)) continue;
+    machine.questsToInvoke.splice(i, 1);
+    machine.removeQuest(quest);
+  }
+  for (const quest of machine.quests.values()) {
+    if (retired(quest)) machine.removeQuest(quest);
+  }
+}
+
 /** @param {{ machine: any, ctx?: any, service?: any, nowMs?: () => number }} deps */
 export function createLineRunner({ machine, ctx = {}, service = null, nowMs = () => Date.now() }) {
   let lines = {};

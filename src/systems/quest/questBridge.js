@@ -38,6 +38,7 @@ import { questlineService, serviceReady } from './questlineHost.js';
 import { TITLE_TEXT } from '../../ui/playerBadge.js';
 import { announceHonour } from '../../ui/lootBanner.js';
 import { restackWeirKeys } from '../eliteGates/weirKey.js';
+import { retireDisabledLineQuests } from '../questlines/qlLineRunner.js';
 import { questlinesOn } from '../questlines/qlLaw.js';
 import { ladders as guildLadders } from '../questlines/qlLadders.js';
 import { activeMemberships } from '../../guilds/guilds.js';
@@ -652,6 +653,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
       lineOffers.reset();
       clearPendingOffer();
       machine.restoreSaveData(data.machine ?? { siteLinks: [], quests: [] });
+      retireDisabledLineQuests(machine);
       // Re-lay dungeon markers before anything mounts.
       if (isOnlinePage()) relayOnlineDungeons(machine, { carriesQuestItem: (item) => ctx.carriesQuestItem?.(item) ?? false });
       relayMovedLayouts(machine, { carriesQuestItem: (item) => ctx.carriesQuestItem?.(item) ?? false });

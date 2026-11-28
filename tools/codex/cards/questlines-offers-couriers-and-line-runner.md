@@ -44,7 +44,7 @@ tags:
 
 ## Opt-In Offers and Courier Pacing
 
-Questlines never auto-start. Eligible lines (`lineOpens`, which checks `opens.online` and `opens.account` for online and registered-account requirements) post offers at notice boards, quest givers, and the Quests tab. Disabled content blocks offers and stops the runner from scheduling further steps. Saved progress is retained. Step 1 launches only after the player accepts the offer (`taken: true`). Once a step finishes, the runner schedules the next step's courier letter (`GivePc`) after `STEP_GAP_S = 3600` game seconds measured from the last delivered letter (`lettered`), holding delivery whenever another letter is already in transit (`letterOnItsWay`).
+Questlines never auto-start. Eligible lines (`lineOpens`, which checks `opens.online` and `opens.account` for online and registered-account requirements) post offers at notice boards, quest givers, and the Quests tab. Disabled content blocks offers and stops the runner from scheduling further steps. Save restore retires unfinished disabled quests and queued letters while keeping completed history and line-level progress. Step 1 launches only after the player accepts the offer (`taken: true`). Once a step finishes, the runner schedules the next step's courier letter (`GivePc`) after `STEP_GAP_S = 3600` game seconds measured from the last delivered letter (`lettered`), holding delivery whenever another letter is already in transit (`letterOnItsWay`).
 
 ## Retries, Shelving, Party Lockout, and Acts Feed
 
