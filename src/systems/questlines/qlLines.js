@@ -1,4 +1,5 @@
 // @ts-check
+import { contentOn } from '../../mods/contentOff.js';
 import { t } from '../../ui/textManager.js';
 import { QL_SERVICE_LINES } from '../../net/questlineClaims.js';
 import { REVENANT_MIN_RENOWN } from '../../revenants/revenant.js';
@@ -9,7 +10,7 @@ import { REVENANT_MIN_RENOWN } from '../../revenants/revenant.js';
  * @typedef {{ level?: number, after?: string, online?: boolean, account?: boolean, event?: LineNeed }} LineOpens
  * @typedef {'board'|'magery'|'temple'|'tavern'} LinePost
  * @typedef {{ id: string, group: 'cycle'|'hour'|'coil'|'ketch'|'intro'|'festival', tier: number, post?: LinePost,
- *   title: () => string, lead: () => string, giver: () => string, opens: LineOpens, steps: ReadonlyArray<LineStep> }} Line
+ *   content?: Parameters<typeof contentOn>[0], title: () => string, lead: () => string, giver: () => string, opens: LineOpens, steps: ReadonlyArray<LineStep> }} Line
  */
 
 /** @param {Line} l @returns {Readonly<Line>} */
@@ -18,7 +19,7 @@ const line = (l) => Object.freeze({ ...l, opens: Object.freeze({ ...l.opens }), 
 // Each step's English title matches the DisplayName in its quest script.
 export const QL_LINES = Object.freeze([
   line({
-    id: 'burningDoors', group: 'cycle', tier: 3, post: 'magery',
+    id: 'burningDoors', content: 'dagonBreaches', group: 'cycle', tier: 3, post: 'magery',
     title: () => t('ql.line.burningDoors', 'The Burning Doors'),
     lead: () => t('ql.line.burningDoors.lead', 'Someone is opening Dagon’s Breaches on purpose. A Master Conjurer of the Mages Guild wants to know who, and how.'),
     giver: () => t('ql.line.burningDoors.giver', 'Ysolde Marnhel, Master Conjurer of the Mages Guild of Wayrest'),
@@ -32,7 +33,7 @@ export const QL_LINES = Object.freeze([
     ],
   }),
   line({
-    id: 'covensHoard', group: 'cycle', tier: 3, post: 'magery',
+    id: 'covensHoard', content: 'eliteDungeons', group: 'cycle', tier: 3, post: 'magery',
     title: () => t('ql.line.covensHoard', 'The Covens’ Hoard'),
     lead: () => t('ql.line.covensHoard.lead', 'Dagon’s covens hoard the Battlespire’s keys in the deep places. Their champions glow gold.'),
     giver: () => t('ql.line.covensHoard.giver', 'Ysolde Marnhel, Master Conjurer of the Mages Guild of Wayrest'),
@@ -44,7 +45,7 @@ export const QL_LINES = Object.freeze([
     ],
   }),
   line({
-    id: 'weirRoad', group: 'cycle', tier: 4, post: 'tavern',
+    id: 'weirRoad', content: 'eliteBreach', group: 'cycle', tier: 4, post: 'tavern',
     title: () => t('ql.line.weirRoad', 'The Weir Road'),
     lead: () => t('ql.line.weirRoad.lead', 'The Battlespire fell in 3E 398. One of its last class of Battlemages has never stopped living that year.'),
     giver: () => t('ql.line.weirRoad.giver', 'Corvane Tull, Battlemage of the Spire’s last class'),
@@ -57,7 +58,7 @@ export const QL_LINES = Object.freeze([
     ],
   }),
   line({
-    id: 'hourThatWasNot', group: 'hour', tier: 4, post: 'temple',
+    id: 'hourThatWasNot', content: 'abyssDungeons', group: 'hour', tier: 4, post: 'temple',
     title: () => t('ql.line.hourThatWasNot', 'The Hour That Was Not'),
     lead: () => t('ql.line.hourThatWasNot.lead', 'The priests of Akatosh feel a wound in time under the Bay, and brass where there should be stone.'),
     giver: () => t('ql.line.hourThatWasNot.giver', 'Prior Anselm Vey of the Order of the Hour'),
@@ -68,7 +69,7 @@ export const QL_LINES = Object.freeze([
     ],
   }),
   line({
-    id: 'skyKetch', group: 'ketch', tier: 4, post: 'tavern',
+    id: 'skyKetch', content: 'skyKetch', group: 'ketch', tier: 4, post: 'tavern',
     title: () => t('ql.line.skyKetch', 'The Sky-Ketch'),
     lead: () => t('ql.line.skyKetch.lead', 'Every ten hours a Rourken airship appears over Daggerfall. An antiquarian from Sentinel wants to know why.'),
     giver: () => t('ql.line.skyKetch.giver', 'Imrah Bel-Tavir, Antiquarian of Sentinel'),
@@ -81,7 +82,7 @@ export const QL_LINES = Object.freeze([
     ],
   }),
   line({
-    id: 'oldCoil', group: 'coil', tier: 3, post: 'tavern',
+    id: 'oldCoil', content: 'seaSerpent', group: 'coil', tier: 3, post: 'tavern',
     title: () => t('ql.line.oldCoil', 'The Old Coil'),
     lead: () => t('ql.line.oldCoil.lead', 'Sentinel’s sailors say the World-Skin was shed once, and that what was shed still swims.'),
     giver: () => t('ql.line.oldCoil.giver', 'Hamid al-Rasheen, a packet captain of Sentinel'),
@@ -93,7 +94,7 @@ export const QL_LINES = Object.freeze([
     ],
   }),
   line({
-    id: 'thirteenthFrostfall', group: 'festival', tier: 3,
+    id: 'thirteenthFrostfall', content: 'witchesFestival', group: 'festival', tier: 3,
     title: () => t('ql.line.thirteenthFrostfall', 'The Thirteenth of Frostfall'),
     lead: () => t('ql.line.thirteenthFrostfall.lead', 'At the Witches’ Festival the covens sing stars out of the sky. A witch of Glenmoril wants to know why.'),
     giver: () => t('ql.line.thirteenthFrostfall.giver', 'Morwen, a Wyrd Sister of Glenmoril'),
@@ -216,11 +217,15 @@ export const witnessOf = (line, index) => lineServiceOf(line)?.witness?.[index] 
 
 export const unmetNeeds = (l, index, probe) => (l.steps[index]?.needs ?? []).filter((n) => !(probe.need?.(n) ?? true));
 
+/** @param {Readonly<Line>} l */
+export const lineContentOn = (l) => !l.content || contentOn(l.content);
+
 /**
  * @param {Readonly<Line>} l
  * @param {LineProbe} probe
  */
 export function lineOpens(l, probe) {
+  if (!lineContentOn(l)) return false;
   const o = l.opens;
   if (o.online && !probe.online()) return false;
   if (o.account && !(probe.registered?.() ?? true)) return false;
