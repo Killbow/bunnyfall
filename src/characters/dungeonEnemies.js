@@ -3,6 +3,7 @@
 import { srand, randomRangeInclusive } from '../formats/dfRandom.js';
 import { ENCOUNTER_TABLES } from './encounterTables.js';
 import { encounterTable } from './encounterTableDoor.js';
+import { WERERAT, rollWererat } from './wererat.js';
 import { MOBILE_TYPES } from './mobileTypes.js';
 import { markerTooStrong, bandedPick } from './encounterLevel.js';
 import { ENEMY_BASICS } from './enemyBasics.js';
@@ -110,9 +111,13 @@ export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, d
       && (block.waterLevel === 10000 || block.waterLevel - 20 > marker.rawY)) {
       return;
     }
+    if (mobileType === MOBILE_TYPES.Rat && marker.actionByte !== PASSIVE_ACTION) {
+      const die = makeSlotRng(markerSpawnSeed(locationId, marker, blockIndex) ^ 0x7a44b6d1);
+      mobileType = rollWererat(mobileType, () => die(0, 10000) / 10000);
+    }
     // useGenderFlag is true only for fixed enemies: on random markers the flags byte is the slot.
-    let gender = 'unspecified';
-    if (fixed && mobileType > 43) {
+    let gender = mobileType === WERERAT ? 'female' : 'unspecified';
+    if (fixed && mobileType > 43 && mobileType !== WERERAT) {
       if ((marker.flags & GENDER_FEMALE_FLAG) === GENDER_FEMALE_FLAG) gender = 'female';
       if ((marker.flags & GENDER_MALE_FLAG) === GENDER_MALE_FLAG) gender = 'male';
     }
@@ -210,7 +215,8 @@ export function expandEliteEnemies(enemies, { copies = 3, offset = ELITE_COPY_OF
         x = cx; z = cz;
         break;
       }
-      out.push({ ...e, x, z, elite: true, eliteCopy: true });
+      const copy = e.mobileType === WERERAT ? { mobileType: MOBILE_TYPES.Rat, gender: 'unspecified' } : {};
+      out.push({ ...e, ...copy, x, z, elite: true, eliteCopy: true });
     }
   }
   return out;

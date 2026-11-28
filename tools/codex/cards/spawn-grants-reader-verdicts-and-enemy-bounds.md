@@ -20,6 +20,7 @@ related:
   - spawn-grants-overview
   - spawn-grants-signed-grant-and-dice
   - integrity-progression-seats-and-enemy-forge
+  - wererat-encounters
 invariants:
   - "Peer readers verify each grant signature against the Ed25519 public key from `GET /v1/relaykey`, then evaluate `grantRefusal` (sender, cell coverage via `coversCell`, expiry, and member index) and `grantMarksAllow`."
   - "Reader refusal codes come from `GRANT_READER_REFUSALS`; enforcement despawn reasons in `GRANT_STANDDOWN_REASONS` combine case-eligible refusal reasons with `ungranted` and apply only in `enforce` mode."
@@ -29,6 +30,7 @@ invariants:
 traps:
   - "If fetching `/v1/relaykey` fails, `src/net/grantHost.js` suspends grant verdicts and retries after `GRANT_KEY_RETRY_MS` (`5` minutes)."
   - "Encounter-class enemies cannot exceed the owner's signed level by more than `GRANT_LEVEL_SLACK` (`2`)."
+  - "The Wererat is valid for a table-based encounter or camp grant only where the climate tables contain Rat. Seeded encounter grants reproduce the replacement roll."
   - "Wire parsing in `src/net/wire.js` still enforces hard ceilings `FOE_HEALTH_MAX` (`100000`) and `FOE_LEVEL_MAX` (`100`)."
 dfu: []
 tags:

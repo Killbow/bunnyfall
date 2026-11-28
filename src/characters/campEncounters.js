@@ -1,3 +1,4 @@
+import { WERERAT, rollWererat } from './wererat.js';
 import { chooseRandomEnemy, resolveEncounterTableIndex, playerReading } from './encounters.js';
 import { encounterTable } from './encounterTableDoor.js';
 import { factionOf, SOLITARY_TYPES, NIGHT_ONLY_FACTIONS } from './mobileFactions.js';
@@ -109,6 +110,9 @@ export function rollGroupComposition(ctx, rolls) {
     mobileTypes.push(pool.length ? pool[Math.floor(rolls() * pool.length)] : seed);
   }
 
+  for (const [i, type] of mobileTypes.entries()) {
+    if (rollWererat(type, rolls) === WERERAT) { mobileTypes[i] = WERERAT; break; }
+  }
   return {
     kind, mobileTypes,
     spacing: kind === 'camp' ? CAMP_SPACING : PACK_SPACING,

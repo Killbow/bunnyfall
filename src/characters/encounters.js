@@ -1,6 +1,7 @@
 // Random encounters: PlayerEntity.IntermittentEnemySpawn and the RollRandomSpawn arms over the baked tables,
 // where tables 0-18 are by dungeon type, 19 underwater, 20-37 by climate, and 39-44 by building type.
 
+import { rollWererat } from './wererat.js';
 import { mobileTeamOf } from './enemyTargets.js';
 import { wouldBeSpawnedInClassic } from './enemyMotor.js';
 import { CLIMATES } from '../formats/mapsFile.js';
@@ -109,19 +110,19 @@ function intermittentEnemySpawnOnce(ctx, rolls) {
     if (ctx.inLocationRect) {
       if ((timeOfDay < 360 || timeOfDay > 1080) && rollLocationNight(rolls()) === 0) {
         const mobileType = chooseRandomEnemy({ ...ctx, isDay: false }, rolls);
-        if (mobileType !== -1) return { mobileType, ...SPAWNER_ARMS.locationNight };
+        if (mobileType !== -1) return { mobileType: rollWererat(mobileType, rolls), ...SPAWNER_ARMS.locationNight };
       }
       return null;
     }
     const day = timeOfDay >= 360 && timeOfDay <= 1080;
     if (day ? rollWildernessDay(rolls()) !== 0 : rollWildernessNight(rolls()) !== 0) return null;
     const mobileType = chooseRandomEnemy({ ...ctx, isDay: day }, rolls);
-    return mobileType === -1 ? null : { mobileType, ...SPAWNER_ARMS.wilderness };
+    return mobileType === -1 ? null : { mobileType: rollWererat(mobileType, rolls), ...SPAWNER_ARMS.wilderness };
   }
   if (ctx.inDungeon && ctx.isResting) {
     if (rollDungeon(ctx.enemyAlertActive, rolls()) === 0) {
       const mobileType = chooseRandomEnemy(ctx, rolls);
-      if (mobileType !== -1) return { mobileType, ...SPAWNER_ARMS.dungeonRest };
+      if (mobileType !== -1) return { mobileType: rollWererat(mobileType, rolls), ...SPAWNER_ARMS.dungeonRest };
     }
   }
   return null;
