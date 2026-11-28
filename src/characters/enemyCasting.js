@@ -9,6 +9,7 @@ import { silenceBlocksCast } from '../magic/mysticism.js';
 import { MIN_RANGED_DISTANCE, MAX_RANGED_DISTANCE } from './enemyAttack.js';
 import { MISSILE_SPEED, MISSILE_COLLIDER_RADIUS } from '../magic/spellcast.js';
 import { ARROW_ARM_LENGTH } from './weaponStates.js';
+import { WERERAT } from './wererat.js';
 import { bloodCentre as sparkleCentre } from '../combat/hitEffects.js';
 
 export { MIN_RANGED_DISTANCE, MAX_RANGED_DISTANCE };
@@ -47,6 +48,7 @@ export class EnemyCaster {
     this.rolls = rolls;
     this._classicTimer = 0;
     this.selectedSpell = null;
+    this.wereratCastTimer = 1.25;
   }
 
   canCastRangedSpell() { return this.selectedSpell !== null; }
@@ -60,6 +62,8 @@ export class EnemyCaster {
   update(dt, ai, attack, playerFeet, playerEntity) {
     const ent = this.entity;
     if (!ent.spells?.length) return null;
+    const wererat = ent.mobileType === WERERAT;
+    if (wererat && ai.detected) this.wereratCastTimer -= dt;
     const dist = ai._dist;
     const idle = attack.machine.state === 'Idle';
     const canAct = ai.canAct !== false;
@@ -79,7 +83,7 @@ export class EnemyCaster {
     let decision = null;
     while (this._classicTimer >= CLASSIC_UPDATE_INTERVAL) {
       this._classicTimer -= CLASSIC_UPDATE_INTERVAL;
-      const inBand = dist > MIN_RANGED_DISTANCE && dist < MAX_RANGED_DISTANCE;
+      const inBand = wererat ? dist > 3.5 && dist < 18 : dist > MIN_RANGED_DISTANCE && dist < MAX_RANGED_DISTANCE;
       if (!canAct || ai.giveUpTimer <= 0 || !inBand || !ai.inSight || !ai.detected
           || attack.rangedAttack) { this.selectedSpell = null; continue; }
       this.selectedSpell = pickRangedSpell(ent, playerEntity, this.rolls);
@@ -87,7 +91,10 @@ export class EnemyCaster {
       if (decision || !this.selectedSpell) continue;
       if (!idle || !withinYaw(ai.yaw, dx, dz, SPELL_YAW_DEG)) continue;
       if (ai._tacShoot === false) continue;
-      if (this.rolls() >= RANGED_SPELL_CHANCE) continue;
+      if (wererat) {
+        if (this.wereratCastTimer > 0 || silenceBlocksCast(ent)) continue;
+        this.wereratCastTimer = 4;
+      } else if (this.rolls() >= RANGED_SPELL_CHANCE) continue;
       decision = { spell: this.selectedSpell, touch: false };
       ai._tacShot = (ai._tacShot ?? 0) + 1;
     }

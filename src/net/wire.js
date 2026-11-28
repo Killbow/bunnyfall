@@ -1382,7 +1382,8 @@ export function validFoeRecord(r) {
   if (!Number.isInteger(r.i) || r.i < 0 || r.i > FOE_SEQ_MAX) return null;
   const out = { i: r.i };
   if (r.t !== undefined) { if (!Number.isInteger(r.t) || r.t < 0 || r.t > FOE_TYPE_MAX) return null; out.t = r.t; }
-  for (const k of ['x', 'd', 'm', 'z', 'bw', 'rl', 'cth']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js); BOSS-TRAITS: `bw` wrathful; RAID5: `rl` a raid's leader
+  // wrc is the Wererat's spent call; sm marks a summoned body.
+  for (const k of ['x', 'd', 'm', 'z', 'bw', 'rl', 'cth', 'wrc', 'sm']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js); BOSS-TRAITS: `bw` wrathful; RAID5: `rl` a raid's leader
   if (r.cwa !== undefined) { if (!intIn(r.cwa, 1, 4)) return null; out.cwa = r.cwa; }
   if (r.crs !== undefined) { if (!intIn(r.crs, 0, 24)) return null; out.crs = r.crs; }
   if (r.bt !== undefined) { if (!Number.isInteger(r.bt) || r.bt < 0 || r.bt > FOE_TRAITS_MAX) return null; out.bt = r.bt; }   // BOSS-TRAITS: its traits, a mask (systems/bossTraits.js)
@@ -1584,7 +1585,7 @@ export function validSharedFoe(sf) {
     if (typeof sf[k] !== 'string' || sf[k].length > TEAM_NAME_MAX) return null;
     out[k] = sf[k];
   }
-  for (const k of ['dead', 'hostile', 'encountered', 'wabbajackActive', 'specialTransformationCompleted']) if (sf[k] !== undefined) out[k] = !!sf[k];
+  for (const k of ['dead', 'hostile', 'encountered', 'wabbajackActive', 'specialTransformationCompleted', 'wereratCalled', 'summoned']) if (sf[k] !== undefined) out[k] = !!sf[k];
   // AUDIT DEX D3 (world234, grown in place as world231): a body a mod's corpse prefab destroyed - 1 risen, 2 burnt (validFoeRecord's `bg`, the stream's
   // word) - kept by the room's memory too, so an arrival lays no body for a troll the room saw rise or burn (a dead record's alone)
   if (sf.bg !== undefined) { if ((sf.bg !== 1 && sf.bg !== 2) || !sf.dead) return null; out.bg = sf.bg; }

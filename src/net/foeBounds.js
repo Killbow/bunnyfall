@@ -1,4 +1,5 @@
 // @ts-check
+import { WERERAT, WERERAT_LEVEL, WERERAT_MAX_HEALTH } from '../characters/wererat.js';
 import { cromwarkProfile, cromwarkHealth } from '../world/wild/cromwarkRoster.js';
 // FOE-BOUNDS (2026-10-19, Mac: a hand-off spec, "LATTY: REJECT AND REMOVE INVALID ENEMY HANDOFFS; DO NOT RESCALE", then
 // "Spec + B + A" and "The game's own code"; bible/11-Multiplayer/Spawn-Grants.md section 19): THE MOST HEALTH A STREAMED
@@ -86,6 +87,7 @@ export const FOE_BOUND_ROWS = Object.freeze(new Map([
   [28, [154, 19, 19]], [29, [146, 19, 19]], [30, [200, 20, 20]], [31, [285, 21, 21]], [32, [200, 20, 20]],
   [33, [210, 21, 21]], [34, [146, 18, 18]], [35, [130, 21, 16]], [36, [155, 21, 16]], [37, [300, 16, 16]],
   [38, [130, 21, 21]], [40, [250, 21, 16]], [41, [90, 16, 16]], [42, [74, 16, 16]],
+  [WERERAT, [WERERAT_MAX_HEALTH, WERERAT_LEVEL, WERERAT_LEVEL]],
 ]));
 
 const isClass = (t) => t >= 128 && t <= 146;

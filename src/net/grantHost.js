@@ -43,6 +43,8 @@ import { isCellRoom, mapPixelOfWire } from './wire.js';
 import { staffBossBound } from '../worldEvents/staffEvents.js';   // BOSS-BOUND: a staff event's mini boss, past a plain elite's bound
 import { foeStatsRefusal } from './foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have
 import { CROMWARK_WARDKEEPER } from '../world/wild/cromwarkWards.js';
+import { MOBILE_TYPES } from '../characters/mobileTypes.js';
+import { WERERAT, rollWererat } from '../characters/wererat.js';
 import { cromwarkSpecies, cromwarkSpeciesInRing } from '../world/wild/cromwarkRoster.js';
 import { CROMWARK_ON } from '../world/wild/cromwark.js';
 import { wildHere, wildMask, wildRingAt, WILD_NEAR_PX } from '../world/wildZone.js';
@@ -95,7 +97,7 @@ export function grantSpecies(gr, i, climate, inRect) {
   const dice = grantDice(gr.s, i).species;
   const normal = chooseRandomEnemy({ climateIndex: climate, inLocationRect: inRect, isDay: !isNight(gr.m), playerLevel: gr.l > 0 ? gr.l : 1 }, dice);
   const ring = CROMWARK_ON && gr.p ? wildRingAt(gr.p[0], gr.p[1], wildMask()) : 0;
-  return cromwarkSpecies(normal, ring, dice);
+  return rollWererat(cromwarkSpecies(normal, ring, dice), dice);
 }
 
 const _speciesOf = new Map();
@@ -109,6 +111,7 @@ export function grantSpeciesOf(c) {
   const tables = [{ inLocationRect: true, isDay: false }, { inLocationRect: false, isDay: true }, { inLocationRect: false, isDay: false }]
     .map((o) => resolveEncounterTableIndex({ climateIndex: c, ...o })).filter((i) => i != null);
   const set = tables.length ? new Set(tables.flatMap((i) => encounterTableChoices(/** @type {number} */ (i)).flat())) : null;   // DEX3: every table any machine's mod may have picked
+  if (set?.has(MOBILE_TYPES.Rat)) set.add(WERERAT);
   _speciesOf.set(key, set);
   return set;
 }

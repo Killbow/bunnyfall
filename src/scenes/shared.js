@@ -5,6 +5,7 @@
 // feature can never land in one host and miss its three siblings -
 // the shape that has recurred at every audit since 17h.
 
+import { installWererat } from '../characters/wereratInstall.js';
 import { installCromwarkRoster } from '../world/wild/cromwarkInstall.js';
 import { installSifrit } from '../systems/sifrit/sifritInstall.js';   // SIFRIT: a custom enemy of Bunnyfall's own
 import { stepAsideLoading, syncLoading } from '../ui/loadingScreen.js';   // LOAD1: a full-screen film's hold takes the loading screen aside; a claimed loop lets its hold go
@@ -1444,6 +1445,7 @@ export function ensureAudio(fetch = fetchBytes) {
   installRoleplayRealismItems();
   installRoleplayRealism();   // RR1: the formula overrides, the guild classes, the hooks - once, in InitMod's order   // RRI1: the fourteen rows and the twenty patches before anything mints, the 280 sprites on the door
   installCromwarkRoster();
+  installWererat();
   installSifrit();   // SIFRIT: the Forbidden One's row, career, name and picture - before the Expansion's, her id past its own
   installEnemyExpansion();   // DEX1: BestiaryMod.Start - after every Init above (RR's enemy appearance among them), as DFU runs a MonoBehaviour's Start
   // AUDIT VE R2: the texture store's ONE registration (dataSource.js registerTextureStore) - the loose pack, Seasons of

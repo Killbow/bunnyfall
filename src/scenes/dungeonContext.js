@@ -326,7 +326,9 @@ import { createPopulationLane } from '../characters/npcBodies.js'; import { pers
 import { raiseEnemyDeath, playRareDrop, pileBody, sayEnemyDied, corpseEntityName, mintCorpseMarker, corpseTextureOf } from '../characters/corpseMarker.js';
 import { createDungeonCorpsePrefabs } from '../characters/corpsePrefabHost.js';   // DEX5 / AUDIT DEX D11: a mod's corpse prefab - the dungeon's reach   // UL1: OnEnemyDeath; LR3: the drop chime; LOOT-STACK: a body as the loot window's tab; LOOT7-CHECK DUNGEON-DIED: the kill notice; L10N3e: a body's name as shown
 import { egFindStruck, egFindKill } from '../systems/eliteGates/egFind.js';   // EG-E3: the dungeon's find - a joiner's kill, asked by the joiner; PARTY-LOOT: a room's body's kill
-import { rollCorpseKit, capFoeLoot, summonedWord, summonedRecord, markSummoned } from '../items/foeLootCap.js';   // KIT-ROLL: a foe's kit, laddered at its death by every body door; AUDIT 625 L5: a copy's cap; RPT1026-PROGRESS: and a summon's puppet bare on every machine
+import { WERERAT } from '../characters/wererat.js';
+import { callWereratRats } from '../characters/wereratSummon.js';
+import { summonedBody, rollCorpseKit, capFoeLoot, summonedWord, summonedRecord, markSummoned } from '../items/foeLootCap.js';   // KIT-ROLL: a foe's kit, laddered at its death by every body door; AUDIT 625 L5: a copy's cap; RPT1026-PROGRESS: and a summon's puppet bare on every machine
 import { dropFoeCard } from '../cards/cardSources.js';   // AUDIT CARDS-6 A3: a joiner's copy of a body draws for its own card
 import { FOES_STALE_MS, FOE_LEVEL_MAX, CELL_LOOSE_PUPPETS, sharedClassicMinutes, hitClassField, hitClassOf } from '../net/wire.js';   // TELL8: a blow's class on a hit   // SEARCH1: a room's search stamp, read as the world minute it was searched at   // AUDIT RENOWN1 GAME-3: the stream's bound on a class foe's level; SUMMON-SYNC: an owner's loose stands a reader stands, the cell's allowance
 import { grantKindOf } from '../net/grantLaw.js';   // GRANT4: the own lane's stands on their grants (bible/11-Multiplayer/Spawn-Grants.md section 14)
@@ -5217,7 +5219,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // AUDIT WORLD6b-iii(c) C8: a killing overshoot streamed a NEGATIVE health (WORLD2's bound) onto every joiner's puppet
     // AUDIT ONCRASH1 B4a: and the SENDER obeys the door the reader now applies - `h` is clamped to FOE_HEALTH_MAX as
     // the exterior twin has clamped it since WORLD6b, because an unclamped one would have its whole record refused.
-    const r = { i, t: f.mobileType, f: [q2(f.ai.feet[0]), q2(f.ai.feet[1]), q2(f.ai.feet[2])], y: q3(f.ai.yaw), h: Number.isFinite(f.entity.health) ? Math.max(0, Math.min(FOE_HEALTH_MAX, f.entity.health)) : 0, d: f.dead ? 1 : 0, a: f._atkA | 0, m: f.ai.moving ? 1 : 0, g, c: f._castN | 0, s: f._castIdx | 0, ...(f.gender === 'female' ? { x: 1 } : {}) }; if (f.dead && typeof f._killedBy === 'string' && performance.now() - (f._killedAt ?? -Infinity) <= KILLED_BY_MS) r.v = f._killedBy;   // t: the species (AUDIT WORLD2 B5); v: AUDIT SET P-M3 (for KILLED_BY_MS - AUDIT FINAL F7), below; k: AUDIT SETS M1, the host's maximum health
+    const r = { ...(f.entity.wereratCalled ? { wrc: 1 } : {}), i, t: f.mobileType, f: [q2(f.ai.feet[0]), q2(f.ai.feet[1]), q2(f.ai.feet[2])], y: q3(f.ai.yaw), h: Number.isFinite(f.entity.health) ? Math.max(0, Math.min(FOE_HEALTH_MAX, f.entity.health)) : 0, d: f.dead ? 1 : 0, a: f._atkA | 0, m: f.ai.moving ? 1 : 0, g, c: f._castN | 0, s: f._castIdx | 0, ...(f.gender === 'female' ? { x: 1 } : {}) }; if (f.dead && typeof f._killedBy === 'string' && performance.now() - (f._killedAt ?? -Infinity) <= KILLED_BY_MS) r.v = f._killedBy;   // t: the species (AUDIT WORLD2 B5); v: AUDIT SET P-M3 (for KILLED_BY_MS - AUDIT FINAL F7), below; k: AUDIT SETS M1, the host's maximum health
     // AUDIT RENOWN1 GAME-3: a CLASS foe's level, the exterior stream's `l` (AUDIT WORLD6b-ii B2) - every client builds
     // the layout's class foes at ITS OWN level, so a joiner's copy of my level-3 knight was a level-30 knight on a
     // level-30 joiner's screen, and paid it 300 Renown XP for the kill that paid me 30. A monster's level is its
@@ -5841,6 +5843,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (grants?.()?.statsRefused?.(f._ownFrom ?? _foesFrom, { ...r, t: r.t ?? f.mobileType, l: r.l ?? f.streamedLevel }, { lane: 'dungeon' })) return;   // FOE-BOUNDS (section 19): a host's word no builder could give is not applied - my copy stands as it was, never rescaled
     if (f._mwWire) applyWireLook(f, r);   // AUDIT MW-NPC II K3: a puppet's owner's seed (a layout copy's is its layout point's, every machine's)
     const p = f._pup ?? (f._pup = { feet: [f.ai.feet[0], f.ai.feet[1], f.ai.feet[2]], yaw: f.ai.yaw, moving: false, hurt: false, hurtUntil: 0, strike: null, a: null, target: null, c: null, cast: null });
+    if (r.wrc === 1 && f.mobileType === WERERAT) f.entity.wereratCalled = true;
     if (typeof r.g === 'string') p.target = r.g;   // WORLD3: whose blow this puppet's is
     if (r.d !== 1) f._fightN = r.n ?? 1;   // AUDIT PSCALE1: the host's count of who fights it (a record without one: one). SIGIL1: a LIVE record's - a body's carries none, and the fight it died in was the last live count (its Renown bonus, its sigils)
     if (r.l !== undefined && isClassEnemyId(f.mobileType)) f.streamedLevel = r.l;   // AUDIT RENOWN1 GAME-3: the host's class foe's level - what its kill is worth (net/renownTracker.js renownFoeLevel)
@@ -6448,6 +6451,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     return {
       foes: foes.filter((f) => f._ownFrom == null && f.companion == null).map((f) => ({   // CREW-COMPANIONS: a companion is the party's (navalHost's save), never the room's - he would stand twice on a load   // QUEST-PARTY phase 3c: a party member's quest foe is its owner's, never this save's
         health: f.entity.health, dead: !!f.dead,
+        ...(f.entity.wereratCalled ? { wereratCalled: true } : {}),
+        ...(f.entity.summoned ? { summoned: true } : {}),
         died: f.dead && Number.isFinite(f._diedAt) ? f._diedAt : null,   // WORLD8: when it fell, the relay's clock - the hour's respawn reads it
         ...(f.abyssDestroyed ? { abyssDestroyed: true } : {}),   // AUDIT OH-F B1: Object.Destroy'd - in DFU's save not at all
         ...(f.dead && (f.escaped || f.executed || f._swornAway) ? { noBody: true } : {}),   // REVENANT-FATE (the 2026-10-02 audit): fled, burnt away or sworn - gone with no body, so a load lays none
@@ -6523,6 +6528,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   /** One saved foe record onto its live foe (applyWorld's per-foe body; WORLD3: and onto a foe rebuilt for it). */
   function patchFoe(f, sf, wire = false) {
     f.entity.health = sf.health;
+    if (f.mobileType === WERERAT && (!wire || sf.wereratCalled !== undefined)) f.entity.wereratCalled = sf.wereratCalled === true;
+    if (sf.summoned === true) summonedBody(f);
     // AUDIT WORLD4 B3: a foe's item list off the WIRE is a container's list by another name - `corpse:<i>` reads
     // exactly this array - and it landed here with no projection at all, so the clamp WORLD4 put on the live frame
     // was bypassed for half its own vocabulary, and one malformed record threw out of the socket handler after
@@ -7849,6 +7856,10 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       applyEnemyMotorEffectFlags(f.ai, f.entity);   // A5: Levitate.SetEnemyMotor's IsLevitating, folded from the effect's presence
       f.ai.update(foeFrameDt(dt), _pf, _armed(f, _senses, _roomFoe), _fParalyzed, _fPaused);   // E2 senses + pursuit; P13: the stealth context; MT-iv: the target machine; AUDIT WORLD3 D1: the peers only for a foe the stream carries
       _tgt = _targetFeet(f);   // MT-iv: whatever it SELECTED
+      if (f.mobileType === WERERAT && !_fParalyzed && !_fPaused && _tgt) callWereratRats(f, {
+        collider, isOccupied: entityOccupancy((g) => g.ai?.feet, () => foes, _pf),
+        spawn: spawnLooseFoe, say: (line) => hudText.add(line), targetFeet: _tgt,
+      });
       // REVENANT-DUNGEON (systems/revenant/revenant.js revenantFleeStep - the open world's own law): a special foe MINE ALONE (offline,
       // or past the room's shared run - a room's layout foe vanishing on one client would leave it standing on the rest)
       // may run; running it aims at nothing (no blow, no cast; the walk below still draws it); out of reach it has

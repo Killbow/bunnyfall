@@ -14,6 +14,9 @@
 // 13 fixed-list casters do not cast up here yet.
 
 import { subdueFoe } from '../scenes/vampire/thrallCapture.js';   // BUNNYFALL VAMPIRE EXPANSION, PHASE 2: subdue in Steal mode
+import { MOBILE_TYPES } from './mobileTypes.js';
+import { WERERAT } from './wererat.js';
+import { callWereratRats } from './wereratSummon.js';
 import { cromwarkProfile, cromwarkSpecies, makeCromwarkEntity, cromwarkTitanheart, cromwarkTitanDamage, CROMWARK_TITAN_SIZE, CROMWARK_TITAN_GLOW } from '../world/wild/cromwarkRoster.js';
 import { cromwarkBlightEliteChance, cromwarkBlightLoot } from '../world/wild/cromwarkBlight.js';
 import { CROMWARK_WARDKEEPER, CROMWARK_WARD_HP, CROMWARK_WARD_GLOW, CROMWARK_WARDED_GLOW, cromwarkWardSource, cromwarkWardDamage } from '../world/wild/cromwarkWards.js';
@@ -90,7 +93,7 @@ import { WEAPON_REACH } from '../combat/playerWeapon.js';   // AUDIT WATCH1 B2: 
 import { createWeapon, bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all   // AUDIT WORLD6b-ii B2: a puppet's weapon is its owner's word, rebuilt from the descriptor   // AUDIT WORLD6b B3/C2: a cell's record projected and its puppets capped, the wire's law
 import { mintCorpseMarker, corpseTextureOf, tickCorpseMarkers, playBodyFall, playRareDrop, corpseLootTargets, physicalCorpseSources, corpseEntryFor, corpseContents, openCorpseLoot, pileBody, sayEnemyDied, raiseEnemyDeath, corpseEntityName } from './corpseMarker.js';
 import { createStreetCorpsePrefabs } from './corpsePrefabHost.js';   // DEX5 / AUDIT DEX D11: a mod's corpse prefab - the pool's reach
-import { rollCorpseKit, savedSummon, restoredSummon } from '../items/foeLootCap.js';   // KIT-ROLL: a plain foe's kit, laddered at its death by every body door; AUDIT RPT1026 F4: a summon's mark through a save
+import { rollCorpseKit, savedSummon, restoredSummon, markSummoned } from '../items/foeLootCap.js';   // KIT-ROLL: a plain foe's kit, laddered at its death by every body door; AUDIT RPT1026 F4: a summon's mark through a save
 import { floorLanding } from '../player/enterExit.js';   // REVENANT-FATE (the 2026-10-02 audit): a flyer kneels, and its pile lies, on the ground below
 import { renownFoeStruck, renownFoeDied } from '../net/renownTracker.js';   // RENOWN1: a foe the player fought pays its Renown XP when it dies, by any hand
 import { reportPlayerKill } from '../player/playerKills.js';   // SET2: my own kills, told
@@ -1828,6 +1831,10 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // actively targeting player will continue to raise alert").
       if (isLocalPlayerTarget(f.ai.target) && f.ai.inSight && f.ai.detected) setEnemyAlert(playerEntity, true, currentMinute());   // WORLD6b-ii: mine, not a peer's
       f.mobile.frameSpeedDivisor = Math.max(1, Math.trunc((f.entity.stats?.speed ?? 50) / Math.max(8, liveStat(f.entity, 'speed'))));
+      if (f.mobileType === WERERAT && !_fParalyzed && !_fPaused && _tgt) callWereratRats(f, {
+        collider, isOccupied: entityOccupancy((g) => g.ai?.feet, () => foes, playerFeet), say, targetFeet: _tgt,
+        spawn: (type, feet) => spawnFoe(type, feet, { feetGiven: true, loose: true, transient: true, grantKind: 'loose', eliteFoe: false, champion: null }),
+      });
       if (!cromwarkProfile(f.mobileType) && !_fParalyzed && _tgt) f.attack.update(foeFrameDt(dt), f.ai, _tgt, _fPaused);   // MT-ii: at the SELECTED target (:199-209)   // AUDIT (pre-merge) P5: FOE-CATCHUP's step - the motor's clock, not the frame's (a 1 s hitch no longer swings at once)
       // X3-slice: the S16 casting decision rides beside the attack
       // machine, the dungeon's exact shape - the decision casts
@@ -2406,6 +2413,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         // the player, with MeleeAttackFriendlyProtection gone with it.
         team: f.entity.team, mobileTeam: f.entity.mobileTeam,
         eliteFoe: !!f.entity.eliteFoe,   // a saved foe is never re-rolled on load
+        ...(f.entity.wereratCalled ? { wereratCalled: true } : {}),
         ...(bossTraitsOf(f.entity).length ? { traits: bossTraitMask(f.entity.bossTraits), ...(f.entity.bossWard ? { ward: bossWardShare(f.entity) } : {}), ...(f.entity.bossWrath ? { wrath: true } : {}) } : {}),   // AUDIT WORLD-EVENTS L2-9: its traits, as it carries them - never drawn again on load (nor its ward refilled)
         champion: f.entity.champion ?? null,   // LOOT7: a champion is saved one, and comes back one - never rolled again
         // AUDIT 63 F29: WabbajackActive (:124, restored :172) - the
@@ -2465,7 +2473,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // SEALED-SAVE (FIELD BUGS 2026-10-05c): a quest foe the host stands elsewhere (its marker moved since the save)
       const feet = (questBehaviour && restandQuestFoe?.(questBehaviour, [lx, sf.y + yOffset, lz])) || [lx, sf.y + yOffset, lz];
       spawnFoe(sf.mobileType, feet, { gender: sf.gender, feetGiven: true, questBehaviour, placed: !!sf.placed, eliteFoe: sf.eliteFoe === true, titanheart: sf.titanheart === true, reachSlot: sf.reachSlot ?? null, wardRole: sf.wardRole ?? 0, champion: sf.champion ? championIndex(sf.champion) : null }).then((f) => {   // REVIEW 2026-09-05: the snapshot holds FEET - a flyer must not take the centre drop twice
-        if (!restoredSummon(f, sf)) return;   // AUDIT RPT1026 F4: and loaded one - bare, its death's finds emptied (foeLootCap.js restoredSummon)
+        if (!restoredSummon(f, sf)) return;
+        if (f.mobileType === WERERAT) f.entity.wereratCalled = sf.wereratCalled === true;   // AUDIT RPT1026 F4: and loaded one - bare, its death's finds emptied (foeLootCap.js restoredSummon)
         if (typeof sf.site === 'string') f.site = sf.site;
         if (f.wardRole && Number.isInteger(sf.campId)) {
           if (!restoredWardCamps.has(sf.campId)) restoredWardCamps.set(sf.campId, newCampId());
@@ -2626,6 +2635,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (Number.isInteger(f.reachSlot) && f.site) r.crs = f.reachSlot;
       if (f.entity?.titanheart) r.cth = 1;
       if (f.wardRole) r.cwa = f.wardRole;
+      if (f.entity.wereratCalled) r.wrc = 1;
+      if (f.entity.summoned && f.mobileType === MOBILE_TYPES.Rat) r.sm = 1;
       if (!onWatch && Number.isInteger(f.entity?.zoneGiant)) r.gg = f.entity.zoneGiant;   // GREATER-GIANT: which of the zone's Greater Giants it is, to every puppet
       if (!onWatch && f.entity?.champion) r.cp = championIndex(f.entity.champion);   // LOOT7: its trait rides to every puppet, which stands as the same champion
       if (f._grant && !f._grant._dead) r.gr = [f._grant.g, f._grantI];   // GRANT3: its grant and its member - the frame's `gs` carries the grant (GRANT4: a watchman's too)
@@ -2972,6 +2983,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     if (f.site && Number.isInteger(r.crs)) f.reachSlot = r.crs;
     if (r.cth === 1 && f.entity.eliteFoe && cromwarkProfile(f.mobileType)) f.entity.titanheart = true;
     if (f.entity.eliteFoe && r.rl === 1) promoteRaidLeader(f.entity, { own: false, name: (f._pupRaid ? null : huntMarkSeen(f.mobileType, r.bt, wallMsForClassicMinutes(worldMinutes()))?.title) ?? raidLeaderNameOf(f.mobileType) });   // RAID5: its owner's raid leader - its size, its name; HUNTERS-MARK-II: a leader no raid tags is a hunter's named mark, by the week's name (the event clock's)
+    if (r.wrc === 1 && f.mobileType === WERERAT) f.entity.wereratCalled = true;
+    if (r.sm === 1 && f.mobileType === MOBILE_TYPES.Rat) markSummoned(f, r);
     if (f.entity.eliteFoe && r.bt) { giveBossTraits(f.entity, bossTraitsOfMask(r.bt, r.rl === 1 ? 2 : 1), { own: false }); if (r.bw === 1 && markBossWrath(f.entity)) say?.(bossWrathLine(foeTitle(f.entity, enemyDisplayName(f.mobileType)) ?? '')); }   // BOSS-TRAITS: its owner's traits, on an elite alone (a mask on a plain foe stands nothing); AUDIT WORLD-EVENTS L2-11: no more than an elite carries (two a raid's leader), never an exclusive pair; L2-7: its wrath said here too
     if (r.bv !== undefined && hasBossTrait(f.entity, 'warded')) { if (f.entity.bossWardShown > 0 && r.bv === 0) say?.(bossWardBrokeLine(foeTitle(f.entity, enemyDisplayName(f.mobileType)) ?? '')); f.entity.bossWardShown = r.bv / 100; }   // AUDIT WORLD-EVENTS L2-7: its ward as its owner holds it - drawn, and its break said, here too
     f._pupYield = r.yd === 1;   // REVENANT-FATE: its owner's revenant kneels...
